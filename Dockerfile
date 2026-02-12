@@ -59,6 +59,7 @@ RUN set -eux; \
     ca-certificates \
     curl \
     dumb-init \
+    su-exec \
     icu-libs \
     libgcc \
     libintl \
@@ -83,7 +84,9 @@ WORKDIR /app
 COPY --from=build --chown=jacred:jacred --chmod=550 /dist/JacRed /app/JacRed
 COPY --from=build --chown=jacred:jacred --chmod=550 /dist/wwwroot /app/wwwroot
 COPY --from=build --chown=jacred:jacred --chmod=550 /dist/Data /app/Data
+COPY --from=build --chown=jacred:jacred --chmod=550 /dist/Data /app/defaults
 COPY --chown=jacred:jacred --chmod=550 entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh
 
 # Environment variables
 ENV JACRED_VERSION="${JACRED_VERSION}" \
@@ -97,7 +100,7 @@ ENV JACRED_VERSION="${JACRED_VERSION}" \
     TZ=UTC \
     UMASK=0027
 
-USER jacred:jacred
+
 
 VOLUME ["/app/Data", "/app/config"]
 

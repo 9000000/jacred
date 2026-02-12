@@ -401,3 +401,4 @@ publish/*
 
 # Temporary files
 temp/*
+.agent/

@@ -133,7 +133,16 @@ namespace JacRed
                         LogSafeConfig(isReload ? "config (reload)" : "config (start)", path);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR loading config: {ex.Message}");
+                    Console.WriteLine(ex.StackTrace);
+                    if (cacheconf.Item1 == null)
+                    {
+                        Console.WriteLine("[FALLBACK] Using default configuration");
+                        cacheconf.Item1 = new AppInit();
+                    }
+                }
             }
 
             updateConf();
