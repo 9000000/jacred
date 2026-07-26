@@ -194,7 +194,7 @@ onUnmounted(() => {
       </a>
       <header
         ref="headerRef"
-        class="jr-glass-nav sticky top-0 z-40 border-b"
+        class="jr-glass-nav sticky top-0 z-40"
         style="padding-top: env(safe-area-inset-top)"
       >
         <div

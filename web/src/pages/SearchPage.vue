@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { useDebounceFn, useMediaQuery, useOnline, until } from '@vueuse/core'
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loader2, Search, WifiOff, X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import VirtualList from '@/components/VirtualList.vue'
 import SearchFilters from '@/components/search/SearchFilters.vue'
 import TorrentCard from '@/components/search/TorrentCard.vue'
 import TorrentResultSkeleton from '@/components/search/TorrentResultSkeleton.vue'
@@ -15,12 +14,11 @@ import {
   clearRecentSearches,
   getRecentSearches,
 } from '@/lib/recent-searches'
-import { resultEstimateSize, resultGap } from '@/lib/result-layout'
+import { resultGap } from '@/lib/result-layout'
 import {
   torrentKey,
   type SearchFilters as SearchFilterState,
   type SortValue,
-  type TorrentItem,
 } from '@/lib/torrents'
 
 defineOptions({ name: 'SearchPage' })
@@ -56,24 +54,16 @@ const {
   clearSearch,
 } = useTorrents()
 
-const listRef = ref<{
-  syncScrollMargin?: (forceMeasure?: boolean, compensateScroll?: boolean) => void
-  observeChrome?: () => void
-  getFirstVisibleIndex?: () => number
-  scrollToIndex?: (
-    index: number,
-    align?: 'start' | 'center' | 'end' | 'auto',
-  ) => void
-} | null>(null)
+const listRef = ref<HTMLElement | null>(null)
 const recent = ref(getRecentSearches())
 const isSmUp = useMediaQuery('(min-width: 640px)')
 const isOnline = useOnline()
 
-const estimateSize = computed(() =>
-  resultEstimateSize(listView.value, isSmUp.value),
-)
 const listGap = computed(() => resultGap(true, isSmUp.value))
 const cardGap = computed(() => resultGap(false, isSmUp.value))
+const resultsGap = computed(() =>
+  listView.value ? listGap.value : cardGap.value,
+)
 
 const hasResults = computed(
   () => !!currentQuery.value && visibleItems.value.length > 0,
@@ -99,10 +89,6 @@ const showNothingFound = computed(
 let settleToken = 0
 let viewAnchorToken = 0
 
-function itemKey(_index: number, item: TorrentItem) {
-  return torrentKey(item)
-}
-
 /** Pin viewport to document top so results start under the search dock. */
 function pinResultsStart() {
   window.scrollTo(0, 0)
@@ -110,7 +96,36 @@ function pinResultsStart() {
   document.body.scrollTop = 0
 }
 
-/** One intentional pin + margin sync after a user-initiated search settles. */
+function dockBottom(): number {
+  const dock = document.querySelector('.jr-search-dock')
+  if (!(dock instanceof HTMLElement)) return 0
+  return Math.max(0, dock.getBoundingClientRect().bottom)
+}
+
+/** Index of first result card below the sticky dock. */
+function getFirstVisibleIndex(): number {
+  const root = listRef.value
+  if (!root) return 0
+  const cards = root.querySelectorAll('[data-result-card]')
+  const fold = dockBottom()
+  for (let i = 0; i < cards.length; i++) {
+    const el = cards[i]
+    if (el && el.getBoundingClientRect().bottom > fold) return i
+  }
+  return 0
+}
+
+/** Place card `index` just under the sticky dock. */
+function scrollToResultIndex(index: number) {
+  const root = listRef.value
+  if (!root) return
+  const cards = root.querySelectorAll('[data-result-card]')
+  const el = cards[Math.min(Math.max(0, index), cards.length - 1)]
+  if (!(el instanceof HTMLElement)) return
+  const top = el.getBoundingClientRect().top + window.scrollY
+  window.scrollTo(0, Math.max(0, top - dockBottom()))
+}
+
 async function settleListLayout() {
   const token = ++settleToken
   pinResultsStart()
@@ -119,12 +134,9 @@ async function settleListLayout() {
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve())
   })
-  if (token !== settleToken) return
-  listRef.value?.observeChrome?.()
-  listRef.value?.syncScrollMargin?.(true)
 }
 
-/** Wait for the in-flight torrents fetch so VirtualList exists before pinning. */
+/** Wait for the in-flight torrents fetch so results exist before pinning. */
 async function waitForSearchPaint() {
   await nextTick()
   await new Promise<void>((resolve) => {
@@ -208,9 +220,6 @@ function onToggleTrackerFilter(tracker: string) {
 
 const pinClientFilter = useDebounceFn(() => {
   pinResultsStart()
-  void nextTick(() => {
-    listRef.value?.syncScrollMargin?.()
-  })
 }, 200)
 
 function onClientFilter(key: 'refine' | 'exclude', value: string) {
@@ -222,10 +231,8 @@ function onClientFilter(key: 'refine' | 'exclude', value: string) {
 async function onListViewUpdate(next: boolean) {
   if (next === listView.value) return
   const token = ++viewAnchorToken
-  // Capture while still on the old layout (row under the dock, not under nav).
-  const anchorIndex = listRef.value?.getFirstVisibleIndex?.() ?? 0
+  const anchorIndex = getFirstVisibleIndex()
   toggleListView()
-  // Same VirtualList instance — wait for estimate/gap remasure to settle.
   await nextTick()
   await nextTick()
   if (token !== viewAnchorToken) return
@@ -233,26 +240,16 @@ async function onListViewUpdate(next: boolean) {
     requestAnimationFrame(() => resolve())
   })
   if (token !== viewAnchorToken) return
-  // Refresh sticky padding without scroll compensation, then pin under dock.
-  listRef.value?.syncScrollMargin?.(false, false)
-  listRef.value?.scrollToIndex?.(anchorIndex, 'start')
+  scrollToResultIndex(anchorIndex)
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve())
   })
   if (token !== viewAnchorToken) return
-  const drifted = listRef.value?.getFirstVisibleIndex?.() ?? anchorIndex
+  const drifted = getFirstVisibleIndex()
   if (Math.abs(drifted - anchorIndex) > 1) {
-    listRef.value?.scrollToIndex?.(anchorIndex, 'start')
+    scrollToResultIndex(anchorIndex)
   }
 }
-
-watch(filtersOpen, () => {
-  void nextTick(() => {
-    listRef.value?.observeChrome?.()
-    // Margin + scroll compensation only — no size-cache wipe.
-    listRef.value?.syncScrollMargin?.()
-  })
-})
 
 onBeforeUnmount(() => {
   settleToken += 1
@@ -339,7 +336,7 @@ onBeforeUnmount(() => {
           type="button"
           variant="secondary"
           size="sm"
-          class="h-7 max-w-[14rem] truncate px-2.5 text-xs font-normal"
+          class="jr-recent-chip relative max-w-[14rem] min-h-9 truncate px-2.5 text-xs font-normal"
           :disabled="!isOnline"
           @mouseenter="isOnline && prefetchRecent(item)"
           @focus="isOnline && prefetchRecent(item)"
@@ -351,7 +348,7 @@ onBeforeUnmount(() => {
           type="button"
           variant="ghost"
           size="sm"
-          class="h-7 px-2 text-xs text-muted-foreground"
+          class="jr-recent-chip relative min-h-9 px-2 text-xs text-muted-foreground"
           @click="onClearRecent"
         >
           {{ t('search.clearRecent') }}
@@ -397,7 +394,7 @@ onBeforeUnmount(() => {
     <div
       v-if="showSearchBusy"
       class="flex flex-col"
-      :style="{ gap: `${listView ? listGap : cardGap}px` }"
+      :style="{ gap: `${resultsGap}px` }"
       aria-busy="true"
       :aria-label="t('search.loadingResults')"
     >
@@ -441,29 +438,23 @@ onBeforeUnmount(() => {
 
       <div
         v-else-if="hasResults"
-        class="jr-results-list"
+        ref="listRef"
+        class="jr-results-list flex flex-col"
+        role="list"
+        :style="{ gap: `${resultsGap}px` }"
         :aria-busy="isFetching"
       >
-        <VirtualList
-          ref="listRef"
-          :items="visibleItems"
-          :estimate-size="estimateSize"
-          :gap="listView ? listGap : cardGap"
-          :get-item-key="itemKey"
-        >
-          <template #default="{ item, index }">
-            <TorrentCard
-              :key="torrentKey(item)"
-              :item="item"
-              :list-view="listView"
-              :position="index + 1"
-              :set-size="visibleItems.length"
-              :active-tracker="filters.tracker"
-              @filter-tracker="onToggleTrackerFilter"
-              @open-torr-server="openTorrServer"
-            />
-          </template>
-        </VirtualList>
+        <TorrentCard
+          v-for="(item, index) in visibleItems"
+          :key="torrentKey(item)"
+          :item="item"
+          :list-view="listView"
+          :position="index + 1"
+          :set-size="visibleItems.length"
+          :active-tracker="filters.tracker"
+          @filter-tracker="onToggleTrackerFilter"
+          @open-torr-server="openTorrServer"
+        />
       </div>
     </template>
   </section>

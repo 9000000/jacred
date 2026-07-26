@@ -104,7 +104,8 @@
   --jr-glass-hover: rgba(255, 255, 255, 0.78);
   --jr-glass-fallback: #ffffff;
   --jr-glass-border: rgba(60, 60, 67, 0.22);
-  --jr-glass-nav: rgba(242, 242, 247, 0.78);
+  /* Nav must stay dense — translucent nav lets result titles ghost through on scroll */
+  --jr-glass-nav: rgba(242, 242, 247, 0.94);
   --jr-glass-nav-fallback: #f2f2f7;
   --jr-glass-panel: rgba(255, 255, 255, 0.52);
   --jr-glass-panel-fallback: #ffffff;
@@ -215,7 +216,8 @@
   --jr-glass-hover: rgba(28, 28, 30, 0.55);
   --jr-glass-fallback: #0a0a0c;
   --jr-glass-border: rgba(255, 255, 255, 0.16);
-  --jr-glass-nav: rgba(0, 0, 0, 0.52);
+  /* Dense nav — 0.52 let card titles read through Search/Stats/Settings tabs */
+  --jr-glass-nav: rgba(0, 0, 0, 0.92);
   --jr-glass-nav-fallback: #0a0a0c;
   --jr-glass-panel: rgba(0, 0, 0, 0.36);
   --jr-glass-panel-fallback: #121214;
@@ -322,10 +324,26 @@
   .jr-glass-nav {
     background: var(--jr-glass-nav);
     border-color: var(--jr-glass-border);
+    isolation: isolate;
     -webkit-backdrop-filter: saturate(var(--jr-glass-saturate))
       blur(var(--jr-glass-blur-nav));
     backdrop-filter: saturate(var(--jr-glass-saturate))
       blur(var(--jr-glass-blur-nav));
+  }
+  /* Scroll-edge: soft fade into content instead of a hard 1px border (§12) */
+  header.jr-glass-nav::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 10px;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--jr-glass-nav-fallback) 42%, transparent),
+      transparent
+    );
   }
 
   [data-slot='dropdown-menu-content'].jr-glass,
@@ -415,20 +433,16 @@
   }
 
   /* Control height scale (Apple craft): hero h-11 · chrome h-9 · compact segments h-8.
-   * Opaque sticky docks: page fill (no glass) so VirtualList transform rows never bleed through.
-   * Do not set position here — template uses sticky. */
+   * Opaque sticky docks above results. Do not put transform on sticky — Safari
+   * can stop sticking and let cards paint through chrome. Header stays z-40. */
   .jr-sticky-dock,
   .jr-search-dock,
   .jr-settings-dock,
   .jr-stats-dock {
-    z-index: 20;
+    z-index: 30;
+    isolation: isolate;
     box-shadow: none;
     background-color: var(--background);
-  }
-  [data-virtual-list] {
-    position: relative;
-    z-index: 0;
-    isolation: isolate;
   }
   /* Hard edge under sticky docks — gradient fade looked like a gap/overlap seam */
   .jr-sticky-dock::after,
@@ -526,35 +540,6 @@
 
   /* Mobile list: compact action strip under meta */
   @media (max-width: 639px) {
-    /*
-     * Lock row floor to RESULT_ESTIMATE.*.mobile (result-layout.ts).
-     * estimate === min-height → VirtualList first paint matches measure (no voids).
-     */
-    article[data-layout='list'][data-result-card] {
-      min-height: 148px;
-    }
-    article[data-layout='card'][data-result-card] {
-      min-height: 156px;
-    }
-    /* Single-line meta — wrap would change height mid-scroll and reopen voids */
-    article[data-layout='card'] .jr-result-card__meta.jr-result-meta {
-      flex-wrap: nowrap;
-      overflow: hidden;
-    }
-    article[data-layout='card'] .jr-result-card__meta .jr-meta-chip {
-      flex-shrink: 0;
-    }
-    article[data-layout='card'] .jr-result-card__meta .jr-meta-chip--added,
-    article[data-layout='card'] .jr-result-card__meta .jr-meta-chip--updated {
-      min-width: 0;
-      flex-shrink: 1;
-    }
-    article[data-layout='card'] .jr-result-card__meta .jr-meta-chip__value {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
     article[data-layout='list'] .jr-result-actions--list {
       border-top: 1px solid var(--jr-glass-border);
       padding-top: 0.35rem;
@@ -824,8 +809,11 @@
     bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Prefer TanStack useWindowVirtualizer for long search result lists. */
+  /* Native result list — below sticky dock; isolate so glass cards cannot cover chrome */
   .jr-results-list {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
     overflow-anchor: none;
   }
 
@@ -893,16 +881,22 @@
 
 @media (pointer: coarse) {
   /*
-   * Expand hit area without growing layout box (keeps virtual row measure stable).
+   * Expand hit area without growing layout box.
    */
   .jr-action::before,
-  .jr-tracker-filter::before {
+  .jr-tracker-filter::before,
+  .jr-recent-chip::before {
     content: '';
     position: absolute;
     inset: 50%;
     width: 44px;
     height: 44px;
     transform: translate(-50%, -50%);
+  }
+  /* Recent chips: widen slop to at least chip width */
+  .jr-recent-chip::before {
+    width: max(100%, 44px);
+    height: 44px;
   }
 
   [data-mobile-nav] a,
@@ -915,12 +909,27 @@
     min-height: 44px;
   }
 
-  /* Compact iOS segments: keep h-8 track; expand hit via padding, not min-height. */
+  /*
+   * Compact iOS segments: keep visual h-8 track; expand hit via ::before
+   * (do not force min-height — breaks equal-width sort chips).
+   */
   .jr-segment-track [data-slot='toggle-group-item'],
   .jr-sort-tabs [data-slot='toggle-group-item'],
   .jr-settings-tabs [data-slot='toggle-group-item'] {
+    position: relative;
     min-width: 0;
     min-height: 0;
+  }
+  .jr-segment-track [data-slot='toggle-group-item']::before,
+  .jr-sort-tabs [data-slot='toggle-group-item']::before,
+  .jr-settings-tabs [data-slot='toggle-group-item']::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
   }
 
   /* Softer content glass on touch — keep vibrancy, cut GPU fill vs desktop blur */
@@ -1014,5 +1023,46 @@
   [data-slot='dialog-overlay'] {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .jr-glass-nav,
+  header.jr-glass-nav {
+    background: var(--jr-glass-nav-fallback) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border-bottom: 1px solid var(--border);
+  }
+  header.jr-glass-nav::after {
+    content: none;
+  }
+  .jr-sticky-dock,
+  .jr-search-dock,
+  .jr-settings-dock,
+  .jr-stats-dock {
+    background-color: var(--background) !important;
+    border-bottom: 1px solid var(--border);
+  }
+  .jr-glass,
+  .jr-glass-panel,
+  html[data-surface='glass'] .jr-glass,
+  html[data-surface='glass'] .jr-glass-panel {
+    background: var(--card) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border-color: var(--foreground) !important;
+  }
+  .jr-filters-panel {
+    background: var(--secondary) !important;
+    border-color: var(--foreground) !important;
+  }
+  [data-slot='dropdown-menu-content'].jr-glass,
+  [data-slot='select-content'].jr-glass,
+  [data-slot='sheet-content'].jr-glass {
+    background: var(--jr-glass-fallback) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border-color: var(--foreground) !important;
   }
 }
