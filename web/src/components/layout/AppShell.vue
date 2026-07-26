@@ -48,6 +48,7 @@ import {
   persistLocale,
   type AppLocale,
 } from '@/i18n'
+import { segmentItemCompact, segmentTrackCompact } from '@/lib/segment-classes'
 import { cn } from '@/lib/utils'
 
 const ApiKeyDialog = defineAsyncComponent(
@@ -166,10 +167,9 @@ onMounted(() => {
   } else {
     syncHeaderOffset()
   }
+  // resize only — visualViewport.scroll fires with URL-bar / rubber-band and
+  // rewriting --jr-header-offset mid-gesture shifts sticky docks under the finger.
   window.visualViewport?.addEventListener('resize', onVisualViewportChange, {
-    passive: true,
-  })
-  window.visualViewport?.addEventListener('scroll', onVisualViewportChange, {
     passive: true,
   })
 })
@@ -177,7 +177,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
   window.visualViewport?.removeEventListener('resize', onVisualViewportChange)
-  window.visualViewport?.removeEventListener('scroll', onVisualViewportChange)
   headerResizeObserver?.disconnect()
   headerResizeObserver = null
   document.documentElement.style.removeProperty('--jr-header-offset')
@@ -339,7 +338,7 @@ onUnmounted(() => {
               </TooltipContent>
             </Tooltip>
             <div
-              class="hidden items-center gap-0.5 rounded-[10px] bg-secondary p-0.5 sm:flex"
+              :class="cn(segmentTrackCompact, 'hidden sm:flex')"
               role="group"
               :aria-label="`${t('app.langRu')} / ${t('app.langEn')}`"
             >
@@ -349,7 +348,7 @@ onUnmounted(() => {
                 :variant="locale === 'ru' ? 'secondary' : 'ghost'"
                 :class="
                   cn(
-                    'h-7 rounded-[8px] border-0 px-2 text-xs shadow-none',
+                    segmentItemCompact,
                     locale === 'ru' && 'bg-background text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.28)]',
                   )
                 "
@@ -363,7 +362,7 @@ onUnmounted(() => {
                 :variant="locale === 'en' ? 'secondary' : 'ghost'"
                 :class="
                   cn(
-                    'h-7 rounded-[8px] border-0 px-2 text-xs shadow-none',
+                    segmentItemCompact,
                     locale === 'en' && 'bg-background text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.28)]',
                   )
                 "

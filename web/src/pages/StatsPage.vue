@@ -33,6 +33,7 @@ import StatsCard from '@/components/stats/StatsCard.vue'
 import StatsSummary from '@/components/stats/StatsSummary.vue'
 import StatsTable from '@/components/stats/StatsTable.vue'
 import { useStats } from '@/composables/useStats'
+import { segmentItem, segmentTrackChrome } from '@/lib/segment-classes'
 import { type StatsSort } from '@/lib/stats'
 import { cn } from '@/lib/utils'
 
@@ -114,7 +115,7 @@ function bindGridEl(el: Element | ComponentPublicInstance | null) {
     </div>
 
     <div
-      class="jr-stats-dock sticky z-20 flex flex-col gap-2 bg-background py-2 lg:flex-row lg:items-center"
+      class="jr-sticky-dock jr-stats-dock sticky flex flex-col gap-2 py-2 lg:flex-row lg:items-center"
       style="top: var(--jr-header-offset)"
     >
       <div class="relative min-w-0 flex-1">
@@ -156,20 +157,20 @@ function bindGridEl(el: Element | ComponentPublicInstance | null) {
           :model-value="view"
           size="sm"
           :spacing="1"
-          class="h-9 w-max max-w-full rounded-[10px] bg-secondary p-0.5"
+          :class="segmentTrackChrome"
           :aria-label="t('stats.viewMode')"
           @update:model-value="(v) => v && setView(v as 'table' | 'cards')"
         >
           <ToggleGroupItem
             value="table"
-            class="!rounded-[8px] gap-1.5 border-0 px-2.5 shadow-none data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-[0_1px_2px_rgba(0,0,0,0.28)]"
+            :class="segmentItem"
           >
             <Table2 class="size-3.5" />
             <span class="hidden sm:inline">{{ t('stats.table') }}</span>
           </ToggleGroupItem>
           <ToggleGroupItem
             value="cards"
-            class="!rounded-[8px] gap-1.5 border-0 px-2.5 shadow-none data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-[0_1px_2px_rgba(0,0,0,0.28)]"
+            :class="segmentItem"
           >
             <LayoutGrid class="size-3.5" />
             <span class="hidden sm:inline">{{
@@ -245,7 +246,7 @@ function bindGridEl(el: Element | ComponentPublicInstance | null) {
       </div>
       <div
         v-if="view === 'table'"
-        class="animate-pulse overflow-hidden rounded-xl border"
+        class="animate-pulse overflow-hidden rounded-xl border bg-card"
       >
         <div class="h-10 border-b bg-muted/50" />
         <div
@@ -284,13 +285,13 @@ function bindGridEl(el: Element | ComponentPublicInstance | null) {
 
     <template v-else>
       <div
-        v-if="!filtered.length"
+        v-if="!filtered.length && !errorMessage"
         class="jr-glass-panel rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
       >
         {{ t('stats.nothingFound') }}
       </div>
 
-      <template v-else>
+      <template v-else-if="filtered.length">
         <StatsSummary :aggregate="aggregate" :full-numbers="fullNumbers" />
 
         <StatsTable

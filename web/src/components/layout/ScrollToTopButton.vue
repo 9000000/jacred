@@ -15,6 +15,7 @@ function scrollToTop() {
   window.scrollTo(0, 0)
   document.documentElement.scrollTop = 0
   document.body.scrollTop = 0
+  // Refresh list scrollMargin only — VirtualList no longer wipes size cache on this event.
   window.dispatchEvent(new Event(JR_VIRTUAL_REMEASURE))
 }
 </script>

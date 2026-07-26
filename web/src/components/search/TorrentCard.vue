@@ -96,7 +96,7 @@ const titleNode = computed(() => (safeUrl.value ? 'a' : 'span'))
 const titleBind = computed(() =>
   safeUrl.value
     ? { href: safeUrl.value, target: '_blank', rel: 'noopener noreferrer' }
-    : { 'aria-disabled': true },
+    : {},
 )
 
 onUnmounted(() => {
@@ -222,28 +222,28 @@ async function onSendTorr() {
           class="jr-meta-chip jr-meta-chip--size jr-result-meta__size"
           :title="t('search.card.size')"
         >
-          <HardDrive class="size-3.5 shrink-0" />
+          <HardDrive class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ item.sizeName || '—' }}</span>
         </span>
         <span
           class="jr-meta-chip jr-meta-chip--seeds jr-result-meta__seeds"
           :title="t('search.card.seeds')"
         >
-          <ArrowUp class="size-3.5 shrink-0" />
+          <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ item.sid ?? 0 }}</span>
         </span>
         <span
           class="jr-meta-chip jr-meta-chip--peers jr-result-meta__peers"
           :title="t('search.card.peers')"
         >
-          <ArrowDown class="size-3.5 shrink-0" />
+          <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ item.pir ?? 0 }}</span>
         </span>
         <span
           class="jr-meta-chip jr-meta-chip--added jr-result-meta__added"
           :title="t('search.card.added')"
         >
-          <CalendarPlus class="size-3.5 shrink-0" />
+          <CalendarPlus class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ createStr }}</span>
         </span>
         <span
@@ -251,7 +251,7 @@ async function onSendTorr() {
           class="jr-meta-chip jr-meta-chip--updated jr-result-meta__updated"
           :title="t('search.card.updated')"
         >
-          <RefreshCw class="size-3.5 shrink-0" />
+          <RefreshCw class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ updateStr }}</span>
         </span>
       </div>
@@ -300,7 +300,7 @@ async function onSendTorr() {
         <component
           :is="titleNode"
           v-bind="titleBind"
-          class="min-w-0 flex-1 text-[0.95rem] leading-snug font-semibold text-foreground no-underline line-clamp-3 hover:text-primary sm:line-clamp-2"
+          class="min-w-0 flex-1 text-[0.95rem] leading-snug font-semibold text-foreground no-underline line-clamp-2 hover:text-primary"
           :title="title"
         >
           {{ title || t('search.card.untitled') }}
@@ -315,28 +315,28 @@ async function onSendTorr() {
           class="jr-meta-chip jr-meta-chip--size"
           :title="t('search.card.size')"
         >
-          <HardDrive class="size-3.5 shrink-0" />
+          <HardDrive class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ item.sizeName || '—' }}</span>
         </span>
         <span
           class="jr-meta-chip jr-meta-chip--seeds"
           :title="t('search.card.seeds')"
         >
-          <ArrowUp class="size-3.5 shrink-0" />
+          <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ item.sid ?? 0 }}</span>
         </span>
         <span
           class="jr-meta-chip jr-meta-chip--peers"
           :title="t('search.card.peers')"
         >
-          <ArrowDown class="size-3.5 shrink-0" />
+          <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ item.pir ?? 0 }}</span>
         </span>
         <span
           class="jr-meta-chip jr-meta-chip--added"
           :title="t('search.card.added')"
         >
-          <CalendarPlus class="size-3.5 shrink-0" />
+          <CalendarPlus class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ createStr }}</span>
         </span>
         <span
@@ -344,7 +344,7 @@ async function onSendTorr() {
           class="jr-meta-chip jr-meta-chip--updated"
           :title="t('search.card.updated')"
         >
-          <RefreshCw class="size-3.5 shrink-0" />
+          <RefreshCw class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="jr-meta-chip__value">{{ updateStr }}</span>
         </span>
       </div>

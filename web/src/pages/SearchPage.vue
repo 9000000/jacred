@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { useMediaQuery, useOnline, until } from '@vueuse/core'
-import type { ComponentPublicInstance } from 'vue'
+import { useDebounceFn, useMediaQuery, useOnline, until } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loader2, Search, WifiOff, X } from '@lucide/vue'
@@ -17,13 +16,17 @@ import {
   getRecentSearches,
 } from '@/lib/recent-searches'
 import { resultEstimateSize, resultGap } from '@/lib/result-layout'
-import { torrentKey } from '@/lib/torrents'
+import {
+  torrentKey,
+  type SearchFilters as SearchFilterState,
+  type SortValue,
+  type TorrentItem,
+} from '@/lib/torrents'
 
 defineOptions({ name: 'SearchPage' })
 
 const { t } = useI18n()
 const { openTorrServer } = useShellTools()
-const searchState = useTorrents()
 const {
   query,
   sort,
@@ -40,6 +43,7 @@ const {
   activeFilterCount,
   resultsHeader,
   search,
+  retrySearch,
   prefetchRecent,
   setSort,
   setExact,
@@ -50,11 +54,10 @@ const {
   resetFilters,
   toggleTrackerFilter,
   clearSearch,
-} = searchState
-const resultsEl = searchState.resultsEl
+} = useTorrents()
 
 const listRef = ref<{
-  syncScrollMargin?: () => void
+  syncScrollMargin?: (forceMeasure?: boolean, compensateScroll?: boolean) => void
   observeChrome?: () => void
   getFirstVisibleIndex?: () => number
   scrollToIndex?: (
@@ -75,6 +78,13 @@ const cardGap = computed(() => resultGap(false, isSmUp.value))
 const hasResults = computed(
   () => !!currentQuery.value && visibleItems.value.length > 0,
 )
+/** Spinner / «Поиск…» only on first load — never on sort/filter refetch. */
+const showSearchBusy = computed(
+  () => isLoading.value && !hasResults.value,
+)
+const showRefetchCue = computed(
+  () => isFetching.value && hasResults.value && !isLoading.value,
+)
 const showEmptyHint = computed(
   () => !currentQuery.value && !visibleItems.value.length && !isLoading.value,
 )
@@ -88,6 +98,10 @@ const showNothingFound = computed(
 
 let settleToken = 0
 let viewAnchorToken = 0
+
+function itemKey(_index: number, item: TorrentItem) {
+  return torrentKey(item)
+}
 
 /** Pin viewport to document top so results start under the search dock. */
 function pinResultsStart() {
@@ -107,16 +121,7 @@ async function settleListLayout() {
   })
   if (token !== settleToken) return
   listRef.value?.observeChrome?.()
-  listRef.value?.syncScrollMargin?.()
-  // Second frame: VirtualList may mount only after isLoading flips false.
-  await nextTick()
-  if (token !== settleToken) return
-  await new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve())
-  })
-  if (token !== settleToken) return
-  pinResultsStart()
-  listRef.value?.syncScrollMargin?.()
+  listRef.value?.syncScrollMargin?.(true)
 }
 
 /** Wait for the in-flight torrents fetch so VirtualList exists before pinning. */
@@ -146,6 +151,7 @@ function onSubmit(e: Event) {
 }
 
 function applyRecent(q: string) {
+  if (!isOnline.value) return
   query.value = q
   if (document.activeElement instanceof HTMLElement) {
     document.activeElement.blur()
@@ -162,13 +168,64 @@ function onClearRecent() {
   recent.value = []
 }
 
-/** Keep the same result under the fold when list ↔ cards row heights change. */
+function onRetry() {
+  pinResultsStart()
+  retrySearch()
+  void waitForSearchPaint()
+}
+
+/** Server-driven filter/sort: pin top, refetch, settle (button stays idle via scoped placeholder). */
+function runServerFilterSearch(apply: () => void) {
+  pinResultsStart()
+  apply()
+  if (query.value.trim()) {
+    void waitForSearchPaint()
+  }
+}
+
+function onSortUpdate(value: SortValue) {
+  runServerFilterSearch(() => setSort(value))
+}
+
+function onExactUpdate(value: boolean) {
+  runServerFilterSearch(() => setExact(value))
+}
+
+function onServerFilter(
+  key: keyof SearchFilterState,
+  value: string,
+) {
+  runServerFilterSearch(() => updateServerFilter(key, value))
+}
+
+function onResetFilters() {
+  runServerFilterSearch(() => resetFilters())
+}
+
+function onToggleTrackerFilter(tracker: string) {
+  runServerFilterSearch(() => toggleTrackerFilter(tracker))
+}
+
+const pinClientFilter = useDebounceFn(() => {
+  pinResultsStart()
+  void nextTick(() => {
+    listRef.value?.syncScrollMargin?.()
+  })
+}, 200)
+
+function onClientFilter(key: 'refine' | 'exclude', value: string) {
+  updateClientFilter(key, value)
+  pinClientFilter()
+}
+
+/** Keep the same result under the sticky dock when list ↔ cards heights change. */
 async function onListViewUpdate(next: boolean) {
   if (next === listView.value) return
   const token = ++viewAnchorToken
+  // Capture while still on the old layout (row under the dock, not under nav).
   const anchorIndex = listRef.value?.getFirstVisibleIndex?.() ?? 0
   toggleListView()
-  // VirtualList remounts on layout key — wait until the new instance is ready.
+  // Same VirtualList instance — wait for estimate/gap remasure to settle.
   await nextTick()
   await nextTick()
   if (token !== viewAnchorToken) return
@@ -176,10 +233,9 @@ async function onListViewUpdate(next: boolean) {
     requestAnimationFrame(() => resolve())
   })
   if (token !== viewAnchorToken) return
-  listRef.value?.observeChrome?.()
-  listRef.value?.syncScrollMargin?.()
+  // Refresh sticky padding without scroll compensation, then pin under dock.
+  listRef.value?.syncScrollMargin?.(false, false)
   listRef.value?.scrollToIndex?.(anchorIndex, 'start')
-  // Re-anchor only if late measure drifted the first visible row.
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve())
   })
@@ -193,6 +249,7 @@ async function onListViewUpdate(next: boolean) {
 watch(filtersOpen, () => {
   void nextTick(() => {
     listRef.value?.observeChrome?.()
+    // Margin + scroll compensation only — no size-cache wipe.
     listRef.value?.syncScrollMargin?.()
   })
 })
@@ -201,27 +258,12 @@ onBeforeUnmount(() => {
   settleToken += 1
   viewAnchorToken += 1
 })
-
-function bindResultsEl(
-  el: Element | ComponentPublicInstance | null,
-) {
-  if (!el) {
-    resultsEl.value = null
-    return
-  }
-  if (el instanceof HTMLElement) {
-    resultsEl.value = el
-    return
-  }
-  const root = (el as ComponentPublicInstance).$el
-  resultsEl.value = root instanceof HTMLElement ? root : null
-}
 </script>
 
 <template>
   <section class="flex flex-col gap-4">
     <header class="space-y-1 text-center">
-      <h1 class="text-2xl font-semibold tracking-tight text-balance sm:text-[1.75rem]">
+      <h1 class="text-2xl font-semibold tracking-tight text-balance">
         {{ t('search.title') }}
       </h1>
       <p class="mx-auto max-w-2xl text-sm text-pretty text-muted-foreground">
@@ -240,7 +282,7 @@ function bindResultsEl(
 
     <!-- Same chrome before and after search — sticky without a sudden “card” skin -->
     <div
-      class="jr-search-dock sticky z-20 flex flex-col gap-2.5 bg-background py-2.5 sm:gap-3"
+      class="jr-sticky-dock jr-search-dock sticky flex flex-col gap-2 py-2 sm:gap-2.5 sm:py-2.5"
       style="top: var(--jr-header-offset)"
     >
       <form
@@ -277,12 +319,12 @@ function bindResultsEl(
         </div>
         <Button
           type="submit"
-          class="h-11 shrink-0 gap-2 rounded-[12px] px-5 sm:min-w-[7.5rem]"
-          :disabled="isLoading || !isOnline"
-          :aria-busy="isLoading"
+          class="h-11 min-w-[7.5rem] shrink-0 gap-2 rounded-[12px] px-5"
+          :disabled="showSearchBusy || !isOnline"
+          :aria-busy="showSearchBusy"
         >
-          <Loader2 v-if="isLoading" class="size-4 animate-spin" />
-          {{ isLoading ? t('search.searching') : t('search.submit') }}
+          <Loader2 v-if="showSearchBusy" class="size-4 animate-spin" />
+          {{ showSearchBusy ? t('search.searching') : t('search.submit') }}
         </Button>
       </form>
 
@@ -298,8 +340,9 @@ function bindResultsEl(
           variant="secondary"
           size="sm"
           class="h-7 max-w-[14rem] truncate px-2.5 text-xs font-normal"
-          @mouseenter="prefetchRecent(item)"
-          @focus="prefetchRecent(item)"
+          :disabled="!isOnline"
+          @mouseenter="isOnline && prefetchRecent(item)"
+          @focus="isOnline && prefetchRecent(item)"
           @click="applyRecent(item)"
         >
           {{ item }}
@@ -324,25 +367,35 @@ function bindResultsEl(
         :facets="facets"
         :active-count="activeFilterCount"
         @update:open="setFiltersOpen"
-        @update:exact="setExact"
-        @update:sort="setSort"
+        @update:exact="onExactUpdate"
+        @update:sort="onSortUpdate"
         @update:list-view="onListViewUpdate"
-        @server-filter="(k, v) => updateServerFilter(k, v)"
-        @client-filter="(k, v) => updateClientFilter(k, v)"
-        @reset="resetFilters"
+        @server-filter="onServerFilter"
+        @client-filter="onClientFilter"
+        @reset="onResetFilters"
       />
     </div>
 
-    <p
+    <div
       v-if="errorMessage"
-      class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+      class="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
       role="alert"
     >
-      {{ errorMessage }}
-    </p>
+      <span class="min-w-0 flex-1">{{ errorMessage }}</span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        class="h-8 shrink-0"
+        :disabled="!isOnline || isFetching"
+        @click="onRetry"
+      >
+        {{ t('search.retry') }}
+      </Button>
+    </div>
 
     <div
-      v-if="isLoading && !hasResults"
+      v-if="showSearchBusy"
       class="flex flex-col"
       :style="{ gap: `${listView ? listGap : cardGap}px` }"
       aria-busy="true"
@@ -358,39 +411,45 @@ function bindResultsEl(
 
     <template v-else>
       <p
-        v-if="resultsHeader"
-        class="text-sm text-muted-foreground"
+        v-if="resultsHeader || showRefetchCue"
+        class="flex items-center gap-2 text-sm text-muted-foreground"
+        aria-live="polite"
       >
-        {{ resultsHeader }}
+        <Loader2
+          v-if="showRefetchCue"
+          class="size-3.5 shrink-0 animate-spin"
+          aria-hidden="true"
+        />
+        <span :class="showRefetchCue ? 'opacity-70' : undefined">
+          {{ showRefetchCue && !resultsHeader ? t('search.loadingMore') : resultsHeader }}
+        </span>
       </p>
 
       <div
         v-if="showEmptyHint"
-        class="jr-glass-panel rounded-xl border border-dashed px-4 py-14 text-center text-muted-foreground"
+        class="jr-glass-panel rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
       >
         {{ t('search.emptyHint') }}
       </div>
 
       <div
         v-else-if="showNothingFound"
-        class="jr-glass-panel rounded-xl border border-dashed px-4 py-14 text-center text-muted-foreground"
+        class="jr-glass-panel rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
       >
         {{ t('search.nothingFound') }}
       </div>
 
       <div
         v-else-if="hasResults"
-        :ref="bindResultsEl"
         class="jr-results-list"
-        aria-live="polite"
         :aria-busy="isFetching"
       >
         <VirtualList
-          :key="`${currentQuery || 'empty'}:${listView ? 'list' : 'cards'}`"
           ref="listRef"
           :items="visibleItems"
           :estimate-size="estimateSize"
           :gap="listView ? listGap : cardGap"
+          :get-item-key="itemKey"
         >
           <template #default="{ item, index }">
             <TorrentCard
@@ -400,7 +459,7 @@ function bindResultsEl(
               :position="index + 1"
               :set-size="visibleItems.length"
               :active-tracker="filters.tracker"
-              @filter-tracker="toggleTrackerFilter"
+              @filter-tracker="onToggleTrackerFilter"
               @open-torr-server="openTorrServer"
             />
           </template>

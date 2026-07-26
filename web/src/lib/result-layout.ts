@@ -2,12 +2,18 @@
 
 export const RESULT_LIST_GAP_MOBILE = 8
 export const RESULT_LIST_GAP_DESKTOP = 4
-export const RESULT_CARD_GAP = 10
+/** Space between result cards — applied as row paddingBottom (included in measure). */
+export const RESULT_CARD_GAP = 8
 
-/** Estimated row heights (px) — tune with TorrentCard CSS density. */
+/**
+ * Estimated card/list content height (px), excluding gap padding.
+ * VirtualList adds `gap` on top for its estimateSize.
+ * Keep in sync with mobile `min-height` on `article[data-layout]` in style.css —
+ * estimate === min-height so first paint matches measure (no black voids / thrash).
+ */
 export const RESULT_ESTIMATE = {
-  list: { sm: 72, mobile: 148 },
-  card: { sm: 124, mobile: 156 },
+  list: { sm: 80, mobile: 148 },
+  card: { sm: 140, mobile: 156 },
 } as const
 
 export function resultEstimateSize(

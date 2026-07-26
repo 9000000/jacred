@@ -12,7 +12,11 @@ import {
   toRef,
   watch,
 } from 'vue'
-import { JR_VIRTUAL_REMEASURE } from '@/lib/result-layout'
+import {
+  JR_VIRTUAL_REMEASURE,
+  RESULT_CARD_GAP,
+  RESULT_ESTIMATE,
+} from '@/lib/result-layout'
 
 const props = withDefaults(
   defineProps<{
@@ -20,11 +24,12 @@ const props = withDefaults(
     estimateSize?: number
     overscan?: number
     gap?: number
+    getItemKey?: (index: number, item: T) => string | number
   }>(),
   {
-    estimateSize: 108,
-    overscan: 12,
-    gap: 10,
+    estimateSize: RESULT_ESTIMATE.card.mobile,
+    overscan: 8,
+    gap: RESULT_CARD_GAP,
   },
 )
 
@@ -33,17 +38,16 @@ const itemsRef = toRef(props, 'items')
 
 /**
  * Document Y of the list root — must stay stable during scroll.
- * Recomputing from getBoundingClientRect on every scroll (iOS sticky + URL bar)
- * shifts all translateY values and causes row overlap.
+ * Never recompute from getBoundingClientRect + scrollY (iOS sticky/URL bar).
  */
 const scrollMargin = ref(0)
-let listResizeObserver: ResizeObserver | null = null
+/**
+ * Sticky header+dock overlay height (viewport). scrollToIndex / first-visible
+ * use this so rows align under the dock, not under the viewport top.
+ */
+const scrollPaddingStart = ref(0)
 let chromeResizeObserver: ResizeObserver | null = null
 
-/**
- * Layout-document Y via offsetParent walk — stable across iOS/iPadOS URL-bar
- * / visualViewport shifts (unlike getBoundingClientRect().top + scrollY).
- */
 function documentOffsetTop(el: HTMLElement | null): number {
   if (!el || typeof window === 'undefined') return 0
   let top = 0
@@ -56,25 +60,125 @@ function documentOffsetTop(el: HTMLElement | null): number {
   return Math.max(0, top)
 }
 
-function refreshScrollMargin(): boolean {
-  const next = documentOffsetTop(listRef.value)
-  if (next !== scrollMargin.value) {
-    scrollMargin.value = next
-    return true
-  }
-  return false
+/** Visible bottom of sticky search chrome in viewport coords. */
+function measureStickyPadding(): number {
+  if (typeof window === 'undefined') return 0
+  const dock = document.querySelector('.jr-search-dock')
+  if (!(dock instanceof HTMLElement)) return 0
+  const bottom = dock.getBoundingClientRect().bottom
+  return Math.max(0, Math.min(Math.round(bottom), window.innerHeight))
 }
 
+/** Update scrollMargin; returns delta when it changed. */
+function refreshScrollMargin(): number {
+  const next = documentOffsetTop(listRef.value)
+  const prev = scrollMargin.value
+  if (next === prev) return 0
+  scrollMargin.value = next
+  return next - prev
+}
+
+function refreshScrollPadding() {
+  const next = measureStickyPadding()
+  if (next === scrollPaddingStart.value) return false
+  scrollPaddingStart.value = next
+  return true
+}
+
+/**
+ * Refresh margin + sticky padding without wiping the size cache.
+ * Optionally compensate scrollY when list offsetTop changes (filters open).
+ * Never scrollTo mid-fling — queue until scroll settles (iOS touch).
+ */
+let pendingScrollCompensate = 0
+let touchSettleTimer: ReturnType<typeof setTimeout> | null = null
+
+function applyScrollCompensate(delta: number) {
+  if (delta === 0 || typeof window === 'undefined') return
+  const y =
+    window.scrollY ||
+    document.documentElement.scrollTop ||
+    document.body.scrollTop ||
+    0
+  if (y > 0) {
+    window.scrollTo(0, y + delta)
+  }
+}
+
+function flushPendingScrollCompensate() {
+  if (pendingScrollCompensate !== 0) {
+    const delta = pendingScrollCompensate
+    pendingScrollCompensate = 0
+    applyScrollCompensate(delta)
+  }
+  // Apply real row heights deferred during fling (RO measured but size was locked).
+  if (!virtualizer.value.isScrolling) {
+    virtualizer.value.measure()
+  }
+}
+
+function syncScrollMargin(forceMeasure = false, compensateScroll = true) {
+  const delta = refreshScrollMargin()
+  refreshScrollPadding()
+  if (compensateScroll && delta !== 0 && typeof window !== 'undefined') {
+    if (virtualizer.value.isScrolling) {
+      pendingScrollCompensate += delta
+    } else {
+      applyScrollCompensate(delta)
+    }
+  }
+  if (forceMeasure) {
+    virtualizer.value.measure()
+  }
+}
+
+/**
+ * Gap is padding on the row (not virtualizer.gap) so measured height always
+ * includes spacing — prevents adjacent translateY rows from overlapping.
+ * offsetHeight (not RO borderBox) is stable on iOS transformed rows.
+ *
+ * Critical: TanStack's ResizeObserver still calls options.measureElement while
+ * isScrolling (only the ref-path skips). Returning a locked size keeps delta=0
+ * so translateY does not thrash under the finger.
+ */
 const virtualizer = useWindowVirtualizer(
   computed(() => ({
     count: itemsRef.value.length,
-    estimateSize: () => props.estimateSize,
+    // estimate must cover card + gap padding
+    estimateSize: () => props.estimateSize + props.gap,
     overscan: props.overscan,
-    gap: props.gap,
+    gap: 0,
     scrollMargin: scrollMargin.value,
-    // offsetHeight avoids WebKit getBoundingClientRect issues on transformed rows
-    measureElement: (element: Element) =>
-      (element as HTMLElement).offsetHeight,
+    scrollPaddingStart: scrollPaddingStart.value,
+    measureElement: (
+      el: Element,
+      _entry: ResizeObserverEntry | undefined,
+      instance: { isScrolling: boolean },
+    ) => {
+      const node = el as HTMLElement
+      const fallback = props.estimateSize + props.gap
+      const raw = node.offsetHeight
+      const measured = raw > 0 ? Math.round(raw) : fallback
+
+      if (instance.isScrolling) {
+        const locked = Number(node.dataset.jrRowSize)
+        if (locked > 0) return locked
+        // First paint mid-fling: keep estimate until scroll settles.
+        node.dataset.jrPending = '1'
+        return fallback
+      }
+
+      node.dataset.jrRowSize = String(measured)
+      delete node.dataset.jrPending
+      return measured
+    },
+    getItemKey: (index: number) => {
+      const item = itemsRef.value[index]
+      if (item !== undefined && props.getItemKey) {
+        return props.getItemKey(index, item)
+      }
+      return index
+    },
   })),
 )
 
@@ -91,29 +195,43 @@ function measureRow(el: Element | ComponentPublicInstance | null) {
       : el && '$el' in el && el.$el instanceof HTMLElement
         ? el.$el
         : null
-  if (node) virtualizer.value.measureElement(node)
+  if (!node || !node.isConnected) return
+  // Uses virtualizer measureElement (offsetHeight) — never return 0 ourselves.
+  virtualizer.value.measureElement(node)
 }
 
-/**
- * Remeasure virtualizer. Pass force=true after orientation / KeepAlive / item
- * count changes. visualViewport URL-bar noise only remasures when margin moves.
- */
-function syncScrollMargin(force = false) {
-  const changed = refreshScrollMargin()
-  if (!changed && !force) return
-  virtualizer.value.measure()
-  // Double-rAF: wait for sticky chrome + visualViewport to settle (Safari/Edge).
-  requestAnimationFrame(() => {
+/** Margin sync only — keeps measured heights (FAB / fonts / KeepAlive). */
+function refreshMarginAfterPaint() {
+  void nextTick(() => {
     requestAnimationFrame(() => {
-      if (refreshScrollMargin() || force) {
-        virtualizer.value.measure()
-      }
+      refreshScrollMargin()
+      refreshScrollPadding()
     })
   })
 }
 
+/** Full cache remasure — only for layout mode / viewport geometry changes. */
+function remasureAfterPaint() {
+  void nextTick(() => {
+    requestAnimationFrame(() => {
+      refreshScrollMargin()
+      refreshScrollPadding()
+      virtualizer.value.measure()
+    })
+  })
+}
+
+/**
+ * First row visible below sticky chrome (not overscan-only / not under dock).
+ */
 function getFirstVisibleIndex() {
+  const offset = virtualizer.value.scrollOffset ?? 0
+  const pad = scrollPaddingStart.value
+  const fold = offset + pad
   const items = virtualizer.value.getVirtualItems()
+  for (const item of items) {
+    if (item.end > fold) return item.index
+  }
   return items[0]?.index ?? 0
 }
 
@@ -123,6 +241,8 @@ function scrollToIndex(
 ) {
   const max = Math.max(0, itemsRef.value.length - 1)
   const clamped = Math.min(Math.max(0, index), max)
+  // Fresh sticky metrics so align:start lands under the dock, not under the nav.
+  refreshScrollPadding()
   virtualizer.value.scrollToIndex(clamped, { align })
 }
 
@@ -136,7 +256,8 @@ function observeChrome() {
   if (typeof ResizeObserver === 'undefined') return
   chromeResizeObserver?.disconnect()
   chromeResizeObserver = new ResizeObserver(() => {
-    syncScrollMargin()
+    // Dock/header height only — update margin + compensate scroll, no cache wipe.
+    syncScrollMargin(false)
   })
   const header = document.querySelector('header.jr-glass-nav')
   const dock = document.querySelector('.jr-search-dock')
@@ -148,35 +269,28 @@ function observeChrome() {
 
 onMounted(() => {
   refreshScrollMargin()
-  if (typeof ResizeObserver === 'undefined') return
-
-  listResizeObserver = new ResizeObserver(() => {
-    syncScrollMargin()
-  })
-  if (listRef.value) listResizeObserver.observe(listRef.value)
+  refreshScrollPadding()
   observeChrome()
-})
-
-watch(listRef, (el, prev) => {
-  if (!listResizeObserver) return
-  if (prev) listResizeObserver.unobserve(prev)
-  if (el) {
-    listResizeObserver.observe(el)
-    syncScrollMargin()
-  }
+  void document.fonts?.ready?.then(() => {
+    refreshMarginAfterPaint()
+  })
 })
 
 onBeforeUnmount(() => {
-  listResizeObserver?.disconnect()
   chromeResizeObserver?.disconnect()
-  listResizeObserver = null
   chromeResizeObserver = null
+  if (touchSettleTimer) {
+    clearTimeout(touchSettleTimer)
+    touchSettleTimer = null
+  }
+  pendingScrollCompensate = 0
 })
 
 useEventListener(
   window,
   'resize',
   () => {
+    // Width change can reflow card wrap — remasure once.
     void nextTick(() => syncScrollMargin(true))
   },
   { passive: true },
@@ -191,33 +305,42 @@ useEventListener(
   { passive: true },
 )
 
-const visualViewport =
-  typeof window !== 'undefined' ? window.visualViewport : null
-
-// resize only — visualViewport scroll fires constantly with URL-bar and does
-// not change layout document offset when using offsetParent walk.
+// Flush chrome scroll compensation deferred during touch/fling.
+useEventListener(window, 'scrollend', flushPendingScrollCompensate, {
+  passive: true,
+})
+// iOS Safari may omit scrollend after touch; settle shortly after touch ends.
 useEventListener(
-  visualViewport,
-  'resize',
+  window,
+  'touchend',
   () => {
-    void nextTick(() => syncScrollMargin())
+    if (touchSettleTimer) clearTimeout(touchSettleTimer)
+    touchSettleTimer = setTimeout(() => {
+      touchSettleTimer = null
+      flushPendingScrollCompensate()
+    }, 120)
   },
   { passive: true },
 )
 
 useEventListener(window, JR_VIRTUAL_REMEASURE, () => {
-  void nextTick(() => syncScrollMargin(true))
+  // FAB: margin only — do not wipe size cache after scroll-to-top.
+  refreshMarginAfterPaint()
 })
 
 onActivated(() => {
-  void nextTick(() => syncScrollMargin(true))
+  void nextTick(() => {
+    refreshScrollMargin()
+    refreshScrollPadding()
+    observeChrome()
+  })
 })
 
+// Layout mode / gap change only — identity changes use getItemKey, not measure().
 watch(
-  () => [props.items.length, props.estimateSize, props.gap] as const,
-  async () => {
-    await nextTick()
-    syncScrollMargin(true)
+  () => [props.estimateSize, props.gap] as const,
+  () => {
+    remasureAfterPaint()
   },
 )
 
@@ -233,7 +356,12 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="listRef" class="relative w-full">
+  <div
+    ref="listRef"
+    data-virtual-list
+    class="relative z-0 w-full"
+    style="overflow-anchor: none"
+  >
     <div
       role="list"
       class="relative w-full"
@@ -244,8 +372,9 @@ defineExpose({
         :key="String(row.key)"
         :ref="measureRow"
         :data-index="row.index"
-        class="absolute top-0 left-0 w-full"
+        class="absolute top-0 left-0 z-0 box-border w-full"
         :style="{
+          paddingBottom: gap > 0 ? `${gap}px` : undefined,
           transform: `translateY(${row.start - activeScrollMargin}px)`,
         }"
       >

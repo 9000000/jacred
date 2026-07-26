@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { segmentItemSort, segmentItem, segmentTrack, segmentTrackSort } from '@/lib/segment-classes'
 import {
   SORT_OPTIONS,
   type SearchFilters,
@@ -48,18 +49,12 @@ const SORT_ICONS = {
   update: RefreshCw,
 } as const
 
-/** iOS segmented: track hugs items (never min-w-full — that left a dead grey strip). */
-const segmentTrack =
-  'jr-segment-track flex h-8 w-max max-w-full flex-nowrap items-center rounded-[10px] bg-secondary p-0.5 shadow-none ring-0'
-const segmentItem =
-  '!rounded-[8px] h-full gap-1.5 border-0 bg-transparent px-2.5 text-xs font-medium text-muted-foreground shadow-none outline-none ring-0 hover:!bg-transparent hover:text-foreground focus-visible:!border-transparent focus-visible:!ring-2 focus-visible:!ring-ring/40 data-[state=on]:!bg-background data-[state=on]:!text-foreground data-[state=on]:shadow-[0_1px_2px_rgba(0,0,0,0.28)] sm:text-[13px]'
-
 /** Field labels: readable secondary, not ultra-faint */
 const fieldLabel =
   'block space-y-1.5 text-xs font-medium text-muted-foreground'
-/** Controls: soft fill, continuous radius — not pill, not stroked */
-const fieldControl =
-  'h-9 w-full rounded-[10px] border-0 bg-secondary text-sm shadow-none ring-0 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/40 dark:bg-secondary dark:hover:bg-secondary/90'
+/** Controls: soft fill, continuous radius — not pill, not stroked (chrome h-9) */
+  const fieldControl =
+  'h-9 w-full rounded-[var(--radius-sm)] border-0 bg-secondary text-sm shadow-none ring-0 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/40 dark:bg-secondary dark:hover:bg-secondary/90'
 
 
 defineProps<{
@@ -109,19 +104,19 @@ const mobileSelectContentClass =
 </script>
 
 <template>
-  <div class="space-y-3">
+  <div class="space-y-2.5">
     <!--
       Content is max-w-6xl even on 16" desktop. Sort hugs chips; tools ml-auto.
       Do not flex-1 / min-w-full the segment track — that paints a dead grey strip.
     -->
-    <div class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-3">
+    <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2.5">
       <div class="jr-sort-tabs min-w-0">
         <ToggleGroup
           type="single"
           :model-value="sort"
           size="sm"
-          :spacing="1"
-          :class="cn(segmentTrack, 'justify-start')"
+          :spacing="0"
+          :class="cn(segmentTrackSort, 'justify-stretch lg:justify-start')"
           :aria-label="t('search.sortMode')"
           @update:model-value="(v) => v && emit('update:sort', v as SortValue)"
         >
@@ -129,11 +124,11 @@ const mobileSelectContentClass =
             v-for="opt in SORT_OPTIONS"
             :key="opt.value"
             :value="opt.value"
-            :class="segmentItem"
+            :class="segmentItemSort"
           >
             <component
               :is="SORT_ICONS[opt.value]"
-              class="size-3.5 shrink-0"
+              class="size-3 shrink-0 lg:size-3.5"
               aria-hidden="true"
             />
             {{ t(opt.labelKey) }}
@@ -161,7 +156,7 @@ const mobileSelectContentClass =
             type="button"
             variant="ghost"
             size="sm"
-            class="h-8 gap-1.5 rounded-[9px] border-transparent px-2.5 text-muted-foreground shadow-none hover:text-foreground lg:px-3"
+            class="h-8 gap-1.5 rounded-[10px] border-transparent px-2.5 text-muted-foreground shadow-none hover:text-foreground lg:px-3"
             :disabled="!activeCount"
             :aria-label="t('search.filters.reset')"
             @click="emit('reset')"
@@ -177,7 +172,7 @@ const mobileSelectContentClass =
             size="sm"
             :class="
               cn(
-                'h-8 gap-1.5 rounded-[9px] border-transparent px-2.5 shadow-none lg:px-3',
+                'h-8 gap-1.5 rounded-[10px] border-transparent px-2.5 shadow-none lg:px-3',
                 open
                   ? 'bg-secondary text-foreground hover:bg-secondary hover:text-foreground'
                   : 'text-muted-foreground hover:text-foreground',
@@ -254,7 +249,7 @@ const mobileSelectContentClass =
               :model-value="selectModel(filters.type)"
               @update:model-value="(v) => onServer('type', String(v))"
             >
-              <SelectTrigger class="w-full">
+              <SelectTrigger :class="fieldControl">
                 <SelectValue :placeholder="t('search.filters.all')" />
               </SelectTrigger>
               <SelectContent
@@ -279,7 +274,7 @@ const mobileSelectContentClass =
               :model-value="selectModel(filters.tracker)"
               @update:model-value="(v) => onServer('tracker', String(v))"
             >
-              <SelectTrigger class="w-full">
+              <SelectTrigger :class="fieldControl">
                 <SelectValue :placeholder="t('search.filters.all')" />
               </SelectTrigger>
               <SelectContent
@@ -304,7 +299,7 @@ const mobileSelectContentClass =
               :model-value="selectModel(filters.voice)"
               @update:model-value="(v) => onServer('voice', String(v))"
             >
-              <SelectTrigger class="w-full">
+              <SelectTrigger :class="fieldControl">
                 <SelectValue :placeholder="t('search.filters.all')" />
               </SelectTrigger>
               <SelectContent
@@ -329,7 +324,7 @@ const mobileSelectContentClass =
               :model-value="selectModel(filters.videotype)"
               @update:model-value="(v) => onServer('videotype', String(v))"
             >
-              <SelectTrigger class="w-full">
+              <SelectTrigger :class="fieldControl">
                 <SelectValue :placeholder="t('search.filters.all')" />
               </SelectTrigger>
               <SelectContent
@@ -349,7 +344,7 @@ const mobileSelectContentClass =
               :model-value="selectModel(filters.year)"
               @update:model-value="(v) => onServer('year', String(v))"
             >
-              <SelectTrigger class="w-full">
+              <SelectTrigger :class="fieldControl">
                 <SelectValue :placeholder="t('search.filters.all')" />
               </SelectTrigger>
               <SelectContent
@@ -374,7 +369,7 @@ const mobileSelectContentClass =
               :model-value="selectModel(filters.quality)"
               @update:model-value="(v) => onServer('quality', String(v))"
             >
-              <SelectTrigger class="w-full">
+              <SelectTrigger :class="fieldControl">
                 <SelectValue :placeholder="t('search.filters.all')" />
               </SelectTrigger>
               <SelectContent
@@ -399,7 +394,7 @@ const mobileSelectContentClass =
               :model-value="selectModel(filters.season)"
               @update:model-value="(v) => onServer('season', String(v))"
             >
-              <SelectTrigger class="w-full">
+              <SelectTrigger :class="fieldControl">
                 <SelectValue :placeholder="t('search.filters.all')" />
               </SelectTrigger>
               <SelectContent
@@ -422,6 +417,7 @@ const mobileSelectContentClass =
             {{ t('search.filters.refine') }}
             <Input
               :model-value="filters.refine"
+              :class="fieldControl"
               :placeholder="t('search.filters.refinePlaceholder')"
               @update:model-value="(v) => emit('clientFilter', 'refine', String(v))"
             />
@@ -431,6 +427,7 @@ const mobileSelectContentClass =
             {{ t('search.filters.exclude') }}
             <Input
               :model-value="filters.exclude"
+              :class="fieldControl"
               :placeholder="t('search.filters.excludePlaceholder')"
               @update:model-value="(v) => emit('clientFilter', 'exclude', String(v))"
             />
@@ -453,7 +450,7 @@ const mobileSelectContentClass =
       </SheetContent>
     </Sheet>
 
-    <!-- Desktop: soft edge + fields on page (no stroked card) -->
+    <!-- Desktop: inset grouped surface (Apple settings-style), not a bare hairline -->
     <Collapsible
       v-else
       :open="open"
@@ -464,9 +461,9 @@ const mobileSelectContentClass =
           id="search-filters-panel"
           role="region"
           :aria-label="t('search.filters.panel')"
-          class="jr-filters-panel mt-1 space-y-4 pt-3.5"
+          class="jr-filters-panel space-y-3.5"
         >
-          <div class="grid gap-x-3 gap-y-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="jr-filters-facets">
             <label :class="fieldLabel">
               {{ t('search.filters.type') }}
               <Select
@@ -581,7 +578,7 @@ const mobileSelectContentClass =
             </label>
           </div>
 
-          <div class="grid gap-x-3 gap-y-3.5 sm:grid-cols-2">
+          <div class="grid gap-x-3 gap-y-3 sm:grid-cols-2">
             <label :class="fieldLabel">
               {{ t('search.filters.refine') }}
               <Input
@@ -600,20 +597,6 @@ const mobileSelectContentClass =
                 @update:model-value="(v) => emit('clientFilter', 'exclude', String(v))"
               />
             </label>
-          </div>
-
-          <div class="flex justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              class="h-8 gap-1.5 rounded-[9px] text-muted-foreground"
-              :disabled="!activeCount"
-              @click="emit('reset')"
-            >
-              <RotateCcw class="size-3.5" />
-              {{ t('search.filters.reset') }}
-            </Button>
           </div>
         </div>
       </CollapsibleContent>

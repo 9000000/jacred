@@ -414,34 +414,70 @@
     align-items: center;
   }
 
-  /* Opaque sticky docks: page fill + soft scroll-edge fade (no glass slab) */
+  /* Control height scale (Apple craft): hero h-11 · chrome h-9 · compact segments h-8.
+   * Opaque sticky docks: page fill (no glass) so VirtualList transform rows never bleed through.
+   * Do not set position here — template uses sticky. */
+  .jr-sticky-dock,
   .jr-search-dock,
   .jr-settings-dock,
   .jr-stats-dock {
-    position: relative;
+    z-index: 20;
     box-shadow: none;
+    background-color: var(--background);
   }
+  [data-virtual-list] {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+  }
+  /* Hard edge under sticky docks — gradient fade looked like a gap/overlap seam */
+  .jr-sticky-dock::after,
   .jr-search-dock::after,
   .jr-settings-dock::after,
   .jr-stats-dock::after {
-    content: '';
-    pointer-events: none;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -12px;
-    height: 12px;
-    z-index: 1;
-    background: linear-gradient(
-      to bottom,
-      color-mix(in oklch, var(--background) 92%, transparent),
-      transparent
-    );
+    content: none;
   }
 
-  /* Search filters: scroll-edge separator (§12), not a stroked card */
+  /*
+   * Search filters: inset group on the opaque sticky dock.
+   * Radius ladder (Apple nested surfaces): control sm → panel md → menu md.
+   * Do NOT use backdrop-filter here — parent dock is solid bg-background;
+   * blur would only sample the dock (fake glass). Track surface via tokens.
+   */
   .jr-filters-panel {
-    border-top: 1px solid color-mix(in oklch, var(--foreground) 6%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-top: 0.25rem;
+    padding: 0.875rem 1rem 1rem;
+    background: var(--secondary);
+  }
+  html[data-surface='glass'] .jr-filters-panel {
+    border-color: var(--jr-glass-border);
+    background: var(--jr-glass-panel-fallback);
+  }
+  /* Nested soft-fill controls must sit above the group fill (not same secondary). */
+  .jr-filters-panel [data-slot='select-trigger'],
+  .jr-filters-panel [data-slot='input'] {
+    background-color: var(--background);
+  }
+  .jr-filters-panel [data-slot='select-trigger']:hover,
+  .jr-filters-panel [data-slot='input']:hover {
+    background-color: color-mix(in oklch, var(--background) 92%, var(--foreground));
+  }
+  html[data-surface='glass'] .jr-filters-panel [data-slot='select-trigger'],
+  html[data-surface='glass'] .jr-filters-panel [data-slot='input'] {
+    background-color: color-mix(in oklch, var(--card) 70%, var(--background));
+  }
+  /* Facet selects: auto-fit fills width without a dead empty cell on the right */
+  .jr-filters-facets {
+    display: grid;
+    gap: 0.75rem 0.75rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 640px) {
+    .jr-filters-facets {
+      grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    }
   }
 
   /* Search result action rail + semantic tints */
@@ -490,6 +526,35 @@
 
   /* Mobile list: compact action strip under meta */
   @media (max-width: 639px) {
+    /*
+     * Lock row floor to RESULT_ESTIMATE.*.mobile (result-layout.ts).
+     * estimate === min-height → VirtualList first paint matches measure (no voids).
+     */
+    article[data-layout='list'][data-result-card] {
+      min-height: 148px;
+    }
+    article[data-layout='card'][data-result-card] {
+      min-height: 156px;
+    }
+    /* Single-line meta — wrap would change height mid-scroll and reopen voids */
+    article[data-layout='card'] .jr-result-card__meta.jr-result-meta {
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+    article[data-layout='card'] .jr-result-card__meta .jr-meta-chip {
+      flex-shrink: 0;
+    }
+    article[data-layout='card'] .jr-result-card__meta .jr-meta-chip--added,
+    article[data-layout='card'] .jr-result-card__meta .jr-meta-chip--updated {
+      min-width: 0;
+      flex-shrink: 1;
+    }
+    article[data-layout='card'] .jr-result-card__meta .jr-meta-chip__value {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     article[data-layout='list'] .jr-result-actions--list {
       border-top: 1px solid var(--jr-glass-border);
       padding-top: 0.35rem;
@@ -764,36 +829,13 @@
     overflow-anchor: none;
   }
 
-  /* Horizontal chip/tab strips: scroll; edge fades only on narrow widths */
-  .jr-settings-tabs,
+  /* Settings category tabs: wrap — no horizontal swipe / edge-mask clipping */
+  .jr-settings-tabs {
+    overflow-x: visible;
+  }
+  /* Sort chips: no scroll — equal-width compact row on phone */
   .jr-sort-tabs {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .jr-settings-tabs::-webkit-scrollbar,
-  .jr-sort-tabs::-webkit-scrollbar {
-    display: none;
-  }
-  @media (max-width: 1023px) {
-    .jr-settings-tabs,
-    .jr-sort-tabs {
-      mask-image: linear-gradient(
-        90deg,
-        transparent,
-        #000 12px,
-        #000 calc(100% - 12px),
-        transparent
-      );
-      -webkit-mask-image: linear-gradient(
-        90deg,
-        transparent,
-        #000 12px,
-        #000 calc(100% - 12px),
-        transparent
-      );
-    }
+    overflow-x: hidden;
   }
 
   /* Autofill: keep dark/light surfaces instead of browser yellow wash */
@@ -873,9 +915,10 @@
     min-height: 44px;
   }
 
-  /* Compact iOS segments: keep h-8 track; expand hit via padding, not min-height */
+  /* Compact iOS segments: keep h-8 track; expand hit via padding, not min-height. */
+  .jr-segment-track [data-slot='toggle-group-item'],
   .jr-sort-tabs [data-slot='toggle-group-item'],
-  .jr-segment-track [data-slot='toggle-group-item'] {
+  .jr-settings-tabs [data-slot='toggle-group-item'] {
     min-width: 0;
     min-height: 0;
   }
@@ -950,6 +993,14 @@
   html[data-surface='glass'] .jr-glass-panel,
   html[data-surface='glass'] article[data-result-card].jr-glass:hover {
     background: var(--card) !important;
+  }
+  .jr-filters-panel {
+    background: var(--secondary) !important;
+    border-color: var(--border) !important;
+  }
+  .jr-filters-panel [data-slot='select-trigger'],
+  .jr-filters-panel [data-slot='input'] {
+    background-color: var(--background) !important;
   }
   .jr-glass-nav {
     background: var(--jr-glass-nav-fallback) !important;

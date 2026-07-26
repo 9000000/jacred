@@ -18,8 +18,18 @@ function applyTheme(value: ThemeValue) {
   persistTheme(value)
 
   const color = value === 'dark' ? THEME_COLOR_DARK : THEME_COLOR_LIGHT
+  // Update only metas that match the active scheme (or have no media) —
+  // don't wipe dual light/dark theme-color entries in index.html.
   document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
-    meta.setAttribute('content', color)
+    const media = meta.getAttribute('media')
+    if (!media) {
+      meta.setAttribute('content', color)
+      return
+    }
+    const wantsDark = /prefers-color-scheme:\s*dark/i.test(media)
+    const wantsLight = /prefers-color-scheme:\s*light/i.test(media)
+    if (value === 'dark' && wantsDark) meta.setAttribute('content', color)
+    if (value === 'light' && wantsLight) meta.setAttribute('content', color)
   })
 
   const tile = document.querySelector('meta[name="msapplication-TileColor"]')

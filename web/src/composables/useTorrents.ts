@@ -85,7 +85,6 @@ export function useTorrents() {
   const filtersOpen = ref(getItem(StorageKeys.filtersOpen) === '1')
   const filters = ref<SearchFilters>({ ...EMPTY_FILTERS })
   const currentQuery = ref('')
-  const resultsEl = ref<HTMLElement | null>(null)
   const activeKey = ref<TorrentsKey | null>(null)
   let internalRoute = ''
 
@@ -95,6 +94,17 @@ export function useTorrents() {
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     retry: 1,
+    // Keep prior rows only for same search (sort/filter). New query → no placeholder.
+    placeholderData: (
+      previousData: TorrentItem[] | undefined,
+      previousQuery,
+    ): TorrentItem[] | undefined => {
+      const prevKey = previousQuery?.queryKey?.[1] as TorrentsKey | null | undefined
+      const nextKey = activeKey.value
+      if (!previousData || !prevKey?.search || !nextKey?.search) return undefined
+      if (prevKey.search !== nextKey.search) return undefined
+      return previousData
+    },
     queryFn: async ({ signal, queryKey }): Promise<TorrentItem[]> => {
       const key = queryKey[1]
       if (!key?.search) return []
@@ -148,7 +158,8 @@ export function useTorrents() {
   const resultsHeader = computed(() => {
     const total = filteredItems.value.length
     if (!currentQuery.value || isLoading.value) return ''
-    if (!total) return t('search.nothingFound')
+    // Empty copy lives in the dashed panel — avoid duplicate «Nothing found».
+    if (!total) return ''
     const lang = (locale.value === 'en' ? 'en' : 'ru') as AppLocale
     return pluralResults(total, lang)
   })
@@ -271,6 +282,13 @@ export function useTorrents() {
             search: key.search,
             sort: SORT_API_MAP[key.sort],
             exact: key.exact ? true : undefined,
+            type: key.type || undefined,
+            tracker: key.tracker || undefined,
+            voice: key.voice || undefined,
+            videotype: key.videotype || undefined,
+            relased: key.year || undefined,
+            quality: key.quality || undefined,
+            season: key.season || undefined,
           },
           { timeoutMs: SEARCH_TIMEOUT_MS, signal },
         )
@@ -295,11 +313,6 @@ export function useTorrents() {
     listView.value = !listView.value
     setItem(StorageKeys.listView, listView.value ? '1' : '0')
     syncUrl()
-  }
-
-  function toggleFilters() {
-    filtersOpen.value = !filtersOpen.value
-    setItem(StorageKeys.filtersOpen, filtersOpen.value ? '1' : '0')
   }
 
   function setFiltersOpen(value: boolean) {
@@ -351,7 +364,15 @@ export function useTorrents() {
     sort.value = 'sid'
     exact.value = false
     filters.value = { ...EMPTY_FILTERS }
-    void router.replace({ path: '/' })
+    // Keep listView preference (storage + in-memory) across clear.
+    void router.replace({
+      path: '/',
+      query: listView.value ? { view: 'list' } : {},
+    })
+  }
+
+  function retrySearch() {
+    if (query.value.trim()) void search()
   }
 
   function onApiKeySaved() {
@@ -397,7 +418,7 @@ export function useTorrents() {
       activeKey.value = null
       sort.value = 'sid'
       exact.value = false
-      listView.value = false
+      // Preserve listView from URL/storage via readBootState — don't force cards.
       const shouldSearch = readBootState()
       if (shouldSearch) void search()
     },
@@ -418,15 +439,14 @@ export function useTorrents() {
     isFetching,
     errorMessage,
     currentQuery,
-    resultsEl,
     activeFilterCount,
     resultsHeader,
     search,
+    retrySearch,
     prefetchRecent,
     setSort,
     setExact,
     toggleListView,
-    toggleFilters,
     setFiltersOpen,
     updateServerFilter,
     updateClientFilter,

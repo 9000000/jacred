@@ -1,20 +1,33 @@
 <script setup lang="ts">
 import { Braces } from '@lucide/vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
+import { cn } from '@/lib/utils'
 
 const { t } = useI18n()
+const route = useRoute()
 
 const GITHUB = 'https://github.com/jacred-fdb/jacred'
 const TELEGRAM = 'https://t.me/pavelpikta'
+
+const contentMax = computed(() =>
+  route.name === 'stats' ? 'max-w-7xl' : 'max-w-6xl',
+)
 </script>
 
 <template>
   <footer
-    class="jr-glass mt-auto border-t"
+    class="jr-glass-nav mt-auto border-t"
     role="contentinfo"
   >
     <div
-      class="mx-auto flex max-w-6xl flex-col items-center gap-3 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:flex-row sm:justify-between sm:gap-4 sm:pl-[max(1.5rem,env(safe-area-inset-left))] sm:pr-[max(1.5rem,env(safe-area-inset-right))]"
+      :class="
+        cn(
+          'mx-auto flex flex-col items-center gap-3 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:flex-row sm:justify-between sm:gap-4 sm:pl-[max(1.5rem,env(safe-area-inset-left))] sm:pr-[max(1.5rem,env(safe-area-inset-right))]',
+          contentMax,
+        )
+      "
     >
       <div class="flex items-center gap-1">
         <a
