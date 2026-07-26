@@ -5,7 +5,7 @@ import {
   type ThemeValue,
 } from '@/lib/storage'
 
-/** Keep in sync with --background in style.css (Apple HIG surfaces) */
+/** Keep in sync with --background in style.css */
 const THEME_COLOR_DARK = '#000000'
 const THEME_COLOR_LIGHT = '#f2f2f7'
 
@@ -18,8 +18,7 @@ function applyTheme(value: ThemeValue) {
   persistTheme(value)
 
   const color = value === 'dark' ? THEME_COLOR_DARK : THEME_COLOR_LIGHT
-  // Update only metas that match the active scheme (or have no media) —
-  // don't wipe dual light/dark theme-color entries in index.html.
+  // Only update metas for the active scheme — don't wipe dual light/dark entries.
   document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
     const media = meta.getAttribute('media')
     if (!media) {
@@ -39,8 +38,7 @@ function applyTheme(value: ThemeValue) {
     'meta[name="apple-mobile-web-app-status-bar-style"]',
   )
   if (statusBar) {
-    // Always translucent with viewport-fit=cover + header safe-area padding
-    // (light `default` fights edge-to-edge layout in standalone PWA).
+    // black-translucent works with viewport-fit=cover + safe-area header padding
     statusBar.setAttribute('content', 'black-translucent')
   }
 }

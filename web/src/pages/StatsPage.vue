@@ -227,7 +227,7 @@ function bindGridEl(el: Element | ComponentPublicInstance | null) {
       aria-busy="true"
       :aria-label="t('stats.loading')"
     >
-      <div class="jr-glass animate-pulse rounded-xl border p-4">
+      <div class="jr-elevated animate-pulse rounded-xl border p-4">
         <div class="mb-3 h-4 w-40 rounded bg-muted-foreground/20" />
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div
@@ -268,7 +268,7 @@ function bindGridEl(el: Element | ComponentPublicInstance | null) {
         <div
           v-for="i in 4"
           :key="i"
-          class="jr-glass animate-pulse space-y-3 rounded-xl border p-4"
+          class="jr-elevated animate-pulse space-y-3 rounded-xl border p-4"
         >
           <div class="flex items-center gap-2.5">
             <div class="size-5 rounded-sm bg-muted-foreground/20" />
@@ -286,7 +286,7 @@ function bindGridEl(el: Element | ComponentPublicInstance | null) {
     <template v-else>
       <div
         v-if="!filtered.length && !errorMessage"
-        class="jr-glass-panel rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
+        class="jr-elevated rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
       >
         {{ t('stats.nothingFound') }}
       </div>

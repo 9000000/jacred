@@ -95,7 +95,7 @@ const {
 
     <div
       v-if="accessDenied"
-      class="jr-glass space-y-3 rounded-xl border border-destructive/30 p-5"
+      class="jr-elevated space-y-3 rounded-xl border border-destructive/30 p-5"
     >
       <div class="flex items-start gap-3">
         <ShieldAlert class="mt-0.5 size-5 text-destructive" />
@@ -145,7 +145,7 @@ const {
           class="h-8 w-24 animate-pulse rounded-[8px] bg-muted-foreground/10"
         />
       </div>
-      <div class="jr-glass animate-pulse space-y-4 rounded-xl border p-4">
+      <div class="jr-elevated animate-pulse space-y-4 rounded-xl border p-4">
         <div class="h-5 w-48 rounded bg-muted-foreground/20" />
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="space-y-1.5">
@@ -170,7 +170,7 @@ const {
 
     <div
       v-else-if="errorMessage"
-      class="jr-glass-panel space-y-3 rounded-xl border border-dashed px-4 py-12 text-center"
+      class="jr-elevated space-y-3 rounded-xl border border-dashed px-4 py-12 text-center"
       role="alert"
     >
       <p class="text-sm text-destructive">{{ errorMessage }}</p>

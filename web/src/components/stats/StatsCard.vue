@@ -168,7 +168,7 @@ const pairs = computed((): Metric[][] => {
 <template>
   <article
     data-result-card
-    class="jr-glass rounded-xl border p-4 text-card-foreground"
+    class="jr-elevated rounded-xl border p-4 text-card-foreground"
   >
     <header class="mb-3 flex items-center gap-2.5">
       <img

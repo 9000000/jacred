@@ -49,12 +49,15 @@ const SORT_ICONS = {
   update: RefreshCw,
 } as const
 
-/** Field labels: readable secondary, not ultra-faint */
+/** Field labels: tertiary tier (--jr-label), not ultra-faint muted */
 const fieldLabel =
-  'block space-y-1.5 text-xs font-medium text-muted-foreground'
-/** Controls: soft fill, continuous radius — not pill, not stroked (chrome h-9) */
-  const fieldControl =
-  'h-9 w-full rounded-[var(--radius-sm)] border-0 bg-secondary text-sm shadow-none ring-0 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/40 dark:bg-secondary dark:hover:bg-secondary/90'
+  'block space-y-1.5 text-xs font-medium text-[color:var(--jr-label)]'
+/**
+ * Controls sit on --secondary panel — must use --background + border
+ * (bg-secondary here made solid-dark filters look like one flat slab).
+ */
+const fieldControl =
+  'h-9 w-full rounded-[var(--radius-sm)] border border-border bg-background text-sm shadow-none ring-0 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 dark:bg-background dark:hover:bg-muted/50'
 
 
 defineProps<{
@@ -98,17 +101,14 @@ function setOpen(value: boolean) {
   emit('update:open', value)
 }
 
-/** Mobile sheet: popper + solid surface so labels don’t bleed through glass. */
+/** Mobile sheet selects: solid popover so labels don’t bleed through glass. */
 const mobileSelectContentClass =
   'z-[60] w-[var(--reka-select-trigger-width)] !bg-popover shadow-lg ![backdrop-filter:none] ![-webkit-backdrop-filter:none]'
 </script>
 
 <template>
   <div class="space-y-2.5">
-    <!--
-      Content is max-w-6xl even on 16" desktop. Sort hugs chips; tools ml-auto.
-      Do not flex-1 / min-w-full the segment track — that paints a dead grey strip.
-    -->
+    <!-- Don’t flex-1 the sort track — paints a dead grey strip on wide screens -->
     <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2.5">
       <div class="jr-sort-tabs min-w-0">
         <ToggleGroup
@@ -141,7 +141,7 @@ const mobileSelectContentClass =
       >
         <label
           for="exact-search"
-          class="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-full px-1 text-sm text-muted-foreground"
+          class="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-full px-1 text-sm text-[color:var(--jr-label)]"
         >
           <Switch
             id="exact-search"
@@ -156,7 +156,7 @@ const mobileSelectContentClass =
             type="button"
             variant="ghost"
             size="sm"
-            class="h-8 gap-1.5 rounded-[10px] border-transparent px-2.5 text-muted-foreground shadow-none hover:text-foreground lg:px-3"
+            class="h-8 gap-1.5 rounded-[10px] border-transparent px-2.5 text-[color:var(--jr-label)] shadow-none hover:text-foreground lg:px-3"
             :disabled="!activeCount"
             :aria-label="t('search.filters.reset')"
             @click="emit('reset')"
@@ -243,7 +243,7 @@ const mobileSelectContentClass =
           :aria-label="t('search.filters.panel')"
           class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-3"
         >
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.type') }}
             <Select
               :model-value="selectModel(filters.type)"
@@ -268,7 +268,7 @@ const mobileSelectContentClass =
             </Select>
           </label>
 
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.tracker') }}
             <Select
               :model-value="selectModel(filters.tracker)"
@@ -293,7 +293,7 @@ const mobileSelectContentClass =
             </Select>
           </label>
 
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.voice') }}
             <Select
               :model-value="selectModel(filters.voice)"
@@ -318,7 +318,7 @@ const mobileSelectContentClass =
             </Select>
           </label>
 
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.video') }}
             <Select
               :model-value="selectModel(filters.videotype)"
@@ -338,7 +338,7 @@ const mobileSelectContentClass =
             </Select>
           </label>
 
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.year') }}
             <Select
               :model-value="selectModel(filters.year)"
@@ -363,7 +363,7 @@ const mobileSelectContentClass =
             </Select>
           </label>
 
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.quality') }}
             <Select
               :model-value="selectModel(filters.quality)"
@@ -388,7 +388,7 @@ const mobileSelectContentClass =
             </Select>
           </label>
 
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.season') }}
             <Select
               :model-value="selectModel(filters.season)"
@@ -413,7 +413,7 @@ const mobileSelectContentClass =
             </Select>
           </label>
 
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.refine') }}
             <Input
               :model-value="filters.refine"
@@ -423,7 +423,7 @@ const mobileSelectContentClass =
             />
           </label>
 
-          <label class="block space-y-1.5 text-xs text-muted-foreground">
+          <label class="block space-y-1.5 text-xs text-[color:var(--jr-label)]">
             {{ t('search.filters.exclude') }}
             <Input
               :model-value="filters.exclude"
@@ -450,7 +450,7 @@ const mobileSelectContentClass =
       </SheetContent>
     </Sheet>
 
-    <!-- Desktop: inset grouped surface (Apple settings-style), not a bare hairline -->
+    <!-- Desktop filters panel -->
     <Collapsible
       v-else
       :open="open"

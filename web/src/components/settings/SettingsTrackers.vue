@@ -81,7 +81,7 @@ function setOpen(id: string, open: boolean) {
 
     <div
       v-if="search.trim() && !filtered.length"
-      class="jr-glass-panel rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground"
+      class="jr-elevated rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground"
     >
       {{ t('settings.trackerNothingFound') }}
       <button
@@ -100,7 +100,7 @@ function setOpen(id: string, open: boolean) {
         :open="openId === tracker.id"
         @update:open="(v) => setOpen(tracker.id, v)"
       >
-        <div class="jr-glass-panel overflow-hidden rounded-xl border">
+        <div class="jr-elevated overflow-hidden rounded-xl border">
           <CollapsibleTrigger
             class="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-muted/30"
           >

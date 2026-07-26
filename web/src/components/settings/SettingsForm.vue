@@ -103,7 +103,7 @@ const groupLayout = computed(() => {
 
       <div
         v-else
-        class="space-y-3 rounded-xl border jr-glass-panel p-3"
+        class="space-y-3 rounded-xl border jr-elevated p-3"
       >
         <div
           v-if="groupLayout.bools.length || groupLayout.compact.length"

@@ -186,7 +186,7 @@ function onRetry() {
   void waitForSearchPaint()
 }
 
-/** Server-driven filter/sort: pin top, refetch, settle (button stays idle via scoped placeholder). */
+/** Server filter/sort: pin top, refetch; button stays idle via scoped placeholder. */
 function runServerFilterSearch(apply: () => void) {
   pinResultsStart()
   apply()
@@ -277,7 +277,6 @@ onBeforeUnmount(() => {
       {{ t('search.offline') }}
     </div>
 
-    <!-- Same chrome before and after search — sticky without a sudden “card” skin -->
     <div
       class="jr-sticky-dock jr-search-dock sticky flex flex-col gap-2 py-2 sm:gap-2.5 sm:py-2.5"
       style="top: var(--jr-header-offset)"
@@ -424,14 +423,14 @@ onBeforeUnmount(() => {
 
       <div
         v-if="showEmptyHint"
-        class="jr-glass-panel rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
+        class="jr-elevated rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
       >
         {{ t('search.emptyHint') }}
       </div>
 
       <div
         v-else-if="showNothingFound"
-        class="jr-glass-panel rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
+        class="jr-elevated rounded-xl border border-dashed px-4 py-12 text-center text-muted-foreground"
       >
         {{ t('search.nothingFound') }}
       </div>

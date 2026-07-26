@@ -34,7 +34,7 @@ const contentMax = computed(() =>
           :href="GITHUB"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-100 hover:bg-muted hover:text-foreground active:scale-[0.97] motion-reduce:active:scale-100"
+          class="jr-footer-hit relative inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-100 hover:bg-muted hover:text-foreground active:scale-[0.97] motion-reduce:active:scale-100"
           :aria-label="t('app.footer.github')"
         >
           <svg
@@ -52,7 +52,7 @@ const contentMax = computed(() =>
           :href="TELEGRAM"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-100 hover:bg-muted hover:text-foreground active:scale-[0.97] motion-reduce:active:scale-100"
+          class="jr-footer-hit relative inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-100 hover:bg-muted hover:text-foreground active:scale-[0.97] motion-reduce:active:scale-100"
           :aria-label="t('app.footer.telegram')"
         >
           <svg

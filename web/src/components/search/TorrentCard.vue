@@ -165,7 +165,7 @@ async function onSendTorr() {
     :data-layout="listView ? 'list' : 'card'"
     :class="
       cn(
-        'jr-glass border transition-colors hover:border-primary/40',
+        'jr-elevated border transition-colors hover:border-primary/40',
         'focus-within:ring-1 focus-within:ring-ring/40',
         listView
           ? 'flex flex-col gap-1 rounded-md px-2 py-1.5 sm:flex-row sm:items-center sm:gap-2 sm:py-1'
@@ -173,7 +173,6 @@ async function onSendTorr() {
       )
     "
   >
-    <!-- List: mobile dense stack; desktop row -->
     <template v-if="listView">
       <div class="flex min-w-0 flex-1 items-start gap-2 sm:items-center">
         <button
@@ -268,7 +267,6 @@ async function onSendTorr() {
       </div>
     </template>
 
-    <!-- Card: head / meta / actions bands (thicker on mobile) -->
     <template v-else>
       <div
         class="jr-result-card__head flex items-start gap-2 px-2.5 pt-2 pb-1.5 sm:p-0"

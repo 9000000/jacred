@@ -167,8 +167,7 @@ onMounted(() => {
   } else {
     syncHeaderOffset()
   }
-  // resize only — visualViewport.scroll fires with URL-bar / rubber-band and
-  // rewriting --jr-header-offset mid-gesture shifts sticky docks under the finger.
+  // resize only — visualViewport.scroll mid-gesture shifts sticky docks
   window.visualViewport?.addEventListener('resize', onVisualViewportChange, {
     passive: true,
   })
@@ -434,6 +433,7 @@ onUnmounted(() => {
                 </div>
                 <DropdownMenuItem
                   class="justify-between gap-3"
+                  :title="t('app.surfaceSolidHint')"
                   @select="setSurface('solid')"
                 >
                   {{ t('app.surfaceSolid') }}
@@ -445,6 +445,7 @@ onUnmounted(() => {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   class="justify-between gap-3"
+                  :title="t('app.surfaceGlassHint')"
                   @select="setSurface('glass')"
                 >
                   {{ t('app.surfaceGlass') }}
@@ -508,7 +509,7 @@ onUnmounted(() => {
         close-button
         position="top-center"
         offset="calc(0.75rem + env(safe-area-inset-top, 0px))"
-        mobile-offset="0.75rem"
+        mobile-offset="calc(0.75rem + env(safe-area-inset-top, 0px))"
       />
       <ScrollToTopButton />
 

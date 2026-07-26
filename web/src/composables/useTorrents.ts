@@ -27,7 +27,6 @@ import {
   normalizeSortParam,
   pluralResults,
   SORT_API_MAP,
-  sortItems,
   type SearchFilters,
   type SortValue,
   type TorrentItem,
@@ -129,7 +128,7 @@ export function useTorrents() {
   })
 
   const allItems = computed(() => torrentsQuery.data.value ?? [])
-  /** First load only — keep previous rows mounted while refetching (avoids scroll jump). */
+  /** Keep previous rows while refetching (avoids scroll jump). */
   const isLoading = computed(() => torrentsQuery.isLoading.value)
   const isFetching = computed(() => torrentsQuery.isFetching.value)
   const errorMessage = computed(() => {
@@ -139,18 +138,25 @@ export function useTorrents() {
 
   const facets = computed(() => buildFacets(allItems.value))
 
+  /** Debounced refine/exclude so typing doesn't filter every keystroke. */
+  const appliedClient = ref({ refine: '', exclude: '' })
+
+  function syncAppliedClient() {
+    appliedClient.value = {
+      refine: filters.value.refine,
+      exclude: filters.value.exclude,
+    }
+  }
+
   const filteredItems = computed(() =>
-    sortItems(
-      applyClientFilters(
-        allItems.value,
-        filters.value.refine,
-        filters.value.exclude,
-      ),
-      sort.value,
+    applyClientFilters(
+      allItems.value,
+      appliedClient.value.refine,
+      appliedClient.value.exclude,
     ),
   )
 
-  /** All filtered rows — TanStack Virtual owns DOM windowing. */
+  /** Filtered rows; off-screen paint via CSS content-visibility. */
   const visibleItems = filteredItems
 
   const activeFilterCount = computed(() => countActiveFilters(filters.value))
@@ -212,6 +218,7 @@ export function useTorrents() {
     if (countActiveFilters(filters.value) > 0) {
       filtersOpen.value = true
     }
+    syncAppliedClient()
 
     if (typeof qp.sort === 'string') {
       const s = normalizeSortParam(qp.sort)
@@ -330,8 +337,9 @@ export function useTorrents() {
   }
 
   const applyClientFilterDebounced = useDebounceFn(() => {
+    syncAppliedClient()
     if (currentQuery.value) syncUrl()
-  }, 200)
+  }, 180)
 
   function updateClientFilter(key: 'refine' | 'exclude', value: string) {
     filters.value = { ...filters.value, [key]: value }
@@ -340,6 +348,7 @@ export function useTorrents() {
 
   function resetFilters() {
     filters.value = { ...EMPTY_FILTERS }
+    syncAppliedClient()
     if (query.value.trim()) void search()
     else syncUrl()
   }

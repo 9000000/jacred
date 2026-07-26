@@ -13,9 +13,12 @@ export default {
     appearance: 'Оформление',
     tools: 'Инструменты',
     themeSection: 'Тема',
-    surfaceSection: 'Карточки',
+    surfaceSection: 'Поверхности',
     surfaceSolid: 'Плотные',
     surfaceGlass: 'Стекло',
+    surfaceSolidHint: 'Плотный контент и более непрозрачная навигация',
+    surfaceGlassHint:
+      'Стекло на навигации и атмосфере страницы; карточки списка остаются плотными',
     langRu: 'RU',
     langEn: 'EN',
     backToTop: 'Наверх',
