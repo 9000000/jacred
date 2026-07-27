@@ -1291,17 +1291,22 @@
     cursor: grabbing;
   }
   .jr-sheet-drag-zone--handle {
-    /* 44px hit target around the handle hairline */
-    min-height: 44px;
+    /* Large grabber hit target — primary dismiss affordance on iOS */
+    min-height: 52px;
     display: flex;
     align-items: flex-start;
     justify-content: center;
+    touch-action: none;
   }
   .jr-sheet-handle {
     touch-action: none;
     pointer-events: none;
     width: 100%;
     max-width: 20rem;
+  }
+  .jr-sheet-body {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .jr-scroll-top {

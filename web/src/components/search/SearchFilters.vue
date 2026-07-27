@@ -365,7 +365,7 @@ function onClientFilter(key: 'refine' | 'exclude', value: string) {
           id="search-filters-panel"
           role="region"
           :aria-label="t('search.filters.panel')"
-          class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-3"
+          class="jr-sheet-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-3"
         >
           <JackettFiltersForm
             v-if="apiMode === 'v2'"
