@@ -73,7 +73,7 @@ export default {
     apiKeySaved: 'API ключ сохранён',
     apiMode: {
       label: 'API поиска',
-      native: 'Native',
+      native: 'Встроенный',
       jackett: 'Jackett',
     },
     errors: {
@@ -185,7 +185,7 @@ export default {
       sectionSearchHint: 'Уходят в Jackett API вместе с запросом',
       sectionResults: 'Уточнение результатов',
       sectionResultsHint: 'Фильтруют уже загруженный список · можно выбрать несколько',
-      sectionNativeHint: 'Применяются к результатам Native-поиска',
+      sectionNativeHint: 'Применяются к результатам встроенного поиска',
       sectionTitle: 'Текст названия',
       selectedCount: 'Выбрано: {count}',
       clearSelection: 'Сбросить',
