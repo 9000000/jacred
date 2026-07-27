@@ -829,10 +829,6 @@
     .jr-filter-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .jr-filter-grid--compact {
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-      align-items: start;
-    }
   }
   .jr-filter-field {
     display: flex;
@@ -1339,9 +1335,6 @@
   .jr-settings-tabs {
     overflow-x: visible;
   }
-  .jr-sort-tabs {
-    overflow-x: hidden;
-  }
 
   /* Instant press feedback on segmented controls */
   .jr-segment-track [data-slot='toggle-group-item'] {
@@ -1494,7 +1487,6 @@
   }
 
   /* Keep visual h-8; min-height:44 here breaks equal-width sort chips */
-  .jr-sort-tabs [data-slot='toggle-group-item'],
   .jr-settings-tabs [data-slot='toggle-group-item'] {
     position: relative;
     min-width: 0;
@@ -1507,7 +1499,6 @@
     min-width: min-content;
   }
   .jr-segment-track [data-slot='toggle-group-item']::before,
-  .jr-sort-tabs [data-slot='toggle-group-item']::before,
   .jr-settings-tabs [data-slot='toggle-group-item']::before {
     content: '';
     position: absolute;

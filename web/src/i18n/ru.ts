@@ -69,7 +69,6 @@ export default {
     emptyQuery: 'Поисковый запрос пустой!',
     offline: 'Нет сети. Для поиска нужно подключение к интернету.',
     documentTitle: 'Скачать торрент - {query} | JacRed',
-    pageTitle: 'Поиск — JacRed',
     apiKeySaved: 'API ключ сохранён',
     apiMode: {
       label: 'API поиска',
@@ -191,8 +190,6 @@ export default {
       clearSelection: 'Сбросить',
       searchOptions: 'Поиск…',
       noOptions: 'Нет совпадений',
-      showMore: 'Ещё {count}',
-      showLess: 'Свернуть',
     },
   },
   stats: {
@@ -226,14 +223,11 @@ export default {
     sortSkip: 'Пропущено',
     colTracker: 'Трекер',
     colLastNew: 'Последний новый',
-    pageTitle: 'Статистика — JacRed',
     pagination: '{start}–{end} из {total}',
     trackerCount:
       '{count} трекер | {count} трекера | {count} трекеров',
     apiKeySaved: 'API ключ сохранён',
     errors: {
-      invalidApiKey: 'API ключ неверный. Введите правильный ключ.',
-      apiKeyRequired: 'Требуется API ключ',
       apiKeyCheck: 'Требуется API ключ. Проверьте введённый ключ.',
       forbidden: 'Доступ запрещён (403). Проверьте ключ API или openstats.',
       requestFailed: 'Ошибка запроса статистики: HTTP {status}',

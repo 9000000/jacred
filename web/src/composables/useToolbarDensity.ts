@@ -7,16 +7,12 @@ import {
 } from 'vue'
 import {
   densityFromDockWidth,
+  densityRank,
   nextDensity,
   type ToolbarDensity,
 } from '@/composables/toolbarDensity'
 
 const DEBOUNCE_MS = 50
-const ORDER: ToolbarDensity[] = ['compact', 'regular', 'comfortable']
-
-function rank(d: ToolbarDensity) {
-  return ORDER.indexOf(d)
-}
 
 /**
  * Keeps `data-toolbar-density` on the search dock in sync with available width.
@@ -42,7 +38,7 @@ export function useToolbarDensity(options: {
 
     const baseline = densityFromDockWidth(dock.clientWidth)
     // Ceiling from dock width (matches @container tiers).
-    if (rank(density.value) > rank(baseline)) {
+    if (densityRank(density.value) > densityRank(baseline)) {
       density.value = baseline
       writeAttr(baseline)
     } else if (!dock.dataset.toolbarDensity) {
@@ -57,7 +53,7 @@ export function useToolbarDensity(options: {
       density.value,
       allowUp ? spare : 0,
     )
-    if (rank(next) > rank(baseline)) next = baseline
+    if (densityRank(next) > densityRank(baseline)) next = baseline
 
     const changed = next !== density.value
     density.value = next
@@ -102,5 +98,5 @@ export function useToolbarDensity(options: {
     observer = null
   })
 
-  return { density, measure }
+  return { measure }
 }

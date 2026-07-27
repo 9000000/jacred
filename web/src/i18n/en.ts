@@ -68,7 +68,6 @@ export default {
     emptyQuery: 'Search query is empty!',
     offline: 'You are offline. Search needs a network connection.',
     documentTitle: 'Download torrent - {query} | JacRed',
-    pageTitle: 'Search — JacRed',
     apiKeySaved: 'API key saved',
     apiMode: {
       label: 'Search API',
@@ -189,8 +188,6 @@ export default {
       clearSelection: 'Clear',
       searchOptions: 'Search…',
       noOptions: 'No matches',
-      showMore: 'Show {count} more',
-      showLess: 'Show less',
     },
   },
   stats: {
@@ -224,13 +221,10 @@ export default {
     sortSkip: 'Skipped',
     colTracker: 'Tracker',
     colLastNew: 'Latest new',
-    pageTitle: 'Stats — JacRed',
     pagination: '{start}–{end} of {total}',
     trackerCount: '{count} tracker | {count} trackers',
     apiKeySaved: 'API key saved',
     errors: {
-      invalidApiKey: 'The API key is invalid. Enter the correct key.',
-      apiKeyRequired: 'API key required',
       apiKeyCheck: 'API key required. Check the entered key.',
       forbidden: 'Access denied (403). Check the API key or openstats.',
       requestFailed: 'Stats request failed: HTTP {status}',

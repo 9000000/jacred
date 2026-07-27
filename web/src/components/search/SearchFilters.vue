@@ -186,7 +186,7 @@ function onClientFilter(key: 'refine' | 'exclude', value: string) {
               :model-value="apiMode"
               size="sm"
               :spacing="1"
-              :class="cn(segmentTrack, 'shrink-0')"
+              :class="segmentTrack"
               :aria-label="t('search.apiMode.label')"
               @update:model-value="(v) => v && emit('update:apiMode', v as ApiMode)"
             >
@@ -280,7 +280,7 @@ function onClientFilter(key: 'refine' | 'exclude', value: string) {
             :model-value="listView ? 'list' : 'cards'"
             size="sm"
             :spacing="1"
-            :class="cn(segmentTrack, 'jr-toolbar-view shrink-0')"
+            :class="cn(segmentTrack, 'jr-toolbar-view')"
             :aria-label="t('search.viewMode')"
             @update:model-value="
               (v) => v && emit('update:listView', v === 'list')
