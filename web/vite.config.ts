@@ -5,7 +5,7 @@ import { loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
 import {
-  isApiPathname,
+  matchApiUrlPattern,
   NAVIGATE_FALLBACK_DENYLIST,
   VITE_API_PROXY_PATHS,
 } from './src/lib/spa-api-bypass.js'
@@ -146,7 +146,8 @@ export default defineConfig(({ mode }) => {
               },
             },
             {
-              urlPattern: ({ url }) => isApiPathname(url.pathname),
+              // Pass the named fn (not a wrapper) so generateSW `.toString()` stays closure-free.
+              urlPattern: matchApiUrlPattern,
               handler: 'NetworkOnly',
             },
           ],
