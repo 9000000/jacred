@@ -30,7 +30,7 @@ describe('isApiPathname', () => {
     expect(isApiPathname('/api/v1.0/config')).toBe(true)
     expect(isApiPathname('/sync/fdb')).toBe(true)
     expect(isApiPathname('/torznab/api')).toBe(true)
-    expect(isApiPathname('/cron/rutor/sync')).toBe(true)
+    expect(isApiPathname('/cron/anything')).toBe(true)
     expect(isApiPathname('/dev/updateSize')).toBe(true)
     expect(isApiPathname('/jsondb/save')).toBe(true)
     expect(isApiPathname('/swagger/index.html')).toBe(true)
