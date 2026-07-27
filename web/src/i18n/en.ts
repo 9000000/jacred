@@ -65,6 +65,8 @@ export default {
     sortSize: 'By size',
     sortAdded: 'Date added',
     sortUpdated: 'Date updated',
+    sortAsc: '{field}, ascending',
+    sortDesc: '{field}, descending',
     emptyQuery: 'Search query is empty!',
     offline: 'You are offline. Search needs a network connection.',
     documentTitle: 'Download torrent - {query} | JacRed',

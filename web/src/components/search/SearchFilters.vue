@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
 import {
+  ArrowDown,
   ArrowUp,
   CalendarPlus,
   Filter,
@@ -41,6 +42,7 @@ import { segmentItemSort, segmentItem, segmentTrack, segmentTrackSort } from '@/
 import {
   SORT_OPTIONS,
   type SearchFilters,
+  type SortDirection,
   type SortValue,
 } from '@/lib/torrents'
 import { cn } from '@/lib/utils'
@@ -52,11 +54,12 @@ const SORT_ICONS = {
   update: RefreshCw,
 } as const
 
-defineProps<{
+const props = defineProps<{
   open: boolean
   exact: boolean
   apiMode: ApiMode
   sort: SortValue
+  sortDir: SortDirection
   listView: boolean
   filters: SearchFilters
   v2Filters: V2SearchFilters
@@ -113,6 +116,21 @@ watch(locale, () => {
   requestAnimationFrame(() => measureToolbarDensity())
 })
 
+function sortAriaLabel(opt: (typeof SORT_OPTIONS)[number]) {
+  const field = t(opt.labelKey)
+  if (props.sort !== opt.value) {
+    return t('search.sortDesc', { field })
+  }
+  return t(
+    props.sortDir === 'asc' ? 'search.sortAsc' : 'search.sortDesc',
+    { field },
+  )
+}
+
+function onSortChipClick(value: SortValue) {
+  emit('update:sort', value)
+}
+
 function setOpen(value: boolean) {
   emit('update:open', value)
 }
@@ -157,14 +175,21 @@ function onClientFilter(key: 'refine' | 'exclude', value: string) {
             :spacing="1"
             :class="cn(segmentTrackSort, 'justify-stretch')"
             :aria-label="t('search.sortMode')"
-            @update:model-value="(v) => v && emit('update:sort', v as SortValue)"
           >
             <ToggleGroupItem
               v-for="opt in SORT_OPTIONS"
               :key="opt.value"
               :value="opt.value"
               :class="segmentItemSort"
-              :aria-label="t(opt.labelKey)"
+              :aria-label="sortAriaLabel(opt)"
+              :aria-sort="
+                sort === opt.value
+                  ? sortDir === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : undefined
+              "
+              @click="onSortChipClick(opt.value)"
             >
               <component
                 :is="SORT_ICONS[opt.value]"
@@ -174,6 +199,12 @@ function onClientFilter(key: 'refine' | 'exclude', value: string) {
               <span class="jr-toolbar-label jr-toolbar-label--sort">{{
                 t(opt.labelKey)
               }}</span>
+              <component
+                :is="sortDir === 'asc' ? ArrowUp : ArrowDown"
+                v-if="sort === opt.value"
+                class="size-3 shrink-0 opacity-80"
+                aria-hidden="true"
+              />
             </ToggleGroupItem>
           </ToggleGroup>
         </div>

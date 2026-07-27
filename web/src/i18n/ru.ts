@@ -66,6 +66,8 @@ export default {
     sortSize: 'По размеру',
     sortAdded: 'Добавлен',
     sortUpdated: 'Обновлён',
+    sortAsc: '{field}, по возрастанию',
+    sortDesc: '{field}, по убыванию',
     emptyQuery: 'Поисковый запрос пустой!',
     offline: 'Нет сети. Для поиска нужно подключение к интернету.',
     documentTitle: 'Скачать торрент - {query} | JacRed',
