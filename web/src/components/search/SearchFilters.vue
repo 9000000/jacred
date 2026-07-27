@@ -10,6 +10,7 @@ import {
   RefreshCw,
   RotateCcw,
 } from '@lucide/vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,8 +27,15 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import JackettFiltersForm from '@/components/search/JackettFiltersForm.vue'
 import NativeFiltersForm from '@/components/search/NativeFiltersForm.vue'
+import { useToolbarDensity } from '@/composables/useToolbarDensity'
 import { type ApiMode, type V2SearchFilters } from '@/lib/jackett'
 import { segmentItemSort, segmentItem, segmentTrack, segmentTrackSort } from '@/lib/segment-classes'
 import {
@@ -83,8 +91,27 @@ const emit = defineEmits<{
   reset: []
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const isMobile = useMediaQuery('(max-width: 639px)')
+
+const dockRef = ref<HTMLElement | null>(null)
+const bandRef = ref<HTMLElement | null>(null)
+const { measure: measureToolbarDensity } = useToolbarDensity({
+  dockRef,
+  bandRef,
+})
+
+watch(
+  bandRef,
+  (el) => {
+    dockRef.value = (el?.closest('.jr-search-dock') as HTMLElement | null) ?? null
+  },
+  { immediate: true },
+)
+
+watch(locale, () => {
+  requestAnimationFrame(() => measureToolbarDensity())
+})
 
 function setOpen(value: boolean) {
   emit('update:open', value)
@@ -119,132 +146,170 @@ function onClientFilter(key: 'refine' | 'exclude', value: string) {
 
 <template>
   <div class="space-y-2.5">
-    <div class="jr-search-toolbar">
-      <div class="jr-toolbar-group jr-toolbar-group--sort">
-        <ToggleGroup
-          type="single"
-          :model-value="sort"
-          size="sm"
-          :spacing="0"
-          :class="cn(segmentTrackSort, 'justify-stretch lg:justify-start')"
-          :aria-label="t('search.sortMode')"
-          @update:model-value="(v) => v && emit('update:sort', v as SortValue)"
-        >
-          <ToggleGroupItem
-            v-for="opt in SORT_OPTIONS"
-            :key="opt.value"
-            :value="opt.value"
-            :class="segmentItemSort"
-          >
-            <component
-              :is="SORT_ICONS[opt.value]"
-              class="size-3 shrink-0 lg:size-3.5"
-              aria-hidden="true"
-            />
-            {{ t(opt.labelKey) }}
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-
-      <div class="jr-toolbar-end">
-        <div class="jr-toolbar-cluster">
+    <TooltipProvider :delay-duration="400">
+      <div class="jr-search-toolbar">
+        <!-- Band 1: sort — full width, labels always -->
+        <div class="jr-toolbar-band jr-toolbar-band--sort">
           <ToggleGroup
             type="single"
-            :model-value="apiMode"
+            :model-value="sort"
             size="sm"
-            :spacing="0"
-            :class="cn(segmentTrack, 'shrink-0')"
-            :aria-label="t('search.apiMode.label')"
-            @update:model-value="(v) => v && emit('update:apiMode', v as ApiMode)"
+            :spacing="1"
+            :class="cn(segmentTrackSort, 'justify-stretch')"
+            :aria-label="t('search.sortMode')"
+            @update:model-value="(v) => v && emit('update:sort', v as SortValue)"
           >
-            <ToggleGroupItem value="v1" :class="segmentItem">
-              {{ t('search.apiMode.native') }}
-            </ToggleGroupItem>
-            <ToggleGroupItem value="v2" :class="segmentItem">
-              {{ t('search.apiMode.jackett') }}
+            <ToggleGroupItem
+              v-for="opt in SORT_OPTIONS"
+              :key="opt.value"
+              :value="opt.value"
+              :class="segmentItemSort"
+              :aria-label="t(opt.labelKey)"
+            >
+              <component
+                :is="SORT_ICONS[opt.value]"
+                class="size-3.5 shrink-0"
+                aria-hidden="true"
+              />
+              <span class="jr-toolbar-label jr-toolbar-label--sort">{{
+                t(opt.labelKey)
+              }}</span>
             </ToggleGroupItem>
           </ToggleGroup>
-
-          <span class="jr-toolbar-sep" aria-hidden="true" />
-
-          <label
-            v-if="apiMode === 'v1'"
-            for="exact-search"
-            class="jr-exact-toggle"
-          >
-            <Switch
-              id="exact-search"
-              :model-value="exact"
-              @update:model-value="(v) => emit('update:exact', !!v)"
-            />
-            {{ t('search.filters.exact') }}
-          </label>
-
-          <div class="jr-toolbar-actions">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              class="jr-toolbar-btn"
-              :disabled="!activeCount"
-              :aria-label="t('search.filters.reset')"
-              @click="emit('reset')"
-            >
-              <RotateCcw class="size-3.5 shrink-0" />
-              <span class="hidden lg:inline">{{ t('search.filters.reset') }}</span>
-            </Button>
-
-            <Button
-              id="search-filters-trigger"
-              type="button"
-              variant="ghost"
-              size="sm"
-              :class="
-                cn(
-                  'jr-toolbar-btn',
-                  open && 'jr-toolbar-btn--on',
-                )
-              "
-              :aria-label="t('search.filters.filters')"
-              :aria-expanded="open"
-              aria-controls="search-filters-panel"
-              @click="setOpen(!open)"
-            >
-              <Filter class="size-3.5" aria-hidden="true" />
-              <span class="hidden lg:inline" aria-hidden="true">{{ t('search.filters.filters') }}</span>
-              <Badge
-                v-if="activeCount"
-                variant="secondary"
-                class="ml-0.5 size-5 justify-center rounded-full bg-primary p-0 text-[10px] text-primary-foreground"
-              >
-                {{ activeCount }}
-              </Badge>
-            </Button>
-          </div>
         </div>
 
-        <ToggleGroup
-          type="single"
-          :model-value="listView ? 'list' : 'cards'"
-          size="sm"
-          :spacing="0"
-          :class="cn(segmentTrack, 'jr-toolbar-view shrink-0')"
-          :aria-label="t('search.viewMode')"
-          @update:model-value="
-            (v) => v && emit('update:listView', v === 'list')
-          "
-        >
-          <ToggleGroupItem value="list" :class="segmentItem" :aria-label="t('search.list')">
-            <List class="size-3.5" />
-            <span class="hidden lg:inline">{{ t('search.list') }}</span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="cards" :class="segmentItem" :aria-label="t('search.cards')">
-            <Grid2x2 class="size-3.5" />
-            <span class="hidden lg:inline">{{ t('search.cards') }}</span>
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <!-- Band 2: mode · exact · spacer · actions · view -->
+        <div ref="bandRef" class="jr-toolbar-band jr-toolbar-band--controls">
+          <div class="jr-toolbar-cluster">
+            <ToggleGroup
+              type="single"
+              :model-value="apiMode"
+              size="sm"
+              :spacing="1"
+              :class="cn(segmentTrack, 'shrink-0')"
+              :aria-label="t('search.apiMode.label')"
+              @update:model-value="(v) => v && emit('update:apiMode', v as ApiMode)"
+            >
+              <ToggleGroupItem value="v1" :class="segmentItem">
+                {{ t('search.apiMode.native') }}
+              </ToggleGroupItem>
+              <ToggleGroupItem value="v2" :class="segmentItem">
+                {{ t('search.apiMode.jackett') }}
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            <span class="jr-toolbar-sep" aria-hidden="true" />
+
+            <Tooltip v-if="apiMode === 'v1'">
+              <TooltipTrigger as-child>
+                <label for="exact-search" class="jr-exact-toggle">
+                  <Switch
+                    id="exact-search"
+                    :model-value="exact"
+                    :aria-label="t('search.filters.exact')"
+                    @update:model-value="(v) => emit('update:exact', !!v)"
+                  />
+                  <span class="jr-toolbar-label jr-toolbar-label--exact">{{
+                    t('search.filters.exact')
+                  }}</span>
+                </label>
+              </TooltipTrigger>
+              <TooltipContent>{{ t('search.filters.exact') }}</TooltipContent>
+            </Tooltip>
+          </div>
+
+          <div class="jr-toolbar-spacer" aria-hidden="true" />
+
+          <div class="jr-toolbar-actions">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="jr-toolbar-btn"
+                  :disabled="!activeCount"
+                  :aria-label="t('search.filters.reset')"
+                  @click="emit('reset')"
+                >
+                  <RotateCcw class="size-3.5 shrink-0" />
+                  <span class="jr-toolbar-label jr-toolbar-label--secondary">{{
+                    t('search.filters.reset')
+                  }}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{{ t('search.filters.reset') }}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  id="search-filters-trigger"
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  :class="
+                    cn('jr-toolbar-btn', open && 'jr-toolbar-btn--on')
+                  "
+                  :aria-label="t('search.filters.filters')"
+                  :aria-expanded="open"
+                  aria-controls="search-filters-panel"
+                  @click="setOpen(!open)"
+                >
+                  <Filter class="size-3.5" aria-hidden="true" />
+                  <span
+                    class="jr-toolbar-label jr-toolbar-label--secondary"
+                    aria-hidden="true"
+                    >{{ t('search.filters.filters') }}</span
+                  >
+                  <Badge
+                    v-if="activeCount"
+                    variant="secondary"
+                    class="ml-0.5 size-5 justify-center rounded-full bg-primary p-0 text-[10px] text-primary-foreground"
+                  >
+                    {{ activeCount }}
+                  </Badge>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{{ t('search.filters.filters') }}</TooltipContent>
+            </Tooltip>
+          </div>
+
+          <ToggleGroup
+            type="single"
+            :model-value="listView ? 'list' : 'cards'"
+            size="sm"
+            :spacing="1"
+            :class="cn(segmentTrack, 'jr-toolbar-view shrink-0')"
+            :aria-label="t('search.viewMode')"
+            @update:model-value="
+              (v) => v && emit('update:listView', v === 'list')
+            "
+          >
+            <ToggleGroupItem
+              value="list"
+              :class="segmentItem"
+              :aria-label="t('search.list')"
+            >
+              <List class="size-3.5" />
+              <span class="jr-toolbar-label jr-toolbar-label--secondary">{{
+                t('search.list')
+              }}</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="cards"
+              :class="segmentItem"
+              :aria-label="t('search.cards')"
+            >
+              <Grid2x2 class="size-3.5" />
+              <span class="jr-toolbar-label jr-toolbar-label--secondary">{{
+                t('search.cards')
+              }}</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
 
     <!-- Mobile: Reka Sheet bottom drawer -->
     <Sheet
