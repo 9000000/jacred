@@ -252,7 +252,7 @@ namespace JacRed.Infrastructure.Trackers.Rutracker
                 if (db.TryGetValue(t.url, out TorrentDetails _tcache) && _tcache.title == t.title)
                     return true;
 
-                var fullNews = await HttpClient.Get(t.url, useproxy: AppInit.conf.Rutracker.useproxy);
+                var fullNews = await HttpClient.Get(AppInit.conf.Rutracker.rqHost(t.url), useproxy: AppInit.conf.Rutracker.useproxy);
                 return RutrackerParser.ApplyTopicPageDetails(t, fullNews);
             });
 

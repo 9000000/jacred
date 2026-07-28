@@ -67,7 +67,7 @@ public class RutrackerParserFixtureTests
             Assert.False(string.IsNullOrWhiteSpace(t.name));
             Assert.False(string.IsNullOrWhiteSpace(t.title));
             Assert.False(string.IsNullOrWhiteSpace(t.url));
-            Assert.StartsWith(AppInit.conf.Rutracker.rqHost().TrimEnd('/') + "/", t.url, StringComparison.Ordinal);
+            Assert.StartsWith(AppInit.conf.Rutracker.host.TrimEnd('/') + "/", t.url, StringComparison.Ordinal);
             Assert.False(string.IsNullOrWhiteSpace(t.sizeName));
             Assert.NotEqual(default, t.createTime);
         });
