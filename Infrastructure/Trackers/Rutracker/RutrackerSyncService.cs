@@ -72,7 +72,7 @@ namespace JacRed.Infrastructure.Trackers.Rutracker
 
                     using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                     {
-                        using (var response = await client.PostAsync($"{AppInit.conf.Rutracker.host}/forum/login.php", postContent))
+                        using (var response = await client.PostAsync($"{AppInit.conf.Rutracker.rqHost()}/forum/login.php", postContent))
                         {
                             if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                             {

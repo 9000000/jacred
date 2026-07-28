@@ -115,7 +115,7 @@ namespace JacRed.Infrastructure.Trackers.Rutracker
                 return false;
             }
 
-            url = $"{AppInit.conf.Rutracker.host}/forum/viewtopic.php?t={url}";
+            url = $"{AppInit.conf.Rutracker.rqHost()}/forum/viewtopic.php?t={url}";
             return true;
         }
 
