@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Generate systemd service/timer units from cron/jobs.yaml (stdlib only)."""
+"""Generate cron/generated/*.env + safe crontab from cron/jobs.yaml (stdlib only)."""
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
+
+# Defaults when jobs.yaml omits max_time (seconds).
+# Ack jobs return immediately (work runs in-app); curl only needs a short deadline.
+DEFAULT_MAX_TIME_PARSE = 900
+DEFAULT_MAX_TIME_ACK = 60
 
 
 def parse_jobs_yaml(path: Path) -> tuple[str, list[dict]]:
@@ -46,6 +52,8 @@ def parse_jobs_yaml(path: Path) -> tuple[str, list[dict]]:
         key, val = m.group(1), m.group(2).strip().strip('"').strip("'")
         if key == "enabled":
             current[key] = val.lower() in ("true", "yes", "1")
+        elif key == "max_time":
+            current[key] = int(val)
         else:
             current[key] = val
 
@@ -57,126 +65,64 @@ def parse_jobs_yaml(path: Path) -> tuple[str, list[dict]]:
     return base_url, jobs
 
 
-def expand_step_field(field: str, upper: int) -> str:
-    if field == "*":
-        return "*"
-    if field.startswith("*/"):
-        step = int(field[2:])
-        return ",".join(str(i) for i in range(0, upper, step))
-    return field
+def default_max_time(path_suffix: str) -> int:
+    lower = path_suffix.lower()
+    # Background-ack endpoints: HTTP returns ok/work/disabled immediately.
+    if "parsealltask" in lower or "updatetasksparse" in lower or "jsondb/save" in lower or lower.endswith("/save"):
+        return DEFAULT_MAX_TIME_ACK
+    return DEFAULT_MAX_TIME_PARSE
 
 
-def cron_minute_field(minute: str) -> str:
-    if minute == "*":
-        return "*"
-    if minute.startswith("*/"):
-        return f"0/{minute[2:]}"
-    return minute
+def resolve_max_time(job: dict) -> int:
+    if "max_time" in job:
+        return int(job["max_time"])
+    return default_max_time(str(job.get("path", "")))
 
 
-def cron_dow_field(dow: str) -> str:
-    if dow == "*":
-        return "*"
-
-    dow_map = {
-        "0": "Sun",
-        "1": "Mon",
-        "2": "Tue",
-        "3": "Wed",
-        "4": "Thu",
-        "5": "Fri",
-        "6": "Sat",
-        "7": "Sun",
-    }
-
-    parts = [p.strip() for p in dow.split(",")]
-    names: list[str] = []
-    for part in parts:
-        if part not in dow_map:
-            raise ValueError(f"dow field not supported: {dow!r}")
-        names.append(dow_map[part])
-    return ",".join(names)
-
-
-def cron_to_on_calendar(schedule: str) -> str:
-    parts = schedule.split()
-    if len(parts) < 5:
-        raise ValueError(f"invalid cron schedule: {schedule!r}")
-
-    minute, hour, day, month, dow = parts[:5]
-    if day != "*" or month != "*":
-        raise ValueError(f"day/month fields not supported yet: {schedule!r}")
-
-    hour_str = expand_step_field(hour, 24)
-    min_str = cron_minute_field(minute)
-    dow_str = cron_dow_field(dow)
-
-    date_part = "*-*-*"
-    if dow_str != "*":
-        date_part = f"{dow_str} {date_part}"
-
-    if hour_str == "*" and min_str == "*":
-        return f"{date_part} *:*:00"
-    if hour_str == "*" and min_str.startswith("0/"):
-        return f"{date_part} *:{min_str}:00"
-    if hour_str == "*" and min_str != "*":
-        return f"{date_part} *:{min_str}:00"
-    if hour_str != "*" and min_str == "*":
-        return f"{date_part} {hour_str}:*:00"
-    return f"{date_part} {hour_str}:{min_str}:00"
-
-
-def unit_name(job_name: str) -> str:
+def env_name(job_name: str) -> str:
     return f"jacred-job-{job_name}"
 
 
-def write_env(path: Path, job_name: str, job_url: str) -> None:
+def write_env(path: Path, job_name: str, job_url: str, max_time: int) -> None:
     path.write_text(
-        f"JOB_NAME={job_name}\nJOB_URL={job_url}\n",
+        f"JOB_NAME={job_name}\nJOB_URL={job_url}\nMAX_TIME={max_time}\n",
         encoding="utf-8",
     )
 
 
-def write_service(path: Path, unit: str, cron_dir: Path, job_name: str) -> None:
-    run_job = cron_dir / "run-job.sh"
-    content = f"""[Unit]
-Description=JacRed HTTP job {job_name}
+def write_crontab(path: Path, run_job: Path, jobs: list[dict]) -> int:
+    """Write host crontab lines that invoke run-job.sh (flock + --max-time)."""
+    lines = [
+        "# JacRed safe crontab — GENERATED from cron/jobs.yaml (do not edit by hand).",
+        "# Regenerate: python3 /opt/jacred/cron/generate.py",
+        "# Install:    sudo /opt/jacred/cron/install.sh",
+        "#             (or: crontab /opt/jacred/Data/crontab)",
+        "#",
+        "# Uses run-job.sh: flock (no curl pile-up) + curl --max-time from generated .env.",
+        "# First run generate.py / install.sh so cron/generated/*.env exist.",
+        "# Override install path: JACRED_CRON_DIR=/path/to/cron python3 generate.py",
+        "#",
+        "SHELL=/bin/bash",
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "",
+    ]
+    count = 0
+    for job in jobs:
+        name = job.get("name")
+        if not name or not job.get("enabled", True):
+            continue
+        schedule = job.get("schedule")
+        path_suffix = job.get("path")
+        if not schedule or not path_suffix:
+            continue
+        max_time = resolve_max_time(job)
+        lines.append(f"# {name} -> {path_suffix} (max_time={max_time}s)")
+        lines.append(f"{schedule}  {run_job} {name}")
+        lines.append("")
+        count += 1
 
-[Service]
-Type=oneshot
-# Long ParseAllTask / UpdateTasksParse hold curl until JacRed responds.
-TimeoutStartSec=infinity
-ExecStart=/bin/bash {run_job} {job_name}
-"""
-    path.write_text(content, encoding="utf-8")
-
-
-def write_timer(path: Path, unit: str, on_calendar: str) -> None:
-    content = f"""[Unit]
-Description=Timer for JacRed job {unit}
-
-[Timer]
-OnCalendar={on_calendar}
-# Avoid reboot catch-up stampede of missed heavy jobs.
-Persistent=false
-Unit={unit}.service
-
-[Install]
-WantedBy=jacred-jobs.target
-"""
-    path.write_text(content, encoding="utf-8")
-
-
-def write_target(path: Path, timer_units: list[str]) -> None:
-    wants = "\n".join(f"Wants={u}.timer" for u in timer_units)
-    content = f"""[Unit]
-Description=All JacRed HTTP job timers
-{wants}
-
-[Install]
-WantedBy=multi-user.target
-"""
-    path.write_text(content, encoding="utf-8")
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return count
 
 
 def generate(cron_dir: Path) -> int:
@@ -184,13 +130,19 @@ def generate(cron_dir: Path) -> int:
     out_dir = cron_dir / "generated"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clear old generated units (keep .gitignore)
+    # Clear old generated artifacts (env, crontab, leftover systemd units).
     for old in out_dir.glob("jacred-*"):
         old.unlink()
+    for stale in ("crontab",):
+        p = out_dir / stale
+        if p.is_file():
+            p.unlink()
+    for pattern in ("*.service", "*.timer", "jacred-jobs.target"):
+        for old in out_dir.glob(pattern):
+            old.unlink()
 
     base_url, jobs = parse_jobs_yaml(yaml_path)
     base_url = base_url.rstrip("/")
-    timer_units: list[str] = []
     enabled_count = 0
 
     for job in jobs:
@@ -205,25 +157,33 @@ def generate(cron_dir: Path) -> int:
         if not schedule or not path_suffix:
             raise ValueError(f"job {name}: schedule and path are required")
 
-        on_calendar = cron_to_on_calendar(schedule)
-        unit = unit_name(name)
+        unit = env_name(name)
         job_url = f"{base_url}/{path_suffix.lstrip('/')}"
+        max_time = resolve_max_time(job)
+        if max_time <= 0:
+            raise ValueError(f"job {name}: max_time must be > 0")
 
-        write_env(out_dir / f"{unit}.env", name, job_url)
-        write_service(out_dir / f"{unit}.service", unit, cron_dir.resolve(), name)
-        write_timer(out_dir / f"{unit}.timer", unit, on_calendar)
-
-        timer_units.append(unit)
+        write_env(out_dir / f"{unit}.env", name, job_url, max_time)
         enabled_count += 1
-        print(f"  {unit}: {on_calendar} -> {path_suffix}")
+        print(f"  {name}: {schedule} -> {path_suffix} (max_time={max_time}s)")
 
-    write_target(out_dir / "jacred-jobs.target", timer_units)
+    install_cron = Path(os.environ.get("JACRED_CRON_DIR", "/opt/jacred/cron")).resolve()
+    run_job = install_cron / "run-job.sh"
+    crontab_path = out_dir / "crontab"
+    write_crontab(crontab_path, run_job, jobs)
+    data_crontab = cron_dir.parent / "Data" / "crontab"
+    if data_crontab.parent.is_dir():
+        write_crontab(data_crontab, run_job, jobs)
+        print(f"wrote Data/crontab ({enabled_count} jobs) run_job={run_job}")
+    print(f"wrote {crontab_path} run_job={run_job}")
     print(f"generated {enabled_count} jobs in {out_dir}")
     return enabled_count
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate systemd units from jobs.yaml")
+    parser = argparse.ArgumentParser(
+        description="Generate run-job .env files + safe crontab from jobs.yaml"
+    )
     parser.add_argument(
         "--cron-dir",
         type=Path,
