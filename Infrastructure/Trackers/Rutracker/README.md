@@ -35,6 +35,8 @@ Category counts (from `RutrackerCategories`): **211** forums, **65** `QuickParse
 
 Primary freshness is **`Parse` page 0 of QuickParse**, not `ParseAllTask`.
 
+Repo [`cron/jobs.yaml`](../../../cron/jobs.yaml) follows this cadence (ParseAll twice daily so a 6h wall can continue same day):
+
 ```cron
 # Fresh releases: 65 quick forums, first page only (~65 GETs/run)
 0 * * * *     curl -s "http://127.0.0.1:9117/cron/rutracker/parse"
@@ -42,13 +44,13 @@ Primary freshness is **`Parse` page 0 of QuickParse**, not `ParseAllTask`.
 # Rebuild page-task map once (211 GETs) — not every few hours
 20 3 * * *    curl -s "http://127.0.0.1:9117/cron/rutracker/UpdateTasksParse"
 
-# Full backlog crawl only weekly (or after empty DB / rare repair)
-40 3 * * 0    curl -s "http://127.0.0.1:9117/cron/rutracker/ParseAllTask"
+# Deep crawl: morning start + ~6h later continue (pages with updateTime != today)
+40 4,11 * * * curl -s "http://127.0.0.1:9117/cron/rutracker/ParseAllTask"
 ```
 
 ### Avoid
 
-- Example `Data/crontab` style `*/15` parse + `* */4` on `UpdateTasksParse` / `ParseAllTask` — over-requests; `UpdateTasksParse` has **no lock** and can overlap.  
+- Hourly `UpdateTasksParse` / `ParseAllTask` — over-requests; while a crawl runs cron only gets `work`. Prefer 2×/day ParseAll (start + continue).  
 - Scheduling `ParseLatest?pages=5` for “light” refresh — with a full `taskParse` it is **heavier** than hourly `parse` (~211×N forum pages).
 
 ### Tunable intensity
@@ -69,8 +71,8 @@ Assumptions: 65 QuickParse, 211 forums, ~**40** pages/cat average for full crawl
 | ----------- | ------------ |
 | `parse` hourly | **1 560 / day** (65 × 24) |
 | `UpdateTasksParse` daily | **211 / day** |
-| `ParseAllTask` weekly | **~8 440 / week** (~**1 206 / day** amortized) |
-| **Forum floor** | **~3 000 / day** |
+| `ParseAllTask` 2×/day (up to 6h each) | forum GETs depend on unfinished pages; floor often **~1–2k / day** amortized when warm |
+| **Forum floor** | **~2–4 000 / day** (parse + Update + partial ParseAll) |
 
 ### Totals including topic/magnet GETs (warm DB)
 
@@ -82,11 +84,11 @@ Assumptions: 65 QuickParse, 211 forums, ~**40** pages/cat average for full crawl
 
 Planning ballpark: **~3.5k–4.5k / day**, **~25k–30k / week**, **~100k–120k / month** via the Worker.
 
-Mon–Sat without counting the Sunday `ParseAllTask`: closer to **~2k–3k / day** (1 771 forum + topics). A cold first full crawl can spike topic GETs that week only.
+A cold first full crawl can spike topic GETs for several days until the task map pages catch up.
 
-### vs aggressive example crontab
+### vs aggressive schedules
 
-Forum floor alone is often **~15k+ / day**; `UpdateTasksParse` with `* */4` can go much higher (no lock).
+Forum floor alone is often **~15k+ / day** if Update/ParseAll fire hourly; prefer the balanced block above (also the repo default in `cron/jobs.yaml`).
 
 ## Related files
 
@@ -94,4 +96,4 @@ Forum floor alone is often **~15k+ / day**; `UpdateTasksParse` with `* */4` can 
 - `RutrackerParser.cs` — HTML → torrents / magnets  
 - `RutrackerCategories.cs` — forum map + QuickParse  
 - `Controllers/Cron/RutrackerController.cs` — HTTP entrypoints  
-- Repo `Data/crontab` — example schedule (prefer the recommended block above for Rutracker)
+- Repo `cron/jobs.yaml` / `Data/crontab` — balanced schedule (matches recommended block above)

@@ -71,6 +71,20 @@ jobs:
             self.assertIn("30 * * * *", crontab)
             self.assertNotIn("curl -s", crontab)
             self.assertIn("/opt/jacred/cron/run-job.sh", crontab)
+            self.assertIn("# runs every hour at :30", crontab)
+            self.assertIn("# runs every 15 min", crontab)
+
+    def test_describe_schedule_examples(self):
+        self.assertIn("every 5 min", self.gen.describe_schedule("*/5 * * * *"))
+        self.assertIn("00:01", self.gen.describe_schedule("1,16,31,46 * * * *"))
+        self.assertEqual("runs daily at 02:05", self.gen.describe_schedule("5 2 * * *"))
+        self.assertIn("Mon/Thu at 04:30", self.gen.describe_schedule("30 4 * * 1,4"))
+        self.assertIn("Sun at 04:40", self.gen.describe_schedule("40 4 * * 0"))
+        self.assertIn("00:00", self.gen.describe_schedule("0 * * * *"))
+        self.assertEqual(
+            "runs daily at 04:40, 11:40",
+            self.gen.describe_schedule("40 4,11 * * *"),
+        )
 
 
 if __name__ == "__main__":

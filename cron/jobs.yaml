@@ -11,6 +11,11 @@
 # Note: curl max_time is NOT the crawl duration. Long jobs start in the background
 # and return ok immediately; in-app walls are 6h (ParseAll) / 30m (UpdateTasks).
 # Scheduler: host crontab + run-job.sh (see cron/README.md).
+#
+# Balanced defaults: frequent staggered parse for freshness; UpdateTasksParse daily;
+# ParseAllTask daily ×2 (start + same-day continue after 6h wall). Rutracker is the
+# largest map — twice daily is enough (not hourly). Toloka includes full task pipeline.
+# Do not schedule ParseLatest / Lostfilm season backfill here.
 
 base_url: http://127.0.0.1:9117
 
@@ -21,147 +26,164 @@ jobs:
     path: /jsondb/save
     max_time: 60
 
+  # --- Freshness (parse) — staggered minutes ---
+
   # Rutor
   - name: rutor-parse
-    schedule: "*/15 * * * *"
+    schedule: "1,16,31,46 * * * *"
     path: /cron/rutor/parse
     max_time: 900
-  # Once every 4h (NOT "* */4" — that fires every minute in those hours)
   - name: rutor-UpdateTasksParse
-    schedule: "5 */4 * * *"
+    schedule: "5 2 * * *"
     path: /cron/rutor/UpdateTasksParse
     max_time: 60
+  # Deep crawl: 04:30 start + 16:30 continue (pages with updateTime != today)
   - name: rutor-ParseAllTask
-    schedule: "30 * * * *"
+    schedule: "30 4,16 * * *"
     path: /cron/rutor/ParseAllTask
     max_time: 60
 
-  # Rutracker
+  # Rutracker (hourly QuickParse; daily Update; ParseAll 2×/day — large map, 6h wall)
   - name: rutracker-parse
     schedule: "0 * * * *"
     path: /cron/rutracker/parse
     max_time: 900
   - name: rutracker-UpdateTasksParse
-    schedule: "20 * * * *"
+    schedule: "20 3 * * *"
     path: /cron/rutracker/UpdateTasksParse
     max_time: 60
+  # 04:40 start + 11:40 continue (~6h apart matches in-app wall)
   - name: rutracker-ParseAllTask
-    schedule: "40 * * * *"
+    schedule: "40 4,11 * * *"
     path: /cron/rutracker/ParseAllTask
     max_time: 60
 
   # Kinozal
   - name: kinozal-parse
-    schedule: "*/15 * * * *"
+    schedule: "3,18,33,48 * * * *"
     path: /cron/kinozal/parse
     max_time: 900
   - name: kinozal-UpdateTasksParse
-    schedule: "5 */4 * * *"
+    schedule: "10 2 * * *"
     path: /cron/kinozal/UpdateTasksParse
     max_time: 60
   - name: kinozal-ParseAllTask
-    schedule: "30 * * * *"
+    schedule: "35 4,16 * * *"
     path: /cron/kinozal/ParseAllTask
     max_time: 60
 
   # Nnmclub
   - name: nnmclub-parse
-    schedule: "*/15 * * * *"
+    schedule: "5,20,35,50 * * * *"
     path: /cron/nnmclub/parse
     max_time: 900
   - name: nnmclub-UpdateTasksParse
-    schedule: "5 */4 * * *"
+    schedule: "15 2 * * *"
     path: /cron/nnmclub/UpdateTasksParse
     max_time: 60
   - name: nnmclub-ParseAllTask
-    schedule: "30 * * * *"
+    schedule: "42 4,16 * * *"
     path: /cron/nnmclub/ParseAllTask
     max_time: 60
 
-  # Selezen
+  # Selezen (parse only)
   - name: selezen-parse
-    schedule: "*/15 * * * *"
+    schedule: "9,24,39,54 * * * *"
     path: /cron/selezen/parse
     max_time: 900
 
   # Megapeer
   - name: megapeer-parse
-    schedule: "0 * * * *"
+    schedule: "8 * * * *"
     path: /cron/megapeer/parse
     max_time: 900
   - name: megapeer-UpdateTasksParse
-    schedule: "5 */4 * * *"
+    schedule: "20 2 * * *"
     path: /cron/megapeer/UpdateTasksParse
     max_time: 60
   - name: megapeer-ParseAllTask
-    schedule: "30 * * * *"
+    schedule: "45 4,16 * * *"
     path: /cron/megapeer/ParseAllTask
     max_time: 60
 
   # Torrentby
   - name: torrentby-parse
-    schedule: "*/15 * * * *"
+    schedule: "7,22,37,52 * * * *"
     path: /cron/torrentby/parse
     max_time: 900
   - name: torrentby-UpdateTasksParse
-    schedule: "5 */4 * * *"
+    schedule: "25 2 * * *"
     path: /cron/torrentby/UpdateTasksParse
     max_time: 60
   - name: torrentby-ParseAllTask
-    schedule: "30 * * * *"
+    schedule: "50 4,16 * * *"
     path: /cron/torrentby/ParseAllTask
     max_time: 60
 
-  # Toloka
+  # Toloka (full task pipeline)
   - name: toloka-parse
-    schedule: "*/40 * * * *"
+    schedule: "14,54 * * * *"
     path: /cron/toloka/parse
     max_time: 900
+  - name: toloka-UpdateTasksParse
+    schedule: "30 2 * * *"
+    path: /cron/toloka/UpdateTasksParse
+    max_time: 60
+  - name: toloka-ParseAllTask
+    schedule: "55 4,16 * * *"
+    path: /cron/toloka/ParseAllTask
+    max_time: 60
 
-  # Mazepa
+  # Mazepa (parse only)
   - name: mazepa-parse
-    schedule: "*/40 * * * *"
+    schedule: "25 * * * *"
     path: /cron/mazepa/parse
     max_time: 900
 
-  # Lostfilm
+  # Lostfilm (parse only; ParsePages / ParseSeasonPacks are manual)
   - name: lostfilm-parse
-    schedule: "*/15 * * * *"
+    schedule: "11,26,41,56 * * * *"
     path: /cron/lostfilm/parse
     max_time: 900
 
   # Bitru
   - name: bitru-parse
-    schedule: "*/20 * * * *"
+    schedule: "10,30,50 * * * *"
     path: /cron/bitru/parse
     max_time: 900
 
   # Knaben
   - name: knaben-parse
-    schedule: "*/20 * * * *"
+    schedule: "12,32,52 * * * *"
     path: /cron/knaben/parse
     max_time: 900
 
   # Animelayer
   - name: animelayer-parse
-    schedule: "*/15 * * * *"
+    schedule: "2,17,32,47 * * * *"
     path: /cron/animelayer/parse
     max_time: 900
 
   # Anidub
   - name: anidub-parse
-    schedule: "*/15 * * * *"
+    schedule: "4,19,34,49 * * * *"
     path: /cron/anidub/parse
     max_time: 900
 
   # Aniliberty
   - name: aniliberty-parse
-    schedule: "*/15 * * * *"
+    schedule: "6,21,36,51 * * * *"
     path: /cron/aniliberty/parse
     max_time: 900
 
   # Baibako
   - name: baibako-parse
-    schedule: "*/15 * * * *"
+    schedule: "8,23,38,53 * * * *"
     path: /cron/baibako/parse
     max_time: 900
+
+  # FDB integrity (report mode; Status is ops/manual)
+  - name: maintenance-check
+    schedule: "0 5 * * 0"
+    path: /cron/maintenance/Check?mode=report
+    max_time: 60

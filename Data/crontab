@@ -6,93 +6,135 @@
 # Uses run-job.sh: flock (no curl pile-up) + curl --max-time from generated .env.
 # First run generate.py / install.sh so cron/generated/*.env exist.
 # Override install path: JACRED_CRON_DIR=/path/to/cron python3 generate.py
+# Comments include when each job runs (human-readable examples).
 #
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # jsondb-save -> /jsondb/save (max_time=60s)
+# runs every 5 min (e.g. :00,:05,:10,…)
 */5 * * * *  /opt/jacred/cron/run-job.sh jsondb-save
 
 # rutor-parse -> /cron/rutor/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh rutor-parse
+# runs every hour at :01,:16,:31,:46 (e.g. 00:01, 00:16, 00:31, …)
+1,16,31,46 * * * *  /opt/jacred/cron/run-job.sh rutor-parse
 
 # rutor-UpdateTasksParse -> /cron/rutor/UpdateTasksParse (max_time=60s)
-5 */4 * * *  /opt/jacred/cron/run-job.sh rutor-UpdateTasksParse
+# runs daily at 02:05
+5 2 * * *  /opt/jacred/cron/run-job.sh rutor-UpdateTasksParse
 
 # rutor-ParseAllTask -> /cron/rutor/ParseAllTask (max_time=60s)
-30 * * * *  /opt/jacred/cron/run-job.sh rutor-ParseAllTask
+# runs daily at 04:30, 16:30
+30 4,16 * * *  /opt/jacred/cron/run-job.sh rutor-ParseAllTask
 
 # rutracker-parse -> /cron/rutracker/parse (max_time=900s)
+# runs every hour at :00 (e.g. 00:00, 01:00, 02:00, …)
 0 * * * *  /opt/jacred/cron/run-job.sh rutracker-parse
 
 # rutracker-UpdateTasksParse -> /cron/rutracker/UpdateTasksParse (max_time=60s)
-20 * * * *  /opt/jacred/cron/run-job.sh rutracker-UpdateTasksParse
+# runs daily at 03:20
+20 3 * * *  /opt/jacred/cron/run-job.sh rutracker-UpdateTasksParse
 
 # rutracker-ParseAllTask -> /cron/rutracker/ParseAllTask (max_time=60s)
-40 * * * *  /opt/jacred/cron/run-job.sh rutracker-ParseAllTask
+# runs daily at 04:40, 11:40
+40 4,11 * * *  /opt/jacred/cron/run-job.sh rutracker-ParseAllTask
 
 # kinozal-parse -> /cron/kinozal/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh kinozal-parse
+# runs every hour at :03,:18,:33,:48 (e.g. 00:03, 00:18, 00:33, …)
+3,18,33,48 * * * *  /opt/jacred/cron/run-job.sh kinozal-parse
 
 # kinozal-UpdateTasksParse -> /cron/kinozal/UpdateTasksParse (max_time=60s)
-5 */4 * * *  /opt/jacred/cron/run-job.sh kinozal-UpdateTasksParse
+# runs daily at 02:10
+10 2 * * *  /opt/jacred/cron/run-job.sh kinozal-UpdateTasksParse
 
 # kinozal-ParseAllTask -> /cron/kinozal/ParseAllTask (max_time=60s)
-30 * * * *  /opt/jacred/cron/run-job.sh kinozal-ParseAllTask
+# runs daily at 04:35, 16:35
+35 4,16 * * *  /opt/jacred/cron/run-job.sh kinozal-ParseAllTask
 
 # nnmclub-parse -> /cron/nnmclub/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh nnmclub-parse
+# runs every hour at :05,:20,:35,:50 (e.g. 00:05, 00:20, 00:35, …)
+5,20,35,50 * * * *  /opt/jacred/cron/run-job.sh nnmclub-parse
 
 # nnmclub-UpdateTasksParse -> /cron/nnmclub/UpdateTasksParse (max_time=60s)
-5 */4 * * *  /opt/jacred/cron/run-job.sh nnmclub-UpdateTasksParse
+# runs daily at 02:15
+15 2 * * *  /opt/jacred/cron/run-job.sh nnmclub-UpdateTasksParse
 
 # nnmclub-ParseAllTask -> /cron/nnmclub/ParseAllTask (max_time=60s)
-30 * * * *  /opt/jacred/cron/run-job.sh nnmclub-ParseAllTask
+# runs daily at 04:42, 16:42
+42 4,16 * * *  /opt/jacred/cron/run-job.sh nnmclub-ParseAllTask
 
 # selezen-parse -> /cron/selezen/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh selezen-parse
+# runs every hour at :09,:24,:39,:54 (e.g. 00:09, 00:24, 00:39, …)
+9,24,39,54 * * * *  /opt/jacred/cron/run-job.sh selezen-parse
 
 # megapeer-parse -> /cron/megapeer/parse (max_time=900s)
-0 * * * *  /opt/jacred/cron/run-job.sh megapeer-parse
+# runs every hour at :08 (e.g. 00:08, 01:08, 02:08, …)
+8 * * * *  /opt/jacred/cron/run-job.sh megapeer-parse
 
 # megapeer-UpdateTasksParse -> /cron/megapeer/UpdateTasksParse (max_time=60s)
-5 */4 * * *  /opt/jacred/cron/run-job.sh megapeer-UpdateTasksParse
+# runs daily at 02:20
+20 2 * * *  /opt/jacred/cron/run-job.sh megapeer-UpdateTasksParse
 
 # megapeer-ParseAllTask -> /cron/megapeer/ParseAllTask (max_time=60s)
-30 * * * *  /opt/jacred/cron/run-job.sh megapeer-ParseAllTask
+# runs daily at 04:45, 16:45
+45 4,16 * * *  /opt/jacred/cron/run-job.sh megapeer-ParseAllTask
 
 # torrentby-parse -> /cron/torrentby/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh torrentby-parse
+# runs every hour at :07,:22,:37,:52 (e.g. 00:07, 00:22, 00:37, …)
+7,22,37,52 * * * *  /opt/jacred/cron/run-job.sh torrentby-parse
 
 # torrentby-UpdateTasksParse -> /cron/torrentby/UpdateTasksParse (max_time=60s)
-5 */4 * * *  /opt/jacred/cron/run-job.sh torrentby-UpdateTasksParse
+# runs daily at 02:25
+25 2 * * *  /opt/jacred/cron/run-job.sh torrentby-UpdateTasksParse
 
 # torrentby-ParseAllTask -> /cron/torrentby/ParseAllTask (max_time=60s)
-30 * * * *  /opt/jacred/cron/run-job.sh torrentby-ParseAllTask
+# runs daily at 04:50, 16:50
+50 4,16 * * *  /opt/jacred/cron/run-job.sh torrentby-ParseAllTask
 
 # toloka-parse -> /cron/toloka/parse (max_time=900s)
-*/40 * * * *  /opt/jacred/cron/run-job.sh toloka-parse
+# runs every hour at :14,:54 (e.g. 00:14, 00:54)
+14,54 * * * *  /opt/jacred/cron/run-job.sh toloka-parse
+
+# toloka-UpdateTasksParse -> /cron/toloka/UpdateTasksParse (max_time=60s)
+# runs daily at 02:30
+30 2 * * *  /opt/jacred/cron/run-job.sh toloka-UpdateTasksParse
+
+# toloka-ParseAllTask -> /cron/toloka/ParseAllTask (max_time=60s)
+# runs daily at 04:55, 16:55
+55 4,16 * * *  /opt/jacred/cron/run-job.sh toloka-ParseAllTask
 
 # mazepa-parse -> /cron/mazepa/parse (max_time=900s)
-*/40 * * * *  /opt/jacred/cron/run-job.sh mazepa-parse
+# runs every hour at :25 (e.g. 00:25, 01:25, 02:25, …)
+25 * * * *  /opt/jacred/cron/run-job.sh mazepa-parse
 
 # lostfilm-parse -> /cron/lostfilm/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh lostfilm-parse
+# runs every hour at :11,:26,:41,:56 (e.g. 00:11, 00:26, 00:41, …)
+11,26,41,56 * * * *  /opt/jacred/cron/run-job.sh lostfilm-parse
 
 # bitru-parse -> /cron/bitru/parse (max_time=900s)
-*/20 * * * *  /opt/jacred/cron/run-job.sh bitru-parse
+# runs every hour at :10,:30,:50 (e.g. 00:10, 00:30, 00:50)
+10,30,50 * * * *  /opt/jacred/cron/run-job.sh bitru-parse
 
 # knaben-parse -> /cron/knaben/parse (max_time=900s)
-*/20 * * * *  /opt/jacred/cron/run-job.sh knaben-parse
+# runs every hour at :12,:32,:52 (e.g. 00:12, 00:32, 00:52)
+12,32,52 * * * *  /opt/jacred/cron/run-job.sh knaben-parse
 
 # animelayer-parse -> /cron/animelayer/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh animelayer-parse
+# runs every hour at :02,:17,:32,:47 (e.g. 00:02, 00:17, 00:32, …)
+2,17,32,47 * * * *  /opt/jacred/cron/run-job.sh animelayer-parse
 
 # anidub-parse -> /cron/anidub/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh anidub-parse
+# runs every hour at :04,:19,:34,:49 (e.g. 00:04, 00:19, 00:34, …)
+4,19,34,49 * * * *  /opt/jacred/cron/run-job.sh anidub-parse
 
 # aniliberty-parse -> /cron/aniliberty/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh aniliberty-parse
+# runs every hour at :06,:21,:36,:51 (e.g. 00:06, 00:21, 00:36, …)
+6,21,36,51 * * * *  /opt/jacred/cron/run-job.sh aniliberty-parse
 
 # baibako-parse -> /cron/baibako/parse (max_time=900s)
-*/15 * * * *  /opt/jacred/cron/run-job.sh baibako-parse
+# runs every hour at :08,:23,:38,:53 (e.g. 00:08, 00:23, 00:38, …)
+8,23,38,53 * * * *  /opt/jacred/cron/run-job.sh baibako-parse
+
+# maintenance-check -> /cron/maintenance/Check?mode=report (max_time=60s)
+# runs Sun at 05:00 (e.g. next Sun 05:00)
+0 5 * * 0  /opt/jacred/cron/run-job.sh maintenance-check

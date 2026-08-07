@@ -83,6 +83,96 @@ def env_name(job_name: str) -> str:
     return f"jacred-job-{job_name}"
 
 
+_DOW_NAMES = {
+    "0": "Sun",
+    "1": "Mon",
+    "2": "Tue",
+    "3": "Wed",
+    "4": "Thu",
+    "5": "Fri",
+    "6": "Sat",
+    "7": "Sun",
+}
+
+
+def _fmt_hhmm(hour: str, minute: str) -> str:
+    try:
+        return f"{int(hour):02d}:{int(minute):02d}"
+    except ValueError:
+        return f"{hour}:{minute}"
+
+
+def _fmt_minutes(minute: str) -> str:
+    """e.g. '1,16,31,46' -> ':01,:16,:31,:46'; '*/5' -> 'every 5 min'."""
+    if minute.startswith("*/"):
+        step = minute[2:]
+        return f"every {step} min"
+    if "," in minute:
+        parts = []
+        for p in minute.split(","):
+            try:
+                parts.append(f":{int(p):02d}")
+            except ValueError:
+                parts.append(f":{p}")
+        return ",".join(parts)
+    if minute == "*":
+        return "every minute"
+    try:
+        return f":{int(minute):02d}"
+    except ValueError:
+        return f":{minute}"
+
+
+def _fmt_dow(dow: str) -> str:
+    if dow == "*":
+        return "every day"
+    names = []
+    for part in dow.split(","):
+        names.append(_DOW_NAMES.get(part, part))
+    return "/".join(names)
+
+
+def describe_schedule(schedule: str) -> str:
+    """Human-readable when a 5-field cron expression runs (examples for comments)."""
+    fields = schedule.split()
+    if len(fields) != 5:
+        return schedule
+    minute, hour, _dom, _month, dow = fields
+
+    # */N * * * *  or  m1,m2,... * * * *  or  M * * * *
+    if hour == "*" and dow == "*":
+        if minute.startswith("*/"):
+            step = int(minute[2:])
+            return f"runs every {step} min (e.g. :00,:{step:02d},:{step * 2:02d},…)"
+        if "," in minute:
+            parts = minute.split(",")
+            examples = ", ".join(_fmt_hhmm("0", p) for p in parts[:3])
+            suffix = ", …" if len(parts) > 3 else ""
+            return f"runs every hour at {_fmt_minutes(minute)} (e.g. {examples}{suffix})"
+        if minute == "*":
+            return "runs every minute"
+        return f"runs every hour at {_fmt_minutes(minute)} (e.g. 00{_fmt_minutes(minute)}, 01{_fmt_minutes(minute)}, 02{_fmt_minutes(minute)}, …)"
+
+    # m h * * *  — daily at fixed time (or every N hours if hour is */N)
+    if dow == "*":
+        if hour.startswith("*/"):
+            step = hour[2:]
+            return (
+                f"runs every {step}h at {_fmt_minutes(minute)} "
+                f"(e.g. {_fmt_hhmm('0', minute)}, {_fmt_hhmm(step, minute)}, …)"
+            )
+        if "," in hour:
+            times = ", ".join(_fmt_hhmm(h, minute) for h in hour.split(","))
+            return f"runs daily at {times}"
+        return f"runs daily at {_fmt_hhmm(hour, minute)}"
+
+    # m h * * dow  — weekly / selected weekdays
+    days = _fmt_dow(dow)
+    if hour.startswith("*/"):
+        return f"runs {days}, every {hour[2:]}h at {_fmt_minutes(minute)}"
+    return f"runs {days} at {_fmt_hhmm(hour, minute)} (e.g. next {days.split('/')[0]} {_fmt_hhmm(hour, minute)})"
+
+
 def write_env(path: Path, job_name: str, job_url: str, max_time: int) -> None:
     path.write_text(
         f"JOB_NAME={job_name}\nJOB_URL={job_url}\nMAX_TIME={max_time}\n",
@@ -101,6 +191,7 @@ def write_crontab(path: Path, run_job: Path, jobs: list[dict]) -> int:
         "# Uses run-job.sh: flock (no curl pile-up) + curl --max-time from generated .env.",
         "# First run generate.py / install.sh so cron/generated/*.env exist.",
         "# Override install path: JACRED_CRON_DIR=/path/to/cron python3 generate.py",
+        "# Comments include when each job runs (human-readable examples).",
         "#",
         "SHELL=/bin/bash",
         "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -116,7 +207,9 @@ def write_crontab(path: Path, run_job: Path, jobs: list[dict]) -> int:
         if not schedule or not path_suffix:
             continue
         max_time = resolve_max_time(job)
+        when = describe_schedule(schedule)
         lines.append(f"# {name} -> {path_suffix} (max_time={max_time}s)")
+        lines.append(f"# {when}")
         lines.append(f"{schedule}  {run_job} {name}")
         lines.append("")
         count += 1
