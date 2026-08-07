@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Run one JacRed HTTP job (crontab or manual).
+# Usage: run-job.sh <name> <url> <max_time>
 # JacRed returns ok / work / disabled. Long jobs may start work in the
 # background and return immediately; curl still has an overall --max-time.
 # Overlap protection: flock on LOCK_DIR/<job>.lock.
 set -euo pipefail
 
-JOB_NAME="${1:?job name required}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/generated/jacred-job-${JOB_NAME}.env"
+JOB_NAME="${1:?usage: run-job.sh <name> <url> <max_time>}"
+JOB_URL="${2:?usage: run-job.sh <name> <url> <max_time>}"
+MAX_TIME="${3:?usage: run-job.sh <name> <url> <max_time>}"
 LOCK_DIR="${LOCK_DIR:-/tmp/jacred-cron-locks}"
 CONNECT_TIMEOUT="${CURL_CONNECT_TIMEOUT:-10}"
 
@@ -15,15 +16,10 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  log "ERROR: env file not found: $ENV_FILE"
+if ! [[ "$MAX_TIME" =~ ^[1-9][0-9]*$ ]]; then
+  log "ERROR: max_time must be a positive integer, got: ${MAX_TIME}"
   exit 1
 fi
-
-# shellcheck source=/dev/null
-source "$ENV_FILE"
-
-MAX_TIME="${MAX_TIME:-900}"
 
 mkdir -p "$LOCK_DIR"
 LOCK_FILE="${LOCK_DIR}/${JOB_NAME}.lock"

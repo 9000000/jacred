@@ -35,17 +35,17 @@ Category counts (from `RutrackerCategories`): **211** forums, **65** `QuickParse
 
 Primary freshness is **`Parse` page 0 of QuickParse**, not `ParseAllTask`.
 
-Repo [`cron/jobs.yaml`](../../../cron/jobs.yaml) follows this cadence (ParseAll twice daily so a 6h wall can continue same day):
+Repo [`Data/crontab`](../../../Data/crontab) follows this cadence (ParseAll twice daily so a 6h wall can continue same day):
 
 ```cron
 # Fresh releases: 65 quick forums, first page only (~65 GETs/run)
-0 * * * *     curl -s "http://127.0.0.1:9117/cron/rutracker/parse"
+0 * * * *     /opt/jacred/Data/run-job.sh rutracker-parse http://127.0.0.1:9117/cron/rutracker/parse 900
 
 # Rebuild page-task map once (211 GETs) — not every few hours
-20 3 * * *    curl -s "http://127.0.0.1:9117/cron/rutracker/UpdateTasksParse"
+20 3 * * *    /opt/jacred/Data/run-job.sh rutracker-UpdateTasksParse http://127.0.0.1:9117/cron/rutracker/UpdateTasksParse 60
 
 # Deep crawl: morning start + ~6h later continue (pages with updateTime != today)
-40 4,11 * * * curl -s "http://127.0.0.1:9117/cron/rutracker/ParseAllTask"
+40 4,11 * * * /opt/jacred/Data/run-job.sh rutracker-ParseAllTask http://127.0.0.1:9117/cron/rutracker/ParseAllTask 60
 ```
 
 ### Avoid
@@ -88,7 +88,7 @@ A cold first full crawl can spike topic GETs for several days until the task map
 
 ### vs aggressive schedules
 
-Forum floor alone is often **~15k+ / day** if Update/ParseAll fire hourly; prefer the balanced block above (also the repo default in `cron/jobs.yaml`).
+Forum floor alone is often **~15k+ / day** if Update/ParseAll fire hourly; prefer the balanced block above (also the repo default in `Data/crontab`).
 
 ## Related files
 
@@ -96,4 +96,4 @@ Forum floor alone is often **~15k+ / day** if Update/ParseAll fire hourly; prefe
 - `RutrackerParser.cs` — HTML → torrents / magnets  
 - `RutrackerCategories.cs` — forum map + QuickParse  
 - `Controllers/Cron/RutrackerController.cs` — HTTP entrypoints  
-- Repo `cron/jobs.yaml` / `Data/crontab` — balanced schedule (matches recommended block above)
+- Repo `Data/crontab` / `Data/run-job.sh` — balanced schedule (matches recommended block above)

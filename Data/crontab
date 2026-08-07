@@ -1,140 +1,137 @@
-# JacRed safe crontab — GENERATED from cron/jobs.yaml (do not edit by hand).
-# Regenerate: python3 /opt/jacred/cron/generate.py
-# Install:    sudo /opt/jacred/cron/install.sh
-#             (or: crontab /opt/jacred/Data/crontab)
-#
-# Uses run-job.sh: flock (no curl pile-up) + curl --max-time from generated .env.
-# First run generate.py / install.sh so cron/generated/*.env exist.
-# Override install path: JACRED_CRON_DIR=/path/to/cron python3 generate.py
-# Comments include when each job runs (human-readable examples).
+# JacRed host crontab — edit by hand (source of truth).
+# Install: crontab /opt/jacred/Data/crontab
+# Runner:  /opt/jacred/Data/run-job.sh <name> <url> <max_time>
+#   flock (no curl pile-up) + curl --max-time
+# Default base: http://127.0.0.1:9117 — change host/port if needed.
+# If apikey/devkey is set, append ?apikey=... or ?devkey=... to each URL.
 #
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # jsondb-save -> /jsondb/save (max_time=60s)
 # runs every 5 min (e.g. :00,:05,:10,…)
-*/5 * * * *  /opt/jacred/cron/run-job.sh jsondb-save
+*/5 * * * *  /opt/jacred/Data/run-job.sh jsondb-save http://127.0.0.1:9117/jsondb/save 60
 
 # rutor-parse -> /cron/rutor/parse (max_time=900s)
 # runs every hour at :01,:16,:31,:46 (e.g. 00:01, 00:16, 00:31, …)
-1,16,31,46 * * * *  /opt/jacred/cron/run-job.sh rutor-parse
+1,16,31,46 * * * *  /opt/jacred/Data/run-job.sh rutor-parse http://127.0.0.1:9117/cron/rutor/parse 900
 
 # rutor-UpdateTasksParse -> /cron/rutor/UpdateTasksParse (max_time=60s)
 # runs daily at 02:05
-5 2 * * *  /opt/jacred/cron/run-job.sh rutor-UpdateTasksParse
+5 2 * * *  /opt/jacred/Data/run-job.sh rutor-UpdateTasksParse http://127.0.0.1:9117/cron/rutor/UpdateTasksParse 60
 
 # rutor-ParseAllTask -> /cron/rutor/ParseAllTask (max_time=60s)
 # runs daily at 04:30, 16:30
-30 4,16 * * *  /opt/jacred/cron/run-job.sh rutor-ParseAllTask
+30 4,16 * * *  /opt/jacred/Data/run-job.sh rutor-ParseAllTask http://127.0.0.1:9117/cron/rutor/ParseAllTask 60
 
 # rutracker-parse -> /cron/rutracker/parse (max_time=900s)
 # runs every hour at :00 (e.g. 00:00, 01:00, 02:00, …)
-0 * * * *  /opt/jacred/cron/run-job.sh rutracker-parse
+0 * * * *  /opt/jacred/Data/run-job.sh rutracker-parse http://127.0.0.1:9117/cron/rutracker/parse 900
 
 # rutracker-UpdateTasksParse -> /cron/rutracker/UpdateTasksParse (max_time=60s)
 # runs daily at 03:20
-20 3 * * *  /opt/jacred/cron/run-job.sh rutracker-UpdateTasksParse
+20 3 * * *  /opt/jacred/Data/run-job.sh rutracker-UpdateTasksParse http://127.0.0.1:9117/cron/rutracker/UpdateTasksParse 60
 
 # rutracker-ParseAllTask -> /cron/rutracker/ParseAllTask (max_time=60s)
 # runs daily at 04:40, 11:40
-40 4,11 * * *  /opt/jacred/cron/run-job.sh rutracker-ParseAllTask
+40 4,11 * * *  /opt/jacred/Data/run-job.sh rutracker-ParseAllTask http://127.0.0.1:9117/cron/rutracker/ParseAllTask 60
 
 # kinozal-parse -> /cron/kinozal/parse (max_time=900s)
 # runs every hour at :03,:18,:33,:48 (e.g. 00:03, 00:18, 00:33, …)
-3,18,33,48 * * * *  /opt/jacred/cron/run-job.sh kinozal-parse
+3,18,33,48 * * * *  /opt/jacred/Data/run-job.sh kinozal-parse http://127.0.0.1:9117/cron/kinozal/parse 900
 
 # kinozal-UpdateTasksParse -> /cron/kinozal/UpdateTasksParse (max_time=60s)
 # runs daily at 02:10
-10 2 * * *  /opt/jacred/cron/run-job.sh kinozal-UpdateTasksParse
+10 2 * * *  /opt/jacred/Data/run-job.sh kinozal-UpdateTasksParse http://127.0.0.1:9117/cron/kinozal/UpdateTasksParse 60
 
 # kinozal-ParseAllTask -> /cron/kinozal/ParseAllTask (max_time=60s)
 # runs daily at 04:35, 16:35
-35 4,16 * * *  /opt/jacred/cron/run-job.sh kinozal-ParseAllTask
+35 4,16 * * *  /opt/jacred/Data/run-job.sh kinozal-ParseAllTask http://127.0.0.1:9117/cron/kinozal/ParseAllTask 60
 
 # nnmclub-parse -> /cron/nnmclub/parse (max_time=900s)
 # runs every hour at :05,:20,:35,:50 (e.g. 00:05, 00:20, 00:35, …)
-5,20,35,50 * * * *  /opt/jacred/cron/run-job.sh nnmclub-parse
+5,20,35,50 * * * *  /opt/jacred/Data/run-job.sh nnmclub-parse http://127.0.0.1:9117/cron/nnmclub/parse 900
 
 # nnmclub-UpdateTasksParse -> /cron/nnmclub/UpdateTasksParse (max_time=60s)
 # runs daily at 02:15
-15 2 * * *  /opt/jacred/cron/run-job.sh nnmclub-UpdateTasksParse
+15 2 * * *  /opt/jacred/Data/run-job.sh nnmclub-UpdateTasksParse http://127.0.0.1:9117/cron/nnmclub/UpdateTasksParse 60
 
 # nnmclub-ParseAllTask -> /cron/nnmclub/ParseAllTask (max_time=60s)
 # runs daily at 04:42, 16:42
-42 4,16 * * *  /opt/jacred/cron/run-job.sh nnmclub-ParseAllTask
+42 4,16 * * *  /opt/jacred/Data/run-job.sh nnmclub-ParseAllTask http://127.0.0.1:9117/cron/nnmclub/ParseAllTask 60
 
 # selezen-parse -> /cron/selezen/parse (max_time=900s)
 # runs every hour at :09,:24,:39,:54 (e.g. 00:09, 00:24, 00:39, …)
-9,24,39,54 * * * *  /opt/jacred/cron/run-job.sh selezen-parse
+9,24,39,54 * * * *  /opt/jacred/Data/run-job.sh selezen-parse http://127.0.0.1:9117/cron/selezen/parse 900
 
 # megapeer-parse -> /cron/megapeer/parse (max_time=900s)
 # runs every hour at :08 (e.g. 00:08, 01:08, 02:08, …)
-8 * * * *  /opt/jacred/cron/run-job.sh megapeer-parse
+8 * * * *  /opt/jacred/Data/run-job.sh megapeer-parse http://127.0.0.1:9117/cron/megapeer/parse 900
 
 # megapeer-UpdateTasksParse -> /cron/megapeer/UpdateTasksParse (max_time=60s)
 # runs daily at 02:20
-20 2 * * *  /opt/jacred/cron/run-job.sh megapeer-UpdateTasksParse
+20 2 * * *  /opt/jacred/Data/run-job.sh megapeer-UpdateTasksParse http://127.0.0.1:9117/cron/megapeer/UpdateTasksParse 60
 
 # megapeer-ParseAllTask -> /cron/megapeer/ParseAllTask (max_time=60s)
 # runs daily at 04:45, 16:45
-45 4,16 * * *  /opt/jacred/cron/run-job.sh megapeer-ParseAllTask
+45 4,16 * * *  /opt/jacred/Data/run-job.sh megapeer-ParseAllTask http://127.0.0.1:9117/cron/megapeer/ParseAllTask 60
 
 # torrentby-parse -> /cron/torrentby/parse (max_time=900s)
 # runs every hour at :07,:22,:37,:52 (e.g. 00:07, 00:22, 00:37, …)
-7,22,37,52 * * * *  /opt/jacred/cron/run-job.sh torrentby-parse
+7,22,37,52 * * * *  /opt/jacred/Data/run-job.sh torrentby-parse http://127.0.0.1:9117/cron/torrentby/parse 900
 
 # torrentby-UpdateTasksParse -> /cron/torrentby/UpdateTasksParse (max_time=60s)
 # runs daily at 02:25
-25 2 * * *  /opt/jacred/cron/run-job.sh torrentby-UpdateTasksParse
+25 2 * * *  /opt/jacred/Data/run-job.sh torrentby-UpdateTasksParse http://127.0.0.1:9117/cron/torrentby/UpdateTasksParse 60
 
 # torrentby-ParseAllTask -> /cron/torrentby/ParseAllTask (max_time=60s)
 # runs daily at 04:50, 16:50
-50 4,16 * * *  /opt/jacred/cron/run-job.sh torrentby-ParseAllTask
+50 4,16 * * *  /opt/jacred/Data/run-job.sh torrentby-ParseAllTask http://127.0.0.1:9117/cron/torrentby/ParseAllTask 60
 
 # toloka-parse -> /cron/toloka/parse (max_time=900s)
 # runs every hour at :14,:54 (e.g. 00:14, 00:54)
-14,54 * * * *  /opt/jacred/cron/run-job.sh toloka-parse
+14,54 * * * *  /opt/jacred/Data/run-job.sh toloka-parse http://127.0.0.1:9117/cron/toloka/parse 900
 
 # toloka-UpdateTasksParse -> /cron/toloka/UpdateTasksParse (max_time=60s)
 # runs daily at 02:30
-30 2 * * *  /opt/jacred/cron/run-job.sh toloka-UpdateTasksParse
+30 2 * * *  /opt/jacred/Data/run-job.sh toloka-UpdateTasksParse http://127.0.0.1:9117/cron/toloka/UpdateTasksParse 60
 
 # toloka-ParseAllTask -> /cron/toloka/ParseAllTask (max_time=60s)
 # runs daily at 04:55, 16:55
-55 4,16 * * *  /opt/jacred/cron/run-job.sh toloka-ParseAllTask
+55 4,16 * * *  /opt/jacred/Data/run-job.sh toloka-ParseAllTask http://127.0.0.1:9117/cron/toloka/ParseAllTask 60
 
 # mazepa-parse -> /cron/mazepa/parse (max_time=900s)
 # runs every hour at :25 (e.g. 00:25, 01:25, 02:25, …)
-25 * * * *  /opt/jacred/cron/run-job.sh mazepa-parse
+25 * * * *  /opt/jacred/Data/run-job.sh mazepa-parse http://127.0.0.1:9117/cron/mazepa/parse 900
 
 # lostfilm-parse -> /cron/lostfilm/parse (max_time=900s)
 # runs every hour at :11,:26,:41,:56 (e.g. 00:11, 00:26, 00:41, …)
-11,26,41,56 * * * *  /opt/jacred/cron/run-job.sh lostfilm-parse
+11,26,41,56 * * * *  /opt/jacred/Data/run-job.sh lostfilm-parse http://127.0.0.1:9117/cron/lostfilm/parse 900
 
 # bitru-parse -> /cron/bitru/parse (max_time=900s)
 # runs every hour at :10,:30,:50 (e.g. 00:10, 00:30, 00:50)
-10,30,50 * * * *  /opt/jacred/cron/run-job.sh bitru-parse
+10,30,50 * * * *  /opt/jacred/Data/run-job.sh bitru-parse http://127.0.0.1:9117/cron/bitru/parse 900
 
 # knaben-parse -> /cron/knaben/parse (max_time=900s)
 # runs every hour at :12,:32,:52 (e.g. 00:12, 00:32, 00:52)
-12,32,52 * * * *  /opt/jacred/cron/run-job.sh knaben-parse
+12,32,52 * * * *  /opt/jacred/Data/run-job.sh knaben-parse http://127.0.0.1:9117/cron/knaben/parse 900
 
 # animelayer-parse -> /cron/animelayer/parse (max_time=900s)
 # runs every hour at :02,:17,:32,:47 (e.g. 00:02, 00:17, 00:32, …)
-2,17,32,47 * * * *  /opt/jacred/cron/run-job.sh animelayer-parse
+2,17,32,47 * * * *  /opt/jacred/Data/run-job.sh animelayer-parse http://127.0.0.1:9117/cron/animelayer/parse 900
 
 # anidub-parse -> /cron/anidub/parse (max_time=900s)
 # runs every hour at :04,:19,:34,:49 (e.g. 00:04, 00:19, 00:34, …)
-4,19,34,49 * * * *  /opt/jacred/cron/run-job.sh anidub-parse
+4,19,34,49 * * * *  /opt/jacred/Data/run-job.sh anidub-parse http://127.0.0.1:9117/cron/anidub/parse 900
 
 # aniliberty-parse -> /cron/aniliberty/parse (max_time=900s)
 # runs every hour at :06,:21,:36,:51 (e.g. 00:06, 00:21, 00:36, …)
-6,21,36,51 * * * *  /opt/jacred/cron/run-job.sh aniliberty-parse
+6,21,36,51 * * * *  /opt/jacred/Data/run-job.sh aniliberty-parse http://127.0.0.1:9117/cron/aniliberty/parse 900
 
 # baibako-parse -> /cron/baibako/parse (max_time=900s)
 # runs every hour at :08,:23,:38,:53 (e.g. 00:08, 00:23, 00:38, …)
-8,23,38,53 * * * *  /opt/jacred/cron/run-job.sh baibako-parse
+8,23,38,53 * * * *  /opt/jacred/Data/run-job.sh baibako-parse http://127.0.0.1:9117/cron/baibako/parse 900
 
 # maintenance-check -> /cron/maintenance/Check?mode=report (max_time=60s)
 # runs Sun at 05:00 (e.g. next Sun 05:00)
-0 5 * * 0  /opt/jacred/cron/run-job.sh maintenance-check
+0 5 * * 0  /opt/jacred/Data/run-job.sh maintenance-check http://127.0.0.1:9117/cron/maintenance/Check?mode=report 60
