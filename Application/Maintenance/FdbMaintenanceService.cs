@@ -40,10 +40,7 @@ namespace JacRed.Application.Maintenance
         public string Check(string mode = "report", int sampleSize = 20, bool excludeNumericXx = true)
         {
             mode = NormalizeMode(mode);
-            if (sampleSize < 1)
-                sampleSize = 20;
-            if (sampleSize > 200)
-                sampleSize = 200;
+            sampleSize = ClampSampleSize(sampleSize);
 
             return TrackerSyncHelpers.RunInBackground(
                 "maintenance",
@@ -52,10 +49,110 @@ namespace JacRed.Application.Maintenance
                 checkDisabled: false,
                 ct =>
                 {
-                    RunJob(mode, sampleSize, excludeNumericXx, ct);
+                    Run(mode, sampleSize, excludeNumericXx, ct, consoleProgress: false);
                     return Task.CompletedTask;
                 },
                 MaxDuration);
+        }
+
+        public bool Run(string mode = "report", int sampleSize = 20, bool excludeNumericXx = true,
+            CancellationToken cancellationToken = default, bool consoleProgress = false)
+        {
+            mode = NormalizeMode(mode);
+            sampleSize = ClampSampleSize(sampleSize);
+
+            _running = true;
+            _currentMode = mode;
+            _startedAtUtc = DateTime.UtcNow;
+            _progressDetail = "scan";
+            Interlocked.Exchange(ref _progressCurrent, 0);
+            Interlocked.Exchange(ref _progressTotal, FileDB.masterDb.Count);
+
+            var sw = Stopwatch.StartNew();
+            bool ok = false;
+            try
+            {
+                LogProgress(consoleProgress,
+                    $"maintenance: started mode={mode} sampleSize={sampleSize} keys={FileDB.masterDb.Count}");
+                JacRedLog.Information(JacRedLogCategories.Fdb,
+                    $"maintenance: Check started mode={mode} sampleSize={sampleSize}");
+
+                var report = Scan(sampleSize, excludeNumericXx, cancellationToken, consoleProgress);
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var fixedCounts = new FixedCounts();
+                if (mode is "safe" or "full")
+                {
+                    _progressDetail = "fix";
+                    LogProgress(consoleProgress, "maintenance: applying safe fixes…");
+                    ApplySafeFixes(fixedCounts, cancellationToken);
+                }
+
+                if (mode == "full")
+                {
+                    _progressDetail = "full-fix";
+                    LogProgress(consoleProgress, "maintenance: applying full fixes…");
+                    ApplyFullFixes(fixedCounts, cancellationToken);
+                }
+
+                if (mode is "safe" or "full")
+                {
+                    _progressDetail = "save";
+                    LogProgress(consoleProgress, "maintenance: saving masterDb + rebuilding fastdb…");
+                    FileDB.SaveChangesToFile();
+                    try { _fastDbIndex.Rebuild(); } catch { }
+                }
+
+                sw.Stop();
+                report["ok"] = true;
+                report["mode"] = mode;
+                report["running"] = false;
+                report["startedAt"] = _startedAtUtc;
+                report["finishedAt"] = DateTime.UtcNow;
+                report["durationSec"] = Math.Round(sw.Elapsed.TotalSeconds, 1);
+                report["fixed"] = fixedCounts.ToObject();
+
+                _lastReport = report;
+                WriteReport(report);
+                ok = true;
+
+                string summary =
+                    $"maintenance: finished mode={mode} duration={sw.Elapsed.TotalSeconds:F1}s " +
+                    $"keys={report["totals"]} fixed={JsonConvert.SerializeObject(fixedCounts.ToObject())}";
+                LogProgress(consoleProgress, summary);
+                LogProgress(consoleProgress, $"maintenance: report written to {ReportPath}");
+                JacRedLog.Information(JacRedLogCategories.Fdb, summary);
+            }
+            catch (OperationCanceledException)
+            {
+                LogProgress(consoleProgress, "maintenance: cancelled");
+                JacRedLog.Warning(JacRedLogCategories.Fdb, "maintenance: Check cancelled");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                LogProgress(consoleProgress, $"maintenance: error: {ex.Message}");
+                JacRedLog.Error(JacRedLogCategories.Fdb, $"maintenance: Check error: {ex.Message}");
+                _lastReport = new
+                {
+                    ok = false,
+                    mode,
+                    error = ex.Message,
+                    startedAt = _startedAtUtc,
+                    finishedAt = DateTime.UtcNow
+                };
+                WriteReport(_lastReport);
+                ok = false;
+            }
+            finally
+            {
+                _running = false;
+                _progressDetail = null;
+                _currentMode = null;
+                _startedAtUtc = null;
+            }
+
+            return ok;
         }
 
         public object Status()
@@ -86,87 +183,23 @@ namespace JacRed.Application.Maintenance
             return mode is "safe" or "full" ? mode : "report";
         }
 
-        void RunJob(string mode, int sampleSize, bool excludeNumericXx, CancellationToken ct)
+        static int ClampSampleSize(int sampleSize)
         {
-            _running = true;
-            _currentMode = mode;
-            _startedAtUtc = DateTime.UtcNow;
-            _progressDetail = "scan";
-            Interlocked.Exchange(ref _progressCurrent, 0);
-            Interlocked.Exchange(ref _progressTotal, FileDB.masterDb.Count);
-
-            var sw = Stopwatch.StartNew();
-            try
-            {
-                JacRedLog.Information(JacRedLogCategories.Fdb,
-                    $"maintenance: Check started mode={mode} sampleSize={sampleSize}");
-
-                var report = Scan(sampleSize, excludeNumericXx, ct);
-                ct.ThrowIfCancellationRequested();
-
-                var fixedCounts = new FixedCounts();
-                if (mode is "safe" or "full")
-                {
-                    _progressDetail = "fix";
-                    ApplySafeFixes(fixedCounts, ct);
-                }
-
-                if (mode == "full")
-                {
-                    _progressDetail = "full-fix";
-                    ApplyFullFixes(fixedCounts, ct);
-                }
-
-                if (mode is "safe" or "full")
-                {
-                    FileDB.SaveChangesToFile();
-                    try { _fastDbIndex.Rebuild(); } catch { }
-                }
-
-                sw.Stop();
-                report["ok"] = true;
-                report["mode"] = mode;
-                report["running"] = false;
-                report["startedAt"] = _startedAtUtc;
-                report["finishedAt"] = DateTime.UtcNow;
-                report["durationSec"] = Math.Round(sw.Elapsed.TotalSeconds, 1);
-                report["fixed"] = fixedCounts.ToObject();
-
-                _lastReport = report;
-                WriteReport(report);
-
-                JacRedLog.Information(JacRedLogCategories.Fdb,
-                    $"maintenance: Check finished mode={mode} duration={sw.Elapsed.TotalSeconds:F1}s " +
-                    $"keys={report["totals"]} fixed={JsonConvert.SerializeObject(fixedCounts.ToObject())}");
-            }
-            catch (OperationCanceledException)
-            {
-                JacRedLog.Warning(JacRedLogCategories.Fdb, "maintenance: Check cancelled");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                JacRedLog.Error(JacRedLogCategories.Fdb, $"maintenance: Check error: {ex.Message}");
-                _lastReport = new
-                {
-                    ok = false,
-                    mode,
-                    error = ex.Message,
-                    startedAt = _startedAtUtc,
-                    finishedAt = DateTime.UtcNow
-                };
-                WriteReport(_lastReport);
-            }
-            finally
-            {
-                _running = false;
-                _progressDetail = null;
-                _currentMode = null;
-                _startedAtUtc = null;
-            }
+            if (sampleSize < 1)
+                return 20;
+            if (sampleSize > 200)
+                return 200;
+            return sampleSize;
         }
 
-        Dictionary<string, object> Scan(int sampleSize, bool excludeNumericXx, CancellationToken ct)
+        static void LogProgress(bool consoleProgress, string message)
+        {
+            if (consoleProgress)
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+        }
+
+        Dictionary<string, object> Scan(int sampleSize, bool excludeNumericXx, CancellationToken ct,
+            bool consoleProgress = false)
         {
             var nullValue = new IssueBucket(sampleSize);
             var missingName = new IssueBucket(sampleSize);
@@ -186,11 +219,19 @@ namespace JacRed.Application.Maintenance
             int totalTorrents = 0;
             var masterKeys = FileDB.masterDb.ToArray();
             Interlocked.Exchange(ref _progressTotal, masterKeys.Length);
+            var lastProgressLog = Stopwatch.StartNew();
 
             for (int i = 0; i < masterKeys.Length; i++)
             {
                 ct.ThrowIfCancellationRequested();
                 Interlocked.Exchange(ref _progressCurrent, i + 1);
+
+                if (consoleProgress && (i == 0 || (i + 1) % 1000 == 0 || lastProgressLog.Elapsed.TotalSeconds >= 5
+                    || i + 1 == masterKeys.Length))
+                {
+                    LogProgress(true, $"maintenance: scan {i + 1}/{masterKeys.Length}");
+                    lastProgressLog.Restart();
+                }
 
                 string fdbKey = masterKeys[i].Key;
                 string shardPath = FileDB.PathForKey(fdbKey);

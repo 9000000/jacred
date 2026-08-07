@@ -767,14 +767,33 @@ curl -s 'http://127.0.0.1:9117/dev/ExportTracksStatus'
 - **`GET /cron/{tracker}/parseMagnet`** — парсинг магнет-ссылок (для поддерживающих трекеров).
 - Дополнительные параметры: `parseFrom`, `parseTo`, `parseFromDate` (зависит от трекера).
 
-### Обслуживание FDB (`/cron/maintenance`)
+### Обслуживание FDB (`/cron/maintenance` и CLI `maintain`)
 
-Единый проход по FileDB (ключи бакетов + shard-файлы) на битые/устаревшие/несогласованные данные. Фоновый job (как `ParseAllTask`): `Check` сразу возвращает `ok` / `work`, результат — в `Status` и `Data/temp/maintenance-last.json`.
+Единый проход по FileDB (ключи бакетов + shard-файлы) на битые/устаревшие/несогласованные данные.
+
+**Online (HTTP):** фоновый job (как `ParseAllTask`): `Check` сразу возвращает `ok` / `work`, результат — в `Status` и `Data/temp/maintenance-last.json`. Лимит wall-clock онлайн-джоба — 6 часов.
 
 | Эндпоинт | Описание |
 | --------- | --------- |
 | **`/cron/maintenance/Check`** | Старт проверки. Параметры: `?mode=report\|safe\|full` (по умолчанию `report`), `?sampleSize=20`, `?excludeNumericXx=true`. |
 | **`/cron/maintenance/Status`** | Текущий прогресс и последний отчёт. |
+
+**Offline CLI** (без Kestrel/workers, без лимита 6ч): из каталога установки (рядом с `Data/`):
+
+```bash
+cd /opt/jacred
+# Перед safe/full остановите сервис JacRed вручную (один процесс на Data/).
+./JacRed maintain --mode=report
+./JacRed maintain --mode=safe
+./JacRed maintain --mode=full --sample-size=50
+
+# Фон (stdout → лог):
+nohup ./JacRed maintain --mode=report > Data/temp/maintain.log 2>&1 &
+tail -f Data/temp/maintain.log
+# Итог также в Data/temp/maintenance-last.json
+```
+
+По умолчанию `--mode=report` (только чтение). Ctrl+C отменяет проход. Прогресс пишется в stdout.
 
 **Режимы `mode`:**
 
@@ -786,7 +805,7 @@ curl -s 'http://127.0.0.1:9117/dev/ExportTracksStatus'
 
 Трекер-специфичные миграции (Knaben, Bitru, Aniliberty, Animelayer) остаются на `/dev/*`.
 
-Примеры:
+Примеры HTTP:
 
 ```bash
 curl -s 'http://127.0.0.1:9117/cron/maintenance/Check'
@@ -795,7 +814,7 @@ curl -s 'http://127.0.0.1:9117/cron/maintenance/Check?mode=full&sampleSize=50'
 curl -s 'http://127.0.0.1:9117/cron/maintenance/Status'
 ```
 
-**Доступ:** политика **DevAdmin** (`/cron/*`). Подробные таблицы LAN / tunnel / ключи — в разделе **[Безопасность и доступ к API](#безопасность-и-доступ-к-api)**.
+**Доступ (HTTP):** политика **DevAdmin** (`/cron/*`). Подробные таблицы LAN / tunnel / ключи — в разделе **[Безопасность и доступ к API](#безопасность-и-доступ-к-api)**.
 
 HTTP-вызовы `/cron/*` логируются с префиксом `cron:` (уровень зависит от `logging.cronSkipFastMs`).
 

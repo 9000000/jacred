@@ -34,6 +34,9 @@ namespace JacRed
     {
         public static void Main(string[] args)
         {
+            if (args.Length > 0 && string.Equals(args[0], "maintain", StringComparison.OrdinalIgnoreCase))
+                Environment.Exit(MaintainCli.Run(args));
+
             Console.WriteLine("═══════════════════════════════════════════════════════════");
             Console.WriteLine("  JacRed - Torrent Aggregator & File Database");
             Console.WriteLine("═══════════════════════════════════════════════════════════");
