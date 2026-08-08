@@ -9,16 +9,21 @@
 # Build outputs (we build inside the image)
 **/bin
 **/obj
+**/dist
 
 # Tests are not published into the runtime image
 tests/
 
 # Router (separate front-end, not needed for main app runtime)
-router/node_modules
+router/
 
 # Vue SPA: rebuild inside image; keep sources, skip local install/output
 web/node_modules
 web/dist
+
+# Exclude large local data files
+Data/fdb/
+Data/masterDb.bz
 
 # Local / temp
 **/temp

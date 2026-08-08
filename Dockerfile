@@ -10,18 +10,30 @@ ARG TARGETARCH
 ARG JACRED_VERSION=dev
 
 # Install bash, git (version script), and Node for Vue SPA build
-RUN apk add --no-cache bash git nodejs npm
+# Use apk cache mount to speed up installation
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --update bash git nodejs npm
 
 # Create output directory
 RUN mkdir -p /dist
 
 WORKDIR /src
 
+# Copy project file and restore as distinct layer to cache dependencies
+COPY JacRed.csproj ./
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet restore JacRed.csproj --verbosity minimal
+
 # Copy repository source (no git clone)
 COPY . .
 
+# Fix line endings for shell scripts in case they were checked out with CRLF on Windows
+RUN find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} + && sed -i 's/\r$//' entrypoint.sh
+
 # Build Vue SPA into wwwroot (fully generated; not in git), then publish .NET
-RUN set -eu; \
+RUN --mount=type=cache,id=npm,target=/root/.npm \
+    --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    set -eu; \
     chmod +x ./scripts/build-web-ui.sh && ./scripts/build-web-ui.sh; \
     case "${TARGETARCH}" in \
     386)   RID=linux-musl-x86 ;; \
@@ -32,7 +44,6 @@ RUN set -eu; \
     esac; \
     # Publish the app project only — solution publish also builds JacRed.Tests
     # and fails with NETSDK1098 under PublishSingleFile.
-    dotnet restore JacRed.csproj --verbosity minimal && \
     dotnet publish JacRed.csproj \
     --runtime "$RID" \
     --configuration Release \
@@ -62,7 +73,8 @@ LABEL maintainer="Pavel Pikta <devops@pavelpikta.com>" \
 
 # Install runtime dependencies and create user
 RUN set -eux; \
-    apk add --no-cache --update \
+    apk upgrade --no-cache \
+    && apk add --no-cache \
     ca-certificates \
     curl \
     dumb-init \
@@ -71,9 +83,8 @@ RUN set -eux; \
     libintl \
     libstdc++ \
     tzdata \
-    && apk upgrade --no-cache \
-    && rm -rf /var/cache/apk/* /tmp/* /var/tmp/* \
-    && rm -rf /usr/share/man/* \
+    && rm -rf /tmp/* /var/tmp/* \
+    /usr/share/man/* \
     /usr/share/doc/* \
     /usr/share/info/* \
     /usr/share/locale/* \
@@ -93,7 +104,7 @@ COPY --from=build --chown=jacred:jacred --chmod=750 /dist/Data /app/Data
 # Default config files for first run when Data is overridden by bind mount (./data:/app/Data)
 COPY --from=build --chown=jacred:jacred /dist/Data/init.conf /app/defaults/
 COPY --from=build --chown=jacred:jacred /dist/Data/init.yaml /app/defaults/
-COPY --chown=jacred:jacred --chmod=550 entrypoint.sh /entrypoint.sh
+COPY --from=build --chown=jacred:jacred --chmod=550 /src/entrypoint.sh /entrypoint.sh
 
 # Environment variables
 ENV JACRED_VERSION="${JACRED_VERSION}" \
