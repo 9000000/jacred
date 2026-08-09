@@ -12,9 +12,9 @@ Rutracker sits behind Cloudflare (`403` / `cf-mitigated` / “Just a moment…�
 ```yaml
 flaresolverr:
   enable: true
-  url: http://127.0.0.1:8191/v1   # compose: http://flaresolverr:8191/v1
+  url: http://127.0.0.1:8191/v1   # compose: http://127.0.0.1:8191/v1 with host network
   maxTimeoutMs: 180000
-  sessionIdleMinutes: 30
+  sessionIdleMinutes: 120         # keep Chromium session across cron gaps
   guardedHours: 6
   recheckMinutes: 30
 
@@ -23,16 +23,44 @@ Rutracker:
   alias: ""          # optional Worker URL if flaresolverr.enable=false
 ```
 
+### VPS playbook (WARP + FlareSolverr)
+
+Datacenter IP alone: `Challenge detected` → timeout. Fix egress with **Cloudflare WARP SOCKS** in front of FlareSolverr (see [docker-compose.example.yml](../../../docker-compose.example.yml)):
+
+- `warp` (`caomingjun/warp`) → `127.0.0.1:20001` SOCKS5
+- **volume** `warp-data:/var/lib/cloudflare-warp` — persists `reg.json` across restarts (otherwise new WARP identity/IP → more challenges)
+- FlareSolverr: `network_mode: host`, `PROXY_URL=socks5://127.0.0.1:20001` (proxy only via env, not `init.yaml`)
+
+Expected FlareSolverr logs once the browser session is up:
+
+```
+sessions.create → Challenge detected → Challenge solved (~11s)
+request.get (same session) → Challenge not detected (~0.5s)
+```
+
+`cf_clearance` lives in the **FlareSolverr Chromium session** (`jacred`), not in WARP. Minimize `sessions.destroy` (idle / chromedriver hang). JacRed: `sessionIdleMinutes: 120` + keep-alive Warmup every 20 min.
+
+```cron
+5,25,45 * * * *  /opt/jacred/Data/run-job.sh cloudflare-keepalive http://127.0.0.1:9117/cron/cloudflare/Warmup 180
+55 * * * *       /opt/jacred/Data/run-job.sh cloudflare-warmup http://127.0.0.1:9117/cron/cloudflare/Warmup 180
+0 * * * *        /opt/jacred/Data/run-job.sh rutracker-parse http://127.0.0.1:9117/cron/rutracker/parse 900
+```
+
+Checklist:
+
+```bash
+# WARP + FS smoke
+./scripts/flaresolverr_vps_check.sh
+
+# Session health in FS logs
+docker logs --since 1h flaresolverr 2>&1 | grep -E 'Challenge (detected|solved|not detected)|sessions\.(create|destroy)'
+
+# Good hour: 1× Challenge detected after create, then many "not detected"; destroy only after browser hang
+```
+
 - **HTTP** (lists, topics): `HttpClient.Get` → auto-routes to FlareSolverr when the host is guarded; `rqHost()` still applies alias when set  
 - **FDB `url`**: always canonical `https://rutracker.org/forum/viewtopic.php?t=…`  
 - **Login**: not required for current parser (magnets on public topic pages; auth code is commented out)
-
-Warm the browser session before parse (first solve is expensive):
-
-```cron
-55 * * * *  /opt/jacred/Data/run-job.sh cloudflare-warmup http://127.0.0.1:9117/cron/cloudflare/Warmup 180
-0 * * * *   /opt/jacred/Data/run-job.sh rutracker-parse http://127.0.0.1:9117/cron/rutracker/parse 900
-```
 
 Limited smoke (after app + FlareSolverr are up):
 
@@ -45,7 +73,7 @@ Limited smoke (after app + FlareSolverr are up):
 
 | Action | Code path | What it does |
 | -------- | ----------- | -------------- |
-| `Warmup` | `/cron/cloudflare/Warmup` | FlareSolverr session warm (default forum `f=2090`) |
+| `Warmup` | `/cron/cloudflare/Warmup` | FlareSolverr session warm (default `tracker.php?nm=`) |
 | `Parse` | `ParseAsync` | First page (`page=0` by default) of each **QuickParse** forum (~**65**); optional `cat`, `maxTopics` for smoke |
 | `UpdateTasksParse` | `UpdateTasksParseAsync` | Hits forums to learn page counts → `Data/temp/rutracker_taskParse.json`; optional `cat` (smoke: one forum, not all ~211) |
 | `ParseLatest` | `ParseLatestAsync` | First *N* pages of **every** cat in `taskParse` (heavy once the map is full) |
@@ -67,7 +95,10 @@ Primary freshness is **`Parse` page 0 of QuickParse**, not `ParseAllTask`.
 Repo [`Data/crontab`](../../../Data/crontab) follows this cadence (ParseAll twice daily so a 6h wall can continue same day):
 
 ```cron
-# Warm FlareSolverr ~5 min before parse
+# Keep FlareSolverr session warm (cf_clearance in Chromium)
+5,25,45 * * * * /opt/jacred/Data/run-job.sh cloudflare-keepalive http://127.0.0.1:9117/cron/cloudflare/Warmup 180
+
+# Warm ~5 min before hourly parse
 55 * * * *    /opt/jacred/Data/run-job.sh cloudflare-warmup http://127.0.0.1:9117/cron/cloudflare/Warmup 180
 
 # Fresh releases: 65 quick forums, first page only (~65 GETs/run)

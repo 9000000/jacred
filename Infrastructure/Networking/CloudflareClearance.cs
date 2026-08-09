@@ -89,17 +89,26 @@ namespace JacRed.Infrastructure.Networking
 
         /// <summary>
         /// Разметка задачи Cloudflare в теле (старые виды без <c>cf-mitigated</c>).
+        ///
+        /// Важно: голый <c>challenge-platform</c> нельзя считать проверкой —
+        /// на обычных страницах rutracker Cloudflare вшивает
+        /// <c>/cdn-cgi/challenge-platform/scripts/jsd/main.js</c>. Это не interstitial.
+        /// Ищем именно orchestrate/chl_page или заголовок «Just a moment…».
         /// </summary>
         public static bool IsChallengeBody(string body)
         {
             if (string.IsNullOrEmpty(body) || body.Length > 200_000)
                 return false;
 
-            return body.Contains("cf-browser-verification", StringComparison.OrdinalIgnoreCase)
+            if (body.Contains("cf-browser-verification", StringComparison.OrdinalIgnoreCase)
                 || body.Contains("cf_chl_opt", StringComparison.OrdinalIgnoreCase)
-                || body.Contains("challenge-platform", StringComparison.OrdinalIgnoreCase)
                 || body.Contains("Just a moment", StringComparison.OrdinalIgnoreCase)
-                || body.Contains("Один момент", StringComparison.OrdinalIgnoreCase);
+                || body.Contains("Один момент", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Реальная задача CF, не jsd/main.js на обычной выдаче.
+            return body.Contains("orchestrate/chl_page", StringComparison.OrdinalIgnoreCase)
+                || body.Contains("challenge-platform/h/", StringComparison.OrdinalIgnoreCase);
         }
 
         public static bool IsGuarded(string host)
@@ -179,19 +188,28 @@ namespace JacRed.Infrastructure.Networking
                 if (!_sessionAlive && !await CreateSessionAsync(conf))
                     return null;
 
-                var (outcome, html) = await RequestAsync(conf, url, cookie);
+                var (outcome, html, failMessage) = await RequestAsync(conf, url, cookie);
 
                 if (outcome == FetchOutcome.BrowserFailed)
                 {
+                    bool browserTimeout = IsBrowserTimeoutMessage(failMessage);
+                    JacRedLog.Warning(JacRedLogCategories.Host,
+                        browserTimeout
+                            ? $"{host}: FlareSolverr browser timeout — пересоздаём сессию (ожидайте новый CF challenge)"
+                            : $"{host}: FlareSolverr session recycle — {failMessage}");
+
                     await DestroySessionAsync(conf);
 
                     if (!await CreateSessionAsync(conf))
                         return null;
 
-                    (outcome, html) = await RequestAsync(conf, url, cookie);
+                    (outcome, html, _) = await RequestAsync(conf, url, cookie);
 
                     if (outcome == FetchOutcome.Ok)
-                        JacRedLog.Warning(JacRedLogCategories.Host, $"{host}: получилось со второй попытки, сессия пересоздана");
+                        JacRedLog.Warning(JacRedLogCategories.Host,
+                            browserTimeout
+                                ? $"{host}: session recycled after browser timeout, OK"
+                                : $"{host}: получилось со второй попытки, сессия пересоздана");
                 }
 
                 _lastUse = DateTime.UtcNow;
@@ -217,7 +235,7 @@ namespace JacRed.Infrastructure.Networking
             BrowserFailed
         }
 
-        static async Task<(FetchOutcome outcome, string html)> RequestAsync(FlareSolverrSettingsView conf, string url, string cookie)
+        static async Task<(FetchOutcome outcome, string html, string failMessage)> RequestAsync(FlareSolverrSettingsView conf, string url, string cookie)
         {
             var payload = new Dictionary<string, object>
             {
@@ -231,20 +249,24 @@ namespace JacRed.Infrastructure.Networking
             if (jar.Count > 0)
                 payload["cookies"] = jar;
 
+            // Proxy только через PROXY_* у контейнера FlareSolverr — в body не шлём
+            // (при session FlareSolverr всё равно игнорирует request proxy).
+
             var root = await CallAsync(conf, payload, conf.MaxTimeoutMs + 30000);
 
             if (root == null)
-                return (FetchOutcome.BrowserFailed, null);
+                return (FetchOutcome.BrowserFailed, null, "empty response / unreachable");
 
             if (!string.Equals(root.Value<string>("status"), "ok", StringComparison.OrdinalIgnoreCase))
             {
                 string message = root.Value<string>("message") ?? "";
                 JacRedLog.Error(JacRedLogCategories.Host, $"FlareSolverr отказал: {message}");
 
+                // Только явная поломка session — иначе BrowserFailed всё равно сделает recycle.
                 if (message.IndexOf("session", StringComparison.OrdinalIgnoreCase) >= 0)
                     _sessionAlive = false;
 
-                return (FetchOutcome.BrowserFailed, null);
+                return (FetchOutcome.BrowserFailed, null, message);
             }
 
             var solution = root.Value<JObject>("solution");
@@ -252,9 +274,23 @@ namespace JacRed.Infrastructure.Networking
             string html = solution?.Value<string>("response");
 
             if (status != 200 || string.IsNullOrWhiteSpace(html))
-                return (FetchOutcome.PageFailed, null);
+                return (FetchOutcome.PageFailed, null, $"http {status}");
 
-            return (FetchOutcome.Ok, html);
+            // FS иногда отдаёт status=ok со страницей interstitial — не считаем успехом.
+            if (IsChallengeBody(html))
+                return (FetchOutcome.PageFailed, null, "challenge html in solution");
+
+            return (FetchOutcome.Ok, html, null);
+        }
+
+        static bool IsBrowserTimeoutMessage(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return false;
+
+            return message.IndexOf("Read timed out", StringComparison.OrdinalIgnoreCase) >= 0
+                   || message.IndexOf("HTTPConnectionPool", StringComparison.OrdinalIgnoreCase) >= 0
+                   || message.IndexOf("Timeout after", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         static List<Dictionary<string, string>> ParseCookies(string cookie)

@@ -8,6 +8,9 @@ namespace JacRed.Models.AppConf
     /// и не работает: с той же cookie и тем же User-Agent прилетает 403 —
     /// Cloudflare сверяет ещё и отпечаток TLS. Поэтому такие хосты обслуживает
     /// браузер целиком, в одной постоянной сессии.
+    ///
+    /// Proxy для Chromium настраивается у контейнера FlareSolverr
+    /// (<c>PROXY_URL</c> / <c>PROXY_USERNAME</c> / <c>PROXY_PASSWORD</c>), не здесь.
     /// </summary>
     public class FlareSolverrSettings
     {
@@ -29,7 +32,7 @@ namespace JacRed.Models.AppConf
         /// <summary>
         /// Через сколько минут простоя закрывать сессию браузера (~700 МБ).
         /// </summary>
-        public int sessionIdleMinutes { get; set; } = 30;
+        public int sessionIdleMinutes { get; set; } = 120;
 
         /// <summary>
         /// Сколько часов помнить, что хост закрыт проверкой, и ходить туда

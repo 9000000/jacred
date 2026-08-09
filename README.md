@@ -513,7 +513,7 @@ Anifilm, AniLibria, HDRezka.
 1. Настроить **`init.yaml`** или **`init.conf`** (примеры в **`Data/example.yaml`**, **`Data/example.conf`**).
    - Убедитесь, что для нужных трекеров указаны правильные `host`, `login` (если требуется) или `cookie`.
    - Настройте прокси, если требуется доступ к .onion доменам.
-   - **Rutracker / Cloudflare:** включите блок **`flaresolverr`** (см. примеры конфига). Cookie `cf_clearance` нельзя переиспользовать в обычном HttpClient — запросы идут через persistent-сессию FlareSolverr. В Docker Compose URL: `http://flaresolverr:8191/v1`; при запуске на хосте: `http://127.0.0.1:8191/v1`. Альтернатива без FlareSolverr — Worker **`Rutracker.alias`**. Подробности: [`Infrastructure/Trackers/Rutracker/README.md`](Infrastructure/Trackers/Rutracker/README.md).
+   - **Rutracker / Cloudflare:** блок **`flaresolverr`** + на VPS egress через **WARP SOCKS** (`PROXY_URL` у контейнера FlareSolverr, volume для `/var/lib/cloudflare-warp`). Cookie `cf_clearance` живёт в persistent-сессии FlareSolverr — держите `sessionIdleMinutes` и keep-alive Warmup. `network_mode: host` сам IP не меняет. Альтернатива без FlareSolverr — Worker **`Rutracker.alias`**. Подробности: [`Infrastructure/Trackers/Rutracker/README.md`](Infrastructure/Trackers/Rutracker/README.md).
 
 2. Выберите режим работы:
    - **Парсинг через cron:** По умолчанию база скачивается при установке, парсинг выполняется по расписанию из **`Data/crontab`** (включая `cloudflare-warmup` за ~5 мин до `rutracker-parse`). Активируйте: `crontab /opt/jacred/Data/crontab`
@@ -1001,7 +1001,7 @@ volumes:
 - Убедитесь, что `syncapi` указан корректно (если используется синхронизация)
 - Проверьте логи парсеров: `tail -f Data/log/{tracker}.log`
 - Убедитесь, что трекер доступен и учётные данные верны
-- **Rutracker / Cloudflare:** проверьте, что FlareSolverr доступен (`curl http://127.0.0.1:8191/` или `http://flaresolverr:8191/` в compose), в конфиге `flaresolverr.enable: true` и верный `url`, и что срабатывает warmup: `curl http://127.0.0.1:9117/cron/cloudflare/Warmup` (первый ответ может занять до ~180 с). Smoke: `./scripts/cron_rutracker_smoke.sh`
+- **Rutracker / Cloudflare:** проверьте, что FlareSolverr доступен (`curl http://127.0.0.1:8191/` или `http://flaresolverr:8191/` в compose), в конфиге `flaresolverr.enable: true` и верный `url`, и что срабатывает warmup: `curl http://127.0.0.1:9117/cron/cloudflare/Warmup` (первый ответ может занять до ~180 с). Если на VPS challenge детектится, но не решается — задайте residential/ISP `PROXY_*` у контейнера FlareSolverr (см. playbook в Rutracker README). Smoke: `./scripts/cron_rutracker_smoke.sh`
 
 ### API не отвечает
 
