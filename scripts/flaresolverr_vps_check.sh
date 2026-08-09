@@ -6,7 +6,7 @@ set -euo pipefail
 
 FS_URL="${FS_URL:-http://127.0.0.1:8191/v1}"
 TEST_URL="${TEST_URL:-https://rutracker.org/forum/tracker.php?nm=}"
-MAX_TIMEOUT_MS="${MAX_TIMEOUT_MS:-180000}"
+MAX_TIMEOUT_MS="${MAX_TIMEOUT_MS:-300000}"
 CURL_MAX=$(( MAX_TIMEOUT_MS / 1000 + 30 ))
 
 echo "POST $FS_URL  url=$TEST_URL  maxTimeout=$MAX_TIMEOUT_MS"

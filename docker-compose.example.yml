@@ -68,6 +68,7 @@ services:
       - LOG_LEVEL=info
       - TZ=Europe/London
       - PROXY_URL=socks5://127.0.0.1:20001
+      - DISABLE_MEDIA=true
       # Debug: LOG_LEVEL=debug (LOG_HTML=true is very noisy)
     deploy:
       resources:

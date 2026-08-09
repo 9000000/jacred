@@ -15,8 +15,10 @@ devkey: "" # Ключ для доступа к /dev/, /cron/, /jsondb за ту�
 flaresolverr:
   enable: true
   url: http://127.0.0.1:8191/v1
-  maxTimeoutMs: 180000
+  maxTimeoutMs: 300000
   sessionIdleMinutes: 120
+  browserTimeoutRetries: 1
+  recycleAfterTimeouts: 3
   guardedHours: 6
   recheckMinutes: 30
 
@@ -180,6 +182,7 @@ Rutracker:
   useproxy: false
   reqMinute: 8
   parseDelay: 7000
+  topicFetchAttempts: 5
   log: true
 
 Selezen:

@@ -27,12 +27,23 @@ namespace JacRed.Models.AppConf
         /// Сколько ждать ответа браузера, мс. Первое обращение долгое — там
         /// решается задача: на rutracker замерено около 80 секунд.
         /// </summary>
-        public int maxTimeoutMs { get; set; } = 180000;
+        public int maxTimeoutMs { get; set; } = 300000;
 
         /// <summary>
         /// Через сколько минут простоя закрывать сессию браузера (~700 МБ).
         /// </summary>
         public int sessionIdleMinutes { get; set; } = 120;
+
+        /// <summary>
+        /// Повторы того же request.get в той же сессии при browser timeout
+        /// (chromedriver hang), до destroy.
+        /// </summary>
+        public int browserTimeoutRetries { get; set; } = 1;
+
+        /// <summary>
+        /// Сколько подряд browser timeout’ов терпеть, прежде чем destroy+create.
+        /// </summary>
+        public int recycleAfterTimeouts { get; set; } = 3;
 
         /// <summary>
         /// Сколько часов помнить, что хост закрыт проверкой, и ходить туда
