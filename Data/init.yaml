@@ -23,22 +23,29 @@ logFdbMaxFiles: 0
 logParsers: true
 syncapi: ""
 synctrackers:
-  - rutracker
-  - rutor
-  - kinozal
-  - nnmclub
-  - megapeer
-  - bitru
-  - toloka
-  - mazepa
-  - lostfilm
-  - baibako
-  - torrentby
-  - selezen
-  - animelayer
+  - anibelka
   - anidub
+  - anifilm
   - aniliberty
+  - animelayer
+  - anistar
+  - baibako
+  - bitru
+  - kinozal
   - knaben
+  - korsars
+  - leproduction
+  - lostfilm
+  - mazepa
+  - megapeer
+  - nnmclub
+  - rutor
+  - rutracker
+  - selezen
+  - toloka
+  - torrentby
+  - ultradox
+  - viruseproject
 disable_trackers: []
 syncsport: false
 syncspidr: false
@@ -86,3 +93,62 @@ logging:
   cronSkipFastMs: 100
   categories:
     parsers: None
+
+Anistar:
+  host: https://anistar.org
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: ""
+
+Leproduction:
+  host: https://www.le-production.online
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+
+Viruseproject:
+  host: https://viruseproject.tv
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+
+Anifilm:
+  host: https://anifilm.pro
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: ""
+  login:
+    u: ""
+    p: ""
+
+Anibelka:
+  host: https://anibelka.com
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+
+Ultradox:
+  host: https://ultradox.onl
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+
+Korsars:
+  host: https://korsars.pro
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: ""
+  login:
+    u: ""
+    p: ""

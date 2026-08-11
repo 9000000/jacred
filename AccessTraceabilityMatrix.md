@@ -2,7 +2,7 @@
 
 **Источник истины (код):** `Infrastructure/Security/JacRedEndpointRegistry.cs`  
 **Проверка:** `JacRedAccessCatalog.VerifyRegistry()` — выполняется при старте (несовпадения пишутся в лог)  
-**Последняя проверка:** 2026-07-23 — SPA cutover: shells → `index.html`; статика `/assets/`, PWA `manifest.webmanifest` / Workbox
+**Последняя проверка:** 2026-08-11 — порт 7 трекеров (`anistar`, `leproduction`, `viruseproject`, `anifilm`, `anibelka`, `korsars`, `ultradox`); иконки `/img/ico/{slug}.ico`; OpenAPI 1.2.0 `TrackerSlug`
 **README (оператор):** [Безопасность и доступ](README.md#безопасность-и-доступ-к-api) · [Логирование](README.md#консольное-логирование-logging)
 
 ---
@@ -10,7 +10,7 @@
 ## Определения политик
 
 | Политика | Правило middleware | Ключи |
-|----------|-------------------|-------|
+| ---------- | ------------------- | ------- |
 | **Public** | Всегда разрешено | — |
 | **ConfigApi** | LAN-клиент **или** валидный devkey (одного reverse proxy **недостаточно**) | `X-Dev-Key`, `?devkey=` |
 | **DevAdmin** | LAN-клиент **или** валидный devkey (одного reverse proxy **недостаточно**) | `X-Dev-Key`, `?devkey=` |
@@ -25,7 +25,7 @@
 ## Префикс пути → политика (реестр)
 
 | Префикс / шаблон пути | Политика | Примечания |
-|----------------------|----------|------------|
+| ---------------------- | ---------- | ------------ |
 | `/dev/` | DevAdmin | Обслуживание и диагностика |
 | `/cron/` | DevAdmin | Запуск синхронизации трекеров |
 | `/jsondb`, `/jsondb/` | DevAdmin | Администрирование FileDB |
@@ -46,7 +46,7 @@
 ### Public
 
 | Маршрут | Контроллер | Вторичная проверка |
-|---------|------------|-------------------|
+| --------- | ------------ | ------------------- |
 | `GET /` | HomeController | Vue SPA |
 | `GET /stats` | HomeController | SPA route → `index.html` (JSON на `/stats/*` не публичный) |
 | `GET /settings` | HomeController | SPA route → `index.html` |
@@ -64,7 +64,7 @@
 ### ConfigApi
 
 | Маршрут | Контроллер |
-|---------|------------|
+| --------- | ------------ |
 | `GET/POST /api/v1.0/config` | ConfigController |
 | `GET /api/v1.0/config/schema` | ConfigController |
 | `POST /api/v1.0/config/validate` | ConfigController |
@@ -76,16 +76,16 @@
 ### DevAdmin
 
 | Шаблон маршрута | Контроллер |
-|-----------------|------------|
+| ----------------- | ------------ |
 | `/dev/*` | DevMaintenanceController, DevDiagnosticsController, DevMigrationController, DevTracksController |
 | `/jsondb/*` | DbController |
-| `/cron/{tracker}/*` | Controllers/Cron/* (17 трекеров) |
+| `/cron/{tracker}/*` | Controllers/Cron/* (23 трекера) |
 | `/cron/maintenance/Check`, `/Status` | Controllers/Cron/MaintenanceController (FDB integrity) |
 
 ### ApiKeyWhenConfigured
 
 | Маршрут | Контроллер | Вторичная проверка |
-|---------|------------|-------------------|
+| --------- | ------------ | ------------------- |
 | `GET /api/v1.0/torrents` | TorrentsController | — |
 | `GET /api/v1.0/trackers` | TorrentsController | — |
 | `GET /api/v1.0/qualitys` | TorrentsController | — |
