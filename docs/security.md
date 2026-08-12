@@ -1,8 +1,18 @@
+---
+title: Безопасность и доступ к API
+description: Политики Public / ConfigApi / DevAdmin / ApiKeyWhenConfigured, apikey и devkey
+tags:
+  - security
+  - api
+---
+
 # Безопасность и доступ к API
 
 JacRed использует единый слой доступа: **`UseJacRedSecurity()`** (`SecurityHeadersMiddleware` + `JacRedAuthorizationMiddleware`). Политика определяется **только** по префиксу пути в `JacRedEndpointRegistry` — без атрибутов на контроллерах.
 
-**Сеть:** **Peer IP** — прямое TCP-подключение к Kestrel. **Client IP** из `CF-Connecting-IP` / `X-Real-IP` / `X-Forwarded-For` учитывается **только** если peer — loopback (cloudflared/nginx на том же хосте); иначе Client IP = peer. Если peer — private (loopback **или** RFC1918, напр. Traefik/nginx/Caddy в Docker `172.x`) **и** есть proxy identity headers (`X-Forwarded-For`, `X-Real-IP`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `Forwarded`, `CF-*`, …), запрос **не** считается LAN-клиентом — нужен `devkey`. Прямой LAN/localhost **без** этих заголовков — по-прежнему без ключа. См. `ClientNetworkContext` / `JacRedAccessEvaluator`.
+!!! info "Сеть: Peer IP vs Client IP"
+
+    **Peer IP** — прямое TCP-подключение к Kestrel. **Client IP** из `CF-Connecting-IP` / `X-Real-IP` / `X-Forwarded-For` учитывается **только** если peer — loopback (cloudflared/nginx на том же хосте); иначе Client IP = peer. Если peer — private (loopback **или** RFC1918, напр. Traefik/nginx/Caddy в Docker `172.x`) **и** есть proxy identity headers (`X-Forwarded-For`, `X-Real-IP`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `Forwarded`, `CF-*`, …), запрос **не** считается LAN-клиентом — нужен `devkey`. Прямой LAN/localhost **без** этих заголовков — по-прежнему без ключа. См. `ClientNetworkContext` / `JacRedAccessEvaluator`.
 
 ## Политики
 
@@ -15,7 +25,9 @@ JacRed использует единый слой доступа: **`UseJacRedSe
 
 **Коды отказа:** `OPTIONS` → 204; ключ настроен, но не передан → **401**; иначе → **403**.
 
-> **ConfigApi = DevAdmin** по сети: reverse proxy (same-host loopback **или** Docker/LAN peer с `X-Forwarded-*` / `X-Real-IP`) **сам по себе не заменяет** `devkey`. Нужен прямой LAN-клиент (RFC1918 / loopback **без** proxy identity headers) или заголовок/`?devkey=`.
+!!! warning "Reverse proxy не заменяет `devkey`"
+
+    **ConfigApi = DevAdmin** по сети: reverse proxy (same-host loopback **или** Docker/LAN peer с `X-Forwarded-*` / `X-Real-IP`) **сам по себе не заменяет** `devkey`. Нужен прямой LAN-клиент (RFC1918 / loopback **без** proxy identity headers) или заголовок/`?devkey=`.
 
 ## Префиксы путей → политика
 
@@ -38,7 +50,7 @@ JacRed использует единый слой доступа: **`UseJacRedSe
 | DevAdmin | ✓ | ✗ | `devkey` (если задан в конфиге) |
 | ApiKeyWhenConfigured | `apikey` если задан | `apikey` если задан | `apikey` если задан |
 
-## Белый список без `apikey`
+## Белый список без `apikey` {#apikey}
 
 Если в конфиге задан `apikey`, следующие пути **не требуют** его на уровне middleware:
 

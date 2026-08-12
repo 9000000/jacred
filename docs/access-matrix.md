@@ -1,3 +1,10 @@
+---
+title: Матрица доступа
+description: Полная трассировка маршрутов и политик JacRed
+tags:
+  - security
+  - reference
+---
 # JacRed — матрица трассировки доступа
 
 - **Источник истины (код):** [`Infrastructure/Security/JacRedEndpointRegistry.cs`](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Security/JacRedEndpointRegistry.cs)

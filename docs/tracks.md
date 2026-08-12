@@ -1,3 +1,10 @@
+---
+title: Tracks
+description: Модуль tracks — TorrServer, ffprobe, concurrency
+tags:
+  - ops
+  - tracks
+---
 # Статистика и треки (модуль tracks)
 
 | Параметр | Описание | По умолчанию |

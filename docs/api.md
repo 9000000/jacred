@@ -1,3 +1,10 @@
+---
+title: API
+description: OpenAPI, поиск, Config API, /dev/*, cron, maintenance
+tags:
+  - api
+  - reference
+---
 # API
 
 ## OpenAPI / Swagger

@@ -1,16 +1,31 @@
+---
+title: Архитектура
+description: Слои JacRed ASP.NET Core и фоновые процессы
+tags:
+  - develop
+  - architecture
+---
+
 # Архитектура
 
-JacRed — **ASP.NET Core 10** (single project `JacRed.csproj`):
+JacRed — **ASP.NET Core 10** (single project `JacRed.csproj`).
 
-```text
-Controllers/          → HTTP (тонкий слой)
-Application/          → поиск, индекс, dev-сервисы
-Infrastructure/       → FileDB, трекеры, security, logging, workers
-Configuration/        → init.yaml / hot-reload
-Models/               → DTO и контракты API
+```mermaid
+flowchart TB
+  Controllers[Controllers HTTP]
+  Application[Application поиск индекс]
+  Infrastructure[Infrastructure FileDB трекеры security]
+  Configuration[Configuration hot-reload]
+  Models[Models DTO]
+  Controllers --> Application
+  Controllers --> Infrastructure
+  Application --> Infrastructure
+  Infrastructure --> Configuration
+  Controllers --> Models
+  Application --> Models
 ```
 
-## Основные компоненты
+## Слои проекта
 
 | Компонент | Путь | Назначение |
 | --- | --- | --- |
@@ -23,6 +38,19 @@ Models/               → DTO и контракты API
 | **Config** | `Configuration/AppConfigurationProvider.cs` | Загрузка, hot-reload, redaction |
 
 ## Фоновые процессы
+
+```mermaid
+flowchart LR
+  SyncCron[SyncCron syncapi]
+  TrackersCron[TrackersCron HTTP cron]
+  StatsCron[StatsCron stats.json]
+  TracksCron[TracksCron tsuri]
+  FileDB[FileDB evercache]
+  SyncCron --> FileDB
+  TrackersCron --> FileDB
+  StatsCron --> FileDB
+  TracksCron --> FileDB
+```
 
 - **SyncCron** — pull с `syncapi` (`/sync/fdb/torrents`)
 - **TrackersCron** — парсинг по HTTP `/cron/*` (внешний cron) + внутренние циклы

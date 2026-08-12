@@ -1,3 +1,10 @@
+---
+title: Сборка
+description: Сборка JacRed из исходников — make, RID, publish
+tags:
+  - start
+  - build
+---
 # Сборка
 
 Предпочтительный интерфейс — **`make`** (см. `make help`). Скрипты сборки лежат в [`scripts/`](https://github.com/jacred-fdb/jacred/tree/main/scripts).

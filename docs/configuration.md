@@ -1,6 +1,16 @@
+---
+title: Конфигурация
+description: Параметры init.yaml / init.conf — sync, logging, search, Torznab, прокси
+tags:
+  - ops
+  - config
+---
+
 # Конфигурация
 
-Приоритет файлов: **`init.yaml`** > **`init.conf`**. Если существуют оба, используется `init.yaml`. Конфиг перечитывается автоматически каждые 10 секунд.
+!!! info "Приоритет и hot-reload"
+
+    Приоритет файлов: **`init.yaml`** > **`init.conf`**. Если существуют оба, используется `init.yaml`. Конфиг перечитывается автоматически каждые 10 секунд.
 
 Примеры полного конфига: [`Data/example.yaml`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.yaml), [`Data/example.conf`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.conf). В рабочем конфиге указывайте только те параметры, которые нужно изменить.
 
@@ -177,51 +187,53 @@ globalproxy:
     BypassOnLocal: false
 ```
 
-## Пример минимального конфига (YAML)
+## Пример минимального конфига
 
-```yaml
-listenport: 9120
-syncapi: https://jacred.example.com
+=== "YAML (`init.yaml`)"
 
-search:
-  mergeV1: auto
-  skipCatFilter: true
+    ```yaml
+    listenport: 9120
+    syncapi: https://jacred.example.com
 
-torznab:
-  enable: true
+    search:
+      mergeV1: auto
+      skipCatFilter: true
 
-NNMClub:
-  alias: http://nnmclub....onion
+    torznab:
+      enable: true
 
-globalproxy:
-  - pattern: "\\.onion"
-    list:
-      - socks5://127.0.0.1:9050
-```
+    NNMClub:
+      alias: http://nnmclub....onion
 
-Эквивалент в JSON (`init.conf`):
+    globalproxy:
+      - pattern: "\\.onion"
+        list:
+          - socks5://127.0.0.1:9050
+    ```
 
-```json
-{
-  "listenport": 9120,
-  "syncapi": "https://jacred.example.com",
-  "NNMClub": { "alias": "http://nnmclub....onion" },
-  "globalproxy": [
-    { "pattern": "\\.onion", "list": ["socks5://192.168.1.1:9050"] }
-  ],
-  "search": {
-    "mergeV1": "auto",
-    "maxV1Pairs": 4,
-    "v1Sort": "sid",
-    "stripTrailingYear": true,
-    "skipCatFilter": true
-  },
-  "torznab": {
-    "enable": true,
-    "enrichTitles": true
-  }
-}
-```
+=== "JSON (`init.conf`)"
+
+    ```json
+    {
+      "listenport": 9120,
+      "syncapi": "https://jacred.example.com",
+      "NNMClub": { "alias": "http://nnmclub....onion" },
+      "globalproxy": [
+        { "pattern": "\\.onion", "list": ["socks5://192.168.1.1:9050"] }
+      ],
+      "search": {
+        "mergeV1": "auto",
+        "maxV1Pairs": 4,
+        "v1Sort": "sid",
+        "stripTrailingYear": true,
+        "skipCatFilter": true
+      },
+      "torznab": {
+        "enable": true,
+        "enrichTitles": true
+      }
+    }
+    ```
 
 ### Combined search (`search`)
 

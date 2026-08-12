@@ -1,20 +1,90 @@
+---
+title: Документация JacRed
+description: Операторская документация JacRed — установка, конфигурация, API, безопасность
+tags:
+  - start
+---
+
 # Документация JacRed
 
-| Документ | Описание |
-| --- | --- |
-| [installation.md](installation.md) | Установка скриптом, обновление, удаление |
-| [configuration.md](configuration.md) | Конфиг `init.yaml` / `init.conf`, sync, logging, search, Torznab |
-| [tracks.md](tracks.md) | Модуль tracks (TorrServer / ffprobe) |
-| [trackers-and-parsing.md](trackers-and-parsing.md) | Список трекеров, самостоятельный парсинг, .onion |
-| [security.md](security.md) | Политики доступа, `apikey` / `devkey` |
-| [access-matrix.md](access-matrix.md) | Полная матрица маршрутов и политик |
-| [api.md](api.md) | OpenAPI, эндпоинты, `/dev/*`, cron, maintenance |
-| [building.md](building.md) | Сборка из исходников (`make`) |
-| [docker.md](docker.md) | Docker / Compose и cron снаружи контейнера |
-| [troubleshooting.md](troubleshooting.md) | Решение типичных проблем |
-| [architecture.md](architecture.md) | Структура проекта и фоновые процессы |
+Агрегатор торрент-трекеров с API Jackett, файловой БД (fdb), sync и самостоятельным парсингом.
 
-Связанные README вне `docs/`:
+<div class="hero-cta" markdown>
 
-- [web/README.md](https://github.com/jacred-fdb/jacred/blob/main/web/README.md) — Vue SPA
-- [Infrastructure/Trackers/Rutracker/README.md](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Trackers/Rutracker/README.md) — Rutracker / FlareSolverr
+[Установка](installation.md){ .md-button .md-button--primary }
+[Docker](docker.md){ .md-button }
+
+</div>
+
+<div class="grid cards" markdown>
+
+-   :material-download: **Установка**
+
+    ---
+
+    Скрипт `jacred.sh`, systemd, обновление и удаление
+
+    [:octicons-arrow-right-24: Перейти](installation.md)
+
+-   :material-docker: **Docker**
+
+    ---
+
+    Run / Compose, тома и cron снаружи контейнера
+
+    [:octicons-arrow-right-24: Перейти](docker.md)
+
+-   :material-cog: **Конфигурация**
+
+    ---
+
+    `init.yaml` / `init.conf`, sync, search, Torznab
+
+    [:octicons-arrow-right-24: Перейти](configuration.md)
+
+-   :material-shield-lock: **Безопасность**
+
+    ---
+
+    Политики доступа, `apikey` / `devkey`, LAN и proxy
+
+    [:octicons-arrow-right-24: Перейти](security.md)
+
+-   :material-api: **API**
+
+    ---
+
+    OpenAPI, поиск, Config API, `/dev/*`, cron, maintenance
+
+    [:octicons-arrow-right-24: Перейти](api.md)
+
+-   :material-music-note: **Tracks**
+
+    ---
+
+    TorrServer / ffprobe, concurrency и troubleshooting
+
+    [:octicons-arrow-right-24: Перейти](tracks.md)
+
+-   :material-bug: **Решение проблем**
+
+    ---
+
+    ICU, cron, прокси, память, трекеры
+
+    [:octicons-arrow-right-24: Перейти](troubleshooting.md)
+
+-   :material-sitemap: **Архитектура**
+
+    ---
+
+    Слои проекта и фоновые процессы
+
+    [:octicons-arrow-right-24: Перейти](architecture.md)
+
+</div>
+
+!!! tip "Связанные README вне сайта"
+
+    - [web/README.md](https://github.com/jacred-fdb/jacred/blob/main/web/README.md) — Vue SPA
+    - [Infrastructure/Trackers/Rutracker/README.md](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Trackers/Rutracker/README.md) — Rutracker / FlareSolverr
