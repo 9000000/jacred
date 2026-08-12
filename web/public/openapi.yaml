@@ -42,9 +42,9 @@ info:
 
     **Dev/cron/jsondb:** `/dev/*`, `/cron/*`, `/jsondb/*` require DevAdmin (`X-Dev-Key` / `?devkey=`).
     Those operational actions are **not** enumerated path-by-path in this public spec; see Controllers,
-    [`Data/crontab`](Data/crontab), and [`AccessTraceabilityMatrix.md`](AccessTraceabilityMatrix.md).
+    [`Data/crontab`](Data/crontab), and [`docs/access-matrix.md`](docs/access-matrix.md).
 
-    Полная матрица: [`AccessTraceabilityMatrix.md`](AccessTraceabilityMatrix.md).
+    Полная матрица: [`docs/access-matrix.md`](docs/access-matrix.md).
 
     ## Config files
 
