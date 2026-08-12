@@ -12,7 +12,7 @@
 
 **Не добавляйте в `synctrackers`:** retired-трекеры (AniLibria, HDRezka и т.п.). При фильтрации остатков sync — `disable_trackers`.
 
-Список для `synctrackers` и блоки настроек — в [`Data/example.yaml`](../Data/example.yaml). Конфиг приложения при запуске: **`init.yaml`** / **`init.conf`** в **корне рабочего каталога** (рядом с бинарником), не `Data/init.yaml` (тот — шаблон/defaults при установке).
+Список для `synctrackers` и блоки настроек — в [`Data/example.yaml`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.yaml). Конфиг приложения при запуске: **`init.yaml`** / **`init.conf`** в **корне рабочего каталога** (рядом с бинарником), не `Data/init.yaml` (тот — шаблон/defaults при установке).
 
 ---
 
@@ -20,19 +20,19 @@
 
 Для самостоятельного парсинга трекеров:
 
-1. Настроить **`init.yaml`** или **`init.conf`** (примеры в [`Data/example.yaml`](../Data/example.yaml), [`Data/example.conf`](../Data/example.conf)).
-   - Убедитесь, что для нужных трекеров указаны правильные `host`, `login` / `cookie` (см. [таблицу аутентификации](configuration.md#трекеры-блоки-в-конфиге)).
+1. Настроить **`init.yaml`** или **`init.conf`** (примеры в [`Data/example.yaml`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.yaml), [`Data/example.conf`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.conf)).
+   - Убедитесь, что для нужных трекеров указаны правильные `host`, `login` / `cookie` (см. [таблицу аутентификации](configuration.md#trackers-config)).
    - Добавьте slug’и в **`synctrackers`**, если хотите видеть их в `GET /api/v1.0/trackers` и sync-фильтре.
    - Настройте прокси, если требуется доступ к .onion доменам.
-   - **Rutracker / Cloudflare:** блок **`flaresolverr`** + на VPS egress через **WARP SOCKS** (`PROXY_URL` у контейнера FlareSolverr, volume для `/var/lib/cloudflare-warp`). Cookie `cf_clearance` живёт в persistent-сессии FlareSolverr — держите `sessionIdleMinutes` и keep-alive Warmup. `network_mode: host` сам IP не меняет. Альтернатива без FlareSolverr — Worker **`Rutracker.alias`**. Подробности: [`Infrastructure/Trackers/Rutracker/README.md`](../Infrastructure/Trackers/Rutracker/README.md).
+   - **Rutracker / Cloudflare:** блок **`flaresolverr`** + на VPS egress через **WARP SOCKS** (`PROXY_URL` у контейнера FlareSolverr, volume для `/var/lib/cloudflare-warp`). Cookie `cf_clearance` живёт в persistent-сессии FlareSolverr — держите `sessionIdleMinutes` и keep-alive Warmup. `network_mode: host` сам IP не меняет. Альтернатива без FlareSolverr — Worker **`Rutracker.alias`**. Подробности: [`Infrastructure/Trackers/Rutracker/README.md`](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Trackers/Rutracker/README.md).
    - **Anistar:** задайте cookie в конфиге; встроенный FlareSolverr-warmup Rutracker на Anistar не действует.
 
 2. Выберите режим работы:
-   - **Парсинг через cron:** По умолчанию база скачивается при установке, парсинг выполняется по расписанию из [`Data/crontab`](../Data/crontab) (включая `cloudflare-warmup` за ~5 мин до `rutracker-parse`, daily page-парсеры и hourly Rutor-style для anibelka/korsars/ultradox/rudub). Активируйте: `crontab /opt/jacred/Data/crontab`
+   - **Парсинг через cron:** По умолчанию база скачивается при установке, парсинг выполняется по расписанию из [`Data/crontab`](https://github.com/jacred-fdb/jacred/blob/main/Data/crontab) (включая `cloudflare-warmup` за ~5 мин до `rutracker-parse`, daily page-парсеры и hourly Rutor-style для anibelka/korsars/ultradox/rudub). Активируйте: `crontab /opt/jacred/Data/crontab`
    - **Синхронизация:** Укажите **`syncapi`** в конфиге, чтобы подтягивать базу с удалённого сервера. Включите `opensync: true` для участия в синхронизации.
-   - **Docker:** в образе нет cron — расписание выносится на хост, отдельный контейнер или оркестратор; см. [Docker → cron](docker.md#самостоятельный-парсинг-и-расписание-cron-в-docker).
+   - **Docker:** в образе нет cron — расписание выносится на хост, отдельный контейнер или оркестратор; см. [Docker → cron](docker.md#cron-docker).
 
-3. **Важно:** В crontab по умолчанию используется порт **9117** — при смене порта измените URL в строках [`Data/crontab`](../Data/crontab). Если в конфиге задан **`apikey`** / **`devkey`**, добавьте их в URL (`?apikey=...` / `?devkey=...`) в каждой строке crontab (см. [Безопасность](security.md)). Задания вызывают [`Data/run-job.sh`](../Data/run-job.sh) (`flock` + `curl --max-time`).
+3. **Важно:** В crontab по умолчанию используется порт **9117** — при смене порта измените URL в строках [`Data/crontab`](https://github.com/jacred-fdb/jacred/blob/main/Data/crontab). Если в конфиге задан **`apikey`** / **`devkey`**, добавьте их в URL (`?apikey=...` / `?devkey=...`) в каждой строке crontab (см. [Безопасность](security.md)). Задания вызывают [`Data/run-job.sh`](https://github.com/jacred-fdb/jacred/blob/main/Data/run-job.sh) (`flock` + `curl --max-time`).
 
 4. Мониторинг парсинга:
    - Логи парсеров: `Data/log/{tracker}.log` (по умолчанию `logParsers: true`, per-tracker `log: true`)
@@ -45,4 +45,4 @@
 ## Доступ к доменам .onion
 
 1. Запустить Tor на порту 9050.
-2. В конфиге задать для трекера **`alias`** с .onion-адресом и в **`globalproxy`** правило с `pattern: "\\.onion"` и `list: ["socks5://127.0.0.1:9050"]` (как в [примере прокси](configuration.md#глобальные-правила-прокси-globalproxy)).
+2. В конфиге задать для трекера **`alias`** с .onion-адресом и в **`globalproxy`** правило с `pattern: "\\.onion"` и `list: ["socks5://127.0.0.1:9050"]` (как в [примере прокси](configuration.md#globalproxy)).

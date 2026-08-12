@@ -1,9 +1,9 @@
 # JacRed — матрица трассировки доступа
 
-- **Источник истины (код):** [`Infrastructure/Security/JacRedEndpointRegistry.cs`](../Infrastructure/Security/JacRedEndpointRegistry.cs)
+- **Источник истины (код):** [`Infrastructure/Security/JacRedEndpointRegistry.cs`](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Security/JacRedEndpointRegistry.cs)
 - **Проверка:** `JacRedAccessCatalog.VerifyRegistry()` — выполняется при старте (несовпадения пишутся в лог)
 - **Последняя проверка:** 2026-08-11 — порт 7 трекеров (`anistar`, `leproduction`, `viruseproject`, `anifilm`, `anibelka`, `korsars`, `ultradox`); иконки `/img/ico/{slug}.ico`; OpenAPI 1.2.0 `TrackerSlug`
-- **Документация (оператор):** [Безопасность и доступ](security.md) · [Логирование](configuration.md#консольное-логирование-logging)
+- **Документация (оператор):** [Безопасность и доступ](security.md) · [Логирование](configuration.md#logging)
 
 ---
 

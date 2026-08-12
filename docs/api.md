@@ -2,7 +2,7 @@
 
 ## OpenAPI / Swagger
 
-Спецификация: OpenAPI **3.0.3**, `info.version` **1.2.1** (источник: [`web/public/openapi.yaml`](../web/public/openapi.yaml)). В описании — список `TrackerSlug`, схема `BackgroundJob`, Torznab HEAD и общие query-параметры.
+Спецификация: OpenAPI **3.0.3**, `info.version` **1.2.1** (источник: [`web/public/openapi.yaml`](https://github.com/jacred-fdb/jacred/blob/main/web/public/openapi.yaml)). В описании — список `TrackerSlug`, схема `BackgroundJob`, Torznab HEAD и общие query-параметры.
 
 | URL | Назначение |
 | --- | --- |
@@ -14,9 +14,9 @@ Swagger UI по умолчанию загружает **`/openapi.yaml`**; в в
 
 При настроенном `apikey` пути `/swagger`, `/swagger/*` и `/openapi.yaml` доступны без ключа (как `/health`). Схемы авторизации в UI: `apikey` (query), `X-Api-Key`, `Authorization: Bearer`, `X-Dev-Key` (для Config API).
 
-В спецификацию входят публичные эндпоинты (`/api/*`, `/torznab/*`, `/stats/*`, `/sync/*`, `/health`, `/health/background-jobs`, …). Пути `/cron/*`, `/dev/*`, `/jsondb/*` в OpenAPI **не описаны** (политика DevAdmin) — см. Controllers и [`Data/crontab`](../Data/crontab).
+В спецификацию входят публичные эндпоинты (`/api/*`, `/torznab/*`, `/stats/*`, `/sync/*`, `/health`, `/health/background-jobs`, …). Пути `/cron/*`, `/dev/*`, `/jsondb/*` в OpenAPI **не описаны** (политика DevAdmin) — см. Controllers и [`Data/crontab`](https://github.com/jacred-fdb/jacred/blob/main/Data/crontab).
 
-Типы для веб-UI: `cd web && npm run gen:api` → [`web/src/lib/api/types.ts`](../web/src/lib/api/types.ts).
+Типы для веб-UI: `cd web && npm run gen:api` → [`web/src/lib/api/types.ts`](https://github.com/jacred-fdb/jacred/blob/main/web/src/lib/api/types.ts).
 
 Проверка соответствия маршрутов политикам: [`access-matrix.md`](access-matrix.md).
 
@@ -25,7 +25,7 @@ Swagger UI по умолчанию загружает **`/openapi.yaml`**; в в
 - **`GET /`** — веб-интерфейс поиска (если `web: true`).
 - **`GET /stats`** — страница статистики SPA (если `web: true`; данные — `/stats/torrents`, `/stats/meta`).
 - **`GET /settings`** — настройки SPA (Config API: LAN или `X-Dev-Key`).
-- **Веб-UI:** Vue 3 SPA в [`web/`](../web/) (Vite + Tailwind + shadcn-vue); `make web` / [`./scripts/build-web-ui.sh`](../scripts/build-web-ui.sh) собирает publish-папку `wwwroot/` (в git не хранится).
+- **Веб-UI:** Vue 3 SPA в [`web/`](https://github.com/jacred-fdb/jacred/tree/main/web) (Vite + Tailwind + shadcn-vue); `make web` / [`./scripts/build-web-ui.sh`](https://github.com/jacred-fdb/jacred/blob/main/scripts/build-web-ui.sh) собирает publish-папку `wwwroot/` (в git не хранится).
 - **`GET /health`** — проверка работы. Ответ JSON: `{"status":"OK"}`.
 - **`GET /health/background-jobs`** — активные in-process ParseAll / UpdateTasks (cron). Ответ JSON: `{"jobs":[…]}` (пустой массив, если ничего не запущено). Page-only парсеры (`anistar`, `leproduction`, `viruseproject`, `anifilm`) сюда обычно **не** попадают.
 - **`GET /version`** — версия приложения. Ответ JSON: `{"version":"1.0.0"}`.
@@ -87,7 +87,7 @@ REST API и страница **`/settings`** для редактирования
 - **`GET /jsondb/save`** — сохранить БД на диск (при использовании syncapi скрипт установки не вызывает save; при собственном парсинге cron вызывает save по расписанию).
   - Доступ: политика **DevAdmin** — LAN или `devkey`; при `apikey` — также ключ для middleware (см. [Безопасность](security.md)).
 
-## Разработка и отладка
+## Разработка и отладка {#dev-debug}
 
 - **`GET /dev/*`** — инструменты разработки и отладки БД.
   - Доступ: политика **DevAdmin** — LAN или `devkey` (см. [Безопасность](security.md)).
@@ -148,7 +148,7 @@ curl -s 'http://127.0.0.1:9117/dev/ExportTracksStatus'
 - **`GET /sync/*`** — эндпоинты синхронизации (если `opensync: true`).
   - **`GET /sync/fdb/torrents`** — основной протокол синхронизации (collections + pagination).
 
-## Парсинг трекеров
+## Парсинг трекеров {#parsing-trackers}
 
 Общие маршруты (не все трекеры реализуют каждый):
 
@@ -161,7 +161,7 @@ curl -s 'http://127.0.0.1:9117/dev/ExportTracksStatus'
 
 Долгие HTTP-джобы для anibelka / korsars / ultradox **не** отменяют работу при обрыве curl (`RequestAborted` не пробрасывается) — дождитесь ответа или смотрите лог `Data/log/{tracker}.log`.
 
-### Новые трекеры (ориентир из [`Data/crontab`](../Data/crontab))
+### Новые трекеры (ориентир из [`Data/crontab`](https://github.com/jacred-fdb/jacred/blob/main/Data/crontab))
 
 | Трекер | Типичные действия | Расписание в примере crontab |
 | --- | --- | --- |
@@ -182,7 +182,7 @@ curl -s 'http://127.0.0.1:9117/dev/ExportTracksStatus'
 - **`GET /cron/knaben/backfill`** — заполнение архива по листовым подкатегориям `2001000`–`2008000` и `3001000`–`3008000`: сначала `asc` (старые), при достижении 10 000 — встречный `desc` (новые). Состояние: **`Data/temp/knaben_backfill.json`**. Параметры: `pages` (≤10), `size` (≤300), `reset=true` — начать заново. Категории ≤10 000 — `complete` за один проход; ≤20 000 — за два; больше 20 000 — `partial` (середина недоступна из‑за лимита API).
 - **`GET /cron/knaben/backfillStatus`** — краткий статус checkpoint без запуска.
 
-Пример (как в [`Data/crontab`](../Data/crontab)):
+Пример (как в [`Data/crontab`](https://github.com/jacred-fdb/jacred/blob/main/Data/crontab)):
 
 ```text
 12,32,52 * * * *  /opt/jacred/Data/run-job.sh knaben-parse http://127.0.0.1:9117/cron/knaben/parse 900

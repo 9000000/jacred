@@ -2,7 +2,7 @@
 
 Приоритет файлов: **`init.yaml`** > **`init.conf`**. Если существуют оба, используется `init.yaml`. Конфиг перечитывается автоматически каждые 10 секунд.
 
-Примеры полного конфига: [`Data/example.yaml`](../Data/example.yaml), [`Data/example.conf`](../Data/example.conf). В рабочем конфиге указывайте только те параметры, которые нужно изменить.
+Примеры полного конфига: [`Data/example.yaml`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.yaml), [`Data/example.conf`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.conf). В рабочем конфиге указывайте только те параметры, которые нужно изменить.
 
 ## Основные параметры
 
@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | `listenip` | IP для прослушивания (`any` — все интерфейсы) | `any` |
 | `listenport` | Порт HTTP | `9117` |
-| `apikey` | Ключ для поиска, Torznab, `/stats/*` JSON и прочих путей вне [белого списка](security.md#белый-список-без-apikey). Передаётся: `?apikey=...`, `X-Api-Key`, `Authorization: Bearer`. Пусто — проверка отключена | — |
+| `apikey` | Ключ для поиска, Torznab, `/stats/*` JSON и прочих путей вне [белого списка](security.md#apikey). Передаётся: `?apikey=...`, `X-Api-Key`, `Authorization: Bearer`. Пусто — проверка отключена | — |
 | `devkey` | Ключ для `/dev/`, `/cron/`, `/jsondb/*`, `/api/v1.0/config/*` из интернета или через туннель. **LAN-клиент** или **`devkey`** (`X-Dev-Key`, `?devkey=`). Reverse proxy (loopback или Docker + XFF) **без** devkey **не открывает** admin/config | — |
 | `mergeduplicates` | Объединять дубликаты в выдаче | `true` |
 | `mergenumduplicates` | Объединять дубликаты по номеру (серии и т.п.) | `true` |
@@ -115,7 +115,7 @@ journalctl -u jacred -g 'fdb:' -p warning
 
 Кратко: `tracks: false` по умолчанию; при включении нужны `tsuri` и (обычно) уникальный `trackscategory`.
 
-## Трекеры (блоки в конфиге)
+## Трекеры (блоки в конфиге) {#trackers-config}
 
 Для каждого трекера можно задать следующие параметры:
 
@@ -130,9 +130,9 @@ journalctl -u jacred -g 'fdb:' -p warning
 | `login` | Учётные данные (u — username, p — password), если трекер требует логин | `{u: "user", p: "pass"}` |
 | `cookie` | Статическая cookie-сессия (часто альтернатива `login`) | `"session=value"` |
 
-Полный список трекеров и значения по умолчанию — в [`Data/example.yaml`](../Data/example.yaml) / [`Data/example.conf`](../Data/example.conf).
+Полный список трекеров и значения по умолчанию — в [`Data/example.yaml`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.yaml) / [`Data/example.conf`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.conf).
 
-**Аутентификация отдельных трекеров** (плейсхолдеры — в [`Data/example.yaml`](../Data/example.yaml); реальные секреты не коммитьте):
+**Аутентификация отдельных трекеров** (плейсхолдеры — в [`Data/example.yaml`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.yaml); реальные секреты не коммитьте):
 
 | Трекер | Что нужно |
 | --- | --- |
@@ -142,8 +142,8 @@ journalctl -u jacred -g 'fdb:' -p warning
 | **Anibelka** | Только анонимно — **не** задавайте `cookie` / `login` (в раздачах есть passkey) |
 | **RuDub** | `login` **или** cookie (`PHPSESSID` / `uid` / `pass`); парсит только HD 1080 / HD 2160; зеркала `rN.rudub.world` через `host`/`alias` |
 | **Ultradox** | Логин не нужен; Referer должен выглядеть как поиск google/yandex (свой origin → 503) |
-| **Rutracker** | См. [`Infrastructure/Trackers/Rutracker/README.md`](../Infrastructure/Trackers/Rutracker/README.md) и [парсинг](trackers-and-parsing.md) |
-| **Baibako / Lostfilm / Animelayer / …** | См. блоки в [`Data/example.yaml`](../Data/example.yaml) |
+| **Rutracker** | См. [`Infrastructure/Trackers/Rutracker/README.md`](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Trackers/Rutracker/README.md) и [парсинг](trackers-and-parsing.md) |
+| **Baibako / Lostfilm / Animelayer / …** | См. блоки в [`Data/example.yaml`](https://github.com/jacred-fdb/jacred/blob/main/Data/example.yaml) |
 
 ## Прокси
 

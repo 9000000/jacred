@@ -1,0 +1,35 @@
+site_name: JacRed
+site_url: https://jacred-fdb.github.io/jacred/
+repo_url: https://github.com/jacred-fdb/jacred
+repo_name: jacred-fdb/jacred
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: ru
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - content.code.copy
+
+nav:
+  - Главная: README.md
+  - Установка: installation.md
+  - Конфигурация: configuration.md
+  - Tracks: tracks.md
+  - Трекеры и парсинг: trackers-and-parsing.md
+  - Безопасность: security.md
+  - Матрица доступа: access-matrix.md
+  - API: api.md
+  - Сборка: building.md
+  - Docker: docker.md
+  - Решение проблем: troubleshooting.md
+  - Архитектура: architecture.md
+
+markdown_extensions:
+  - attr_list
+  - tables
+  - fenced_code
+  - toc:
+      permalink: true

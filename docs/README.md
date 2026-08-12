@@ -16,5 +16,5 @@
 
 Связанные README вне `docs/`:
 
-- [web/README.md](../web/README.md) — Vue SPA
-- [Infrastructure/Trackers/Rutracker/README.md](../Infrastructure/Trackers/Rutracker/README.md) — Rutracker / FlareSolverr
+- [web/README.md](https://github.com/jacred-fdb/jacred/blob/main/web/README.md) — Vue SPA
+- [Infrastructure/Trackers/Rutracker/README.md](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Trackers/Rutracker/README.md) — Rutracker / FlareSolverr

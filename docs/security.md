@@ -76,4 +76,4 @@ curl -s -H "X-Api-Key: YOUR_API_KEY" -H "X-Dev-Key: YOUR_DEV_KEY" \
 
 ## Матрица доступа
 
-Полная трассировка маршрутов, политик и вторичных проверок — [`access-matrix.md`](access-matrix.md). Источник истины в коде: [`Infrastructure/Security/JacRedEndpointRegistry.cs`](../Infrastructure/Security/JacRedEndpointRegistry.cs).
+Полная трассировка маршрутов, политик и вторичных проверок — [`access-matrix.md`](access-matrix.md). Источник истины в коде: [`Infrastructure/Security/JacRedEndpointRegistry.cs`](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Security/JacRedEndpointRegistry.cs).

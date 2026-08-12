@@ -1,10 +1,10 @@
 # Сборка
 
-Предпочтительный интерфейс — **`make`** (см. `make help`). Скрипты сборки лежат в [`scripts/`](../scripts/).
+Предпочтительный интерфейс — **`make`** (см. `make help`). Скрипты сборки лежат в [`scripts/`](https://github.com/jacred-fdb/jacred/tree/main/scripts).
 
 ## Требования для сборки
 
-- **.NET 10.0 SDK** (см. [`JacRed.csproj`](../JacRed.csproj))
+- **.NET 10.0 SDK** (см. [`JacRed.csproj`](https://github.com/jacred-fdb/jacred/blob/main/JacRed.csproj))
 - **Node.js 22+** (сборка Vue SPA в `wwwroot/`)
 - **Git** (для генерации версии из тегов)
 - **Bash** (для скриптов сборки)
@@ -53,4 +53,4 @@ make clean
 - **macOS (osx-arm64, osx-amd64):** каталог с бинарником и зависимостями (`PublishSingleFile=false`) — обход известного бага .NET с `EnableCompressionInSingleFile` на Apple Silicon
 - Self-contained (включает .NET runtime)
 - Оптимизация для скорости выполнения
-- Версия генерируется автоматически из Git тегов через [`scripts/generate-version.sh`](../scripts/generate-version.sh)
+- Версия генерируется автоматически из Git тегов через [`scripts/generate-version.sh`](https://github.com/jacred-fdb/jacred/blob/main/scripts/generate-version.sh)

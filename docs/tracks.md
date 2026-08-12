@@ -35,7 +35,7 @@
 
 **Счётчики tracks (confirm/wait/skip)** в `stats.json`: `confirm` — трек есть в tracks DB (RAM / индекс / файл с непустым `streams`, как `HasTrackForTorrent`); `wait` — magnet есть, трека нет; `skip` — `ffprobe_tryingdata ≥ tracksatempt`. Поле `ffprobe` в FileDB не канонично.
 
-Результаты анализа сохраняются в **`Data/tracks/{aa}/{b}/{hash}.json`**. Экспорт, backfill и статистика — эндпоинты **`/dev/TracksStats`**, **`/dev/ExportTracks`**, **`/dev/BackfillTracks`** (см. [Разработка и отладка](api.md#разработка-и-отладка)).
+Результаты анализа сохраняются в **`Data/tracks/{aa}/{b}/{hash}.json`**. Экспорт, backfill и статистика — эндпоинты **`/dev/TracksStats`**, **`/dev/ExportTracks`**, **`/dev/BackfillTracks`** (см. [Разработка и отладка](api.md#dev-debug)).
 
 ## Параллелизм tracks (`tracksconcurrency`) и TorrServer
 

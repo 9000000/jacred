@@ -80,6 +80,8 @@ Docker: [docs/docker.md](docs/docker.md).
 
 ## Документация
 
+Онлайн: **[https://jacred-fdb.github.io/jacred/](https://jacred-fdb.github.io/jacred/)**
+
 Полное оглавление: **[docs/README.md](docs/README.md)**.
 
 | Документ | Описание |
