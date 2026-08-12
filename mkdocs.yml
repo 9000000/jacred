@@ -1,17 +1,63 @@
 site_name: JacRed
+site_description: Агрегатор торрент-трекеров с API Jackett и файловой БД
 site_url: https://jacred-fdb.github.io/jacred/
 repo_url: https://github.com/jacred-fdb/jacred
 repo_name: jacred-fdb/jacred
 edit_uri: edit/main/docs/
+copyright: Copyright &copy; JacRed contributors
 
 theme:
   name: material
   language: ru
+  logo: assets/icon-512.png
+  favicon: assets/favicon.ico
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Тёмная тема
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Светлая тема
+  font:
+    text: Inter
+    code: JetBrains Mono
   features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
     - search.suggest
+    - search.highlight
+    - search.share
     - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jacred-fdb/jacred
+    - icon: fontawesome/solid/book
+      link: https://deepwiki.com/jacred-fdb/jacred
+
+extra_css:
+  - stylesheets/extra.css
 
 nav:
   - Главная: README.md
@@ -28,8 +74,21 @@ nav:
   - Архитектура: architecture.md
 
 markdown_extensions:
+  - admonition
   - attr_list
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
   - tables
-  - fenced_code
   - toc:
       permalink: true
+
+plugins:
+  - search:
+      lang:
+        - ru
+        - en
