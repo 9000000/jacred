@@ -43,6 +43,7 @@ Swagger UI по умолчанию загружает **`/openapi.yaml`**; в в
 Сводная таблица «клиент → URL → формат» — в [Torznab XML](configuration.md#torznab-xml-torznab).
 
 - **`GET /api/v2.0/indexers/{status}/results`** — поиск в формате Jackett JSON (**Lampa** и др.).
+  - `{status}`: `all` или Jackett-селектор `status:healthy` (Lampa «только доступные трекеры») — агрегат; иначе slug трекера.
   - Combined search (`search.*`): v2 card/fuzzy + v1 fuzzy (только fuzzy mode при `mergeV1: auto`) + IMDB/KP/TMDB exact (Alloha v2 ID→title, alternative_name, type hint) + card fallback. Fuzzy `q`/`Query` с `S01`/`S01E01` расширяется до имени шоу при `search.stripSeasonEpisode` (по умолчанию `true`).
   - Параметры Lampa: `Query`, `title`, `title_original`, `year`, `is_serial`, `genres`, `Category[]`, `Tracker[]`, `season`, `ep`, `limit`, `offset`, `apikey`.
   - Ответ: `{ "Results": [...], "jacred": true }` с `ffprobe`, `languages`, `info` при `tracks: true`.

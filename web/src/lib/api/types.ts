@@ -106,6 +106,8 @@ export interface paths {
         /**
          * Jackett-compatible search
          * @description Lampa and other Jackett JSON clients. Path `{status}` is normally `all` (aggregate).
+         *     Jackett's virtual `status:healthy` selector (Lampa "only available trackers") is also
+         *     treated as aggregate — JacRed searches its local database, not live indexer health.
          *     When `{status}` is a tracker id from `GET /api/v1.0/trackers` (for example `rutracker`),
          *     results are filtered to that tracker (case-insensitive; matches any part of a merged trackerName).
          *
@@ -237,7 +239,8 @@ export interface paths {
         /**
          * Torznab API (indexer path)
          * @description Jackett-compatible Torznab alias. Path `{indexer}` is normally `all`.
-         *     When `{indexer}` is a tracker id (not `all`), search results are filtered to that tracker.
+         *     Jackett's virtual `status:healthy` selector is also treated as aggregate.
+         *     When `{indexer}` is a tracker id (not `all` / `status:healthy`), search results are filtered to that tracker.
          *     `t=indexers` lists `all` plus per-tracker indexers from the tracker catalog.
          *     Same query params as `/torznab/api` (caps + JacRed card fields, categories, tracker filters),
          *     including Alloha v2 resolve for `tt…` / `kp…` / `tmdb…` / themoviedb.org URLs / `imdbid`.
@@ -1464,7 +1467,10 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description `all` for aggregate search, or a tracker id (e.g. `kinozal`, `rutracker`) to scope results. */
+                /**
+                 * @description `all` or Jackett `status:healthy` for aggregate search, or a tracker id
+                 *     (e.g. `kinozal`, `rutracker`) to scope results.
+                 */
                 status: string;
             };
             cookie?: never;
@@ -1845,7 +1851,10 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description `all` for aggregate search, or a tracker id (e.g. `rutracker`) to scope results. */
+                /**
+                 * @description `all` or Jackett `status:healthy` for aggregate search, or a tracker id
+                 *     (e.g. `rutracker`) to scope results.
+                 */
                 indexer: string;
             };
             cookie?: never;

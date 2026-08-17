@@ -307,7 +307,7 @@ Jackett JSON (`/api/v2.0/indexers/.../results`) **всегда** использ�
 
 | Клиент | URL (относительно `http://host:9117`) | Формат |
 | --- | --- | --- |
-| **Lampa** | `/api/v2.0/indexers/all/results` | Jackett JSON (`Results[]`). Тип парсера в Lampa: **Jackett**, не Prowlarr/Torznab |
+| **Lampa** | `/api/v2.0/indexers/all/results` или `/api/v2.0/indexers/status:healthy/results` (`status:healthy` ≡ `all`) | Jackett JSON (`Results[]`). Тип парсера в Lampa: **Jackett**, не Prowlarr/Torznab |
 | **Sonarr / Radarr** | `/torznab/api` | Torznab XML (Generic Torznab indexer) |
 | **AIOStreams** | `/torznab/api` | Torznab XML; `q=Show S01` stripping; `skipSeasonEpisodeFilter: true` если клиент фильтрует эпизоды |
 | **Prowlarr** (ручная настройка Generic Torznab) | `/torznab/api` | Torznab XML |
