@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using JacRed.Infrastructure.Parsing;
 using JacRed.Infrastructure.Persistence;
+using JacRed.Infrastructure.Utils;
 using JacRed.Models.Details;
 using JacRed.Models.tParse;
 using Microsoft.Extensions.Caching.Memory;
@@ -556,6 +557,13 @@ namespace JacRed.Infrastructure.Trackers.Korsars
                 {
                     failed++;
                     ParserLog.WriteFailed(TrackerName, torrent, "empty magnet");
+                    return false;
+                }
+
+                if (!MagnetInfohash.TryGetHexV1OrV2(torrent.magnet, out _))
+                {
+                    failed++;
+                    ParserLog.WriteFailed(TrackerName, torrent, "invalid magnet infohash");
                     return false;
                 }
 
