@@ -20,8 +20,9 @@ namespace JacRed.Infrastructure.Trackers.Anistar
         static readonly Regex DateRe = new Regex(@"\b(\d{2})-(\d{2})-(\d{4})\b", RegexOptions.Compiled);
         static readonly Regex SidRe = new Regex(@"<div class=""li_distribute"">\s*([0-9]+)\s*</div>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         static readonly Regex PirRe = new Regex(@"<div class=""li_swing"">\s*([0-9]+)\s*</div>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        static readonly Regex RangeRe = new Regex(@"\b(\d{1,4})\s*-\s*(\d{1,4})\b", RegexOptions.Compiled);
-        static readonly Regex SingleNumRe = new Regex(@"\b(\d{1,4})\b", RegexOptions.Compiled);
+        static readonly Regex SeriesRangeRe = new Regex(@"сери[яи]\s+(\d{1,4})\s*-\s*(\d{1,4})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly Regex SeriesSingleRe = new Regex(@"серия\s+(\d{1,4})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly Regex FilmRe = new Regex(@"^\s*фильм\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         static readonly Regex CleanSpaceRe = new Regex(@"\s+", RegexOptions.Compiled);
 
         public static int DetectLastPage(string listHtml)
@@ -38,28 +39,33 @@ namespace JacRed.Infrastructure.Trackers.Anistar
             return maxPage;
         }
 
-        public static List<string> ExtractPostUrls(string listHtml, string host)
+        public static List<string> ExtractPostUrls(string listHtml, string canonHost)
         {
             var outList = new List<string>();
             if (string.IsNullOrWhiteSpace(listHtml))
                 return outList;
 
-            host = (host ?? "").TrimEnd('/');
+            canonHost = (canonHost ?? "").TrimEnd('/');
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (Match m in PostUrlAbsRe.Matches(listHtml))
+            void AddPath(string path)
             {
-                string url = m.Value;
-                if (seen.Add(url))
-                    outList.Add(url);
-            }
-
-            foreach (Match m in PostUrlRelRe.Matches(listHtml))
-            {
-                string abs = host + m.Value;
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+                string abs = canonHost + path;
                 if (seen.Add(abs))
                     outList.Add(abs);
             }
+
+            foreach (Match m in PostUrlAbsRe.Matches(listHtml))
+            {
+                var pathMatch = PostUrlRelRe.Match(m.Value);
+                if (pathMatch.Success)
+                    AddPath(pathMatch.Value);
+            }
+
+            foreach (Match m in PostUrlRelRe.Matches(listHtml))
+                AddPath(m.Value);
 
             return outList;
         }
@@ -84,6 +90,30 @@ namespace JacRed.Infrastructure.Trackers.Anistar
                 return (null, null);
 
             return (name, original);
+        }
+
+        /// <summary>
+        /// Episode/film label from <c>info_d1</c>. Does not treat the size number
+        /// in <c>Фильм (3.05 Gb)</c> as an episode.
+        /// </summary>
+        public static (string epLabel, string epNum) ParseEpisodeLabel(string info)
+        {
+            if (string.IsNullOrWhiteSpace(info))
+                return ("Серия 1", "1");
+
+            info = info.Trim();
+            var rangeMatch = SeriesRangeRe.Match(info);
+            if (rangeMatch.Success)
+                return ($"Серии {rangeMatch.Groups[1].Value}-{rangeMatch.Groups[2].Value}", rangeMatch.Groups[1].Value);
+
+            var singleMatch = SeriesSingleRe.Match(info);
+            if (singleMatch.Success)
+                return ("Серия " + singleMatch.Groups[1].Value, singleMatch.Groups[1].Value);
+
+            if (FilmRe.IsMatch(info))
+                return ("Фильм", "film");
+
+            return ("Серия 1", "1");
         }
 
         public static List<AnistarDetails> ParseDetailTorrents(string postHtml, string postUrl, string[] types)
@@ -114,24 +144,7 @@ namespace JacRed.Infrastructure.Trackers.Anistar
                 string epNum = "1";
                 var infoMatch = InfoD1Re.Match(around);
                 if (infoMatch.Success)
-                {
-                    string info = HttpUtility.HtmlDecode(infoMatch.Groups[1].Value).Trim();
-                    var rangeMatch = RangeRe.Match(info);
-                    if (rangeMatch.Success)
-                    {
-                        epLabel = $"Серии {rangeMatch.Groups[1].Value}-{rangeMatch.Groups[2].Value}";
-                        epNum = rangeMatch.Groups[1].Value;
-                    }
-                    else
-                    {
-                        var singleMatch = SingleNumRe.Match(info);
-                        if (singleMatch.Success)
-                        {
-                            epNum = singleMatch.Groups[1].Value;
-                            epLabel = "Серия " + epNum;
-                        }
-                    }
-                }
+                    (epLabel, epNum) = ParseEpisodeLabel(HttpUtility.HtmlDecode(infoMatch.Groups[1].Value));
 
                 DateTime createTime = DateTime.UtcNow;
                 int relased = createTime.Year;

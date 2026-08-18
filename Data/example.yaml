@@ -240,12 +240,13 @@ Anidub:
 
 Anistar:
   host: https://anistar.org
+  alias: https://v30.astar.bz
   useproxy: false
   reqMinute: 8
   parseDelay: 7000
   log: true
-  # CF/session cookie required for live parse (FlareSolverr or browser export).
-  cookie: "cf_clearance=example_clearance; PHPSESSID=example_phpsessid"
+  # alias = live mirror for fetch; host = canonical FDB urls. Cookie optional on v30.
+  cookie: ""
 
 # Anonymous only — do not set cookie/login (passkeys must not enter magnets).
 Anibelka:
