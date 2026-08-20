@@ -18,6 +18,7 @@ public class HealthControllerConfTests
             Assert.True(json.GetProperty("jacred").GetBoolean());
             Assert.False(json.GetProperty("configured").GetBoolean());
             Assert.True(json.GetProperty("apikey").GetBoolean());
+            Assert.Equal(VersionInfo.Version, json.GetProperty("version").GetString());
         });
     }
 
@@ -31,6 +32,7 @@ public class HealthControllerConfTests
             Assert.True(json.GetProperty("jacred").GetBoolean());
             Assert.True(json.GetProperty("configured").GetBoolean());
             Assert.True(json.GetProperty("apikey").GetBoolean());
+            Assert.Equal(VersionInfo.Version, json.GetProperty("version").GetString());
         });
     }
 
@@ -44,6 +46,7 @@ public class HealthControllerConfTests
             Assert.True(json.GetProperty("jacred").GetBoolean());
             Assert.True(json.GetProperty("configured").GetBoolean());
             Assert.False(json.GetProperty("apikey").GetBoolean());
+            Assert.Equal(VersionInfo.Version, json.GetProperty("version").GetString());
         });
     }
 
@@ -57,6 +60,7 @@ public class HealthControllerConfTests
             Assert.True(json.GetProperty("jacred").GetBoolean());
             Assert.True(json.GetProperty("configured").GetBoolean());
             Assert.False(json.GetProperty("apikey").GetBoolean());
+            Assert.Equal(VersionInfo.Version, json.GetProperty("version").GetString());
         });
     }
 

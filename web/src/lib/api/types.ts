@@ -86,8 +86,9 @@ export interface paths {
         /**
          * JacRed identity and API key probe
          * @description Public discovery endpoint for clients and external apps.
-         *     Always identifies the host as JacRed, reports whether an API key is configured,
-         *     and whether the provided key is accepted (or none is required). Whitelisted without apikey.
+         *     Always identifies the host as JacRed, reports build version (`VersionInfo.Version`, same as `GET /version`),
+         *     whether an API key is configured, and whether the provided key is accepted (or none is required).
+         *     Whitelisted without apikey.
          */
         get: operations["checkApiKey"];
         put?: never;
@@ -1392,6 +1393,11 @@ export interface operations {
                         configured: boolean;
                         /** @description true if key is valid or server has no apikey configured */
                         apikey: boolean;
+                        /**
+                         * @description Build version string (same as GET /version `version`)
+                         * @example 3.7.1-next+726f1544
+                         */
+                        version: string;
                     };
                 };
             };

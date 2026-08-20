@@ -16,6 +16,7 @@ Public discovery endpoint. Always HTTP 200. Key may be passed as `?apikey=…`, 
 | `jacred` | Always `true` — this host is JacRed |
 | `configured` | `true` when the server has a non-blank `apikey` |
 | `apikey` | `true` if no key is required **or** the provided key matches |
+| `version` | Build version string — same as `GET /version` → `version` (`VersionInfo.Version`, e.g. `3.7.1-next+726f1544`) |
 
 ## Combinations
 
@@ -27,7 +28,8 @@ Client sends anything (or nothing):
 {
   "jacred": true,
   "configured": false,
-  "apikey": true
+  "apikey": true,
+  "version": "3.7.1-next+726f1544"
 }
 ```
 
@@ -41,7 +43,8 @@ Client sends a matching key:
 {
   "jacred": true,
   "configured": true,
-  "apikey": true
+  "apikey": true,
+  "version": "3.7.1-next+726f1544"
 }
 ```
 
@@ -55,7 +58,8 @@ Client sends no key:
 {
   "jacred": true,
   "configured": true,
-  "apikey": false
+  "apikey": false,
+  "version": "3.7.1-next+726f1544"
 }
 ```
 
@@ -69,7 +73,8 @@ Client sends a non-matching key:
 {
   "jacred": true,
   "configured": true,
-  "apikey": false
+  "apikey": false,
+  "version": "3.7.1-next+726f1544"
 }
 ```
 
@@ -83,5 +88,7 @@ Same shape as #3 — missing and wrong both yield `apikey: false`.
 | `true` | `true` | `true` | JacRed, key valid |
 | `true` | `true` | `false` | JacRed, key required but missing/invalid |
 | not `true` / non-JSON / error | — | — | Not JacRed (or unreachable) |
+
+`version` is always present (same value for all cases above).
 
 Unused: `configured: false` with `apikey: false` (open hosts always accept).

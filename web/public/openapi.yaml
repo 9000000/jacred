@@ -146,8 +146,9 @@ paths:
       summary: JacRed identity and API key probe
       description: |
         Public discovery endpoint for clients and external apps.
-        Always identifies the host as JacRed, reports whether an API key is configured,
-        and whether the provided key is accepted (or none is required). Whitelisted without apikey.
+        Always identifies the host as JacRed, reports build version (`VersionInfo.Version`, same as `GET /version`),
+        whether an API key is configured, and whether the provided key is accepted (or none is required).
+        Whitelisted without apikey.
       operationId: checkApiKey
       security: []
       parameters:
@@ -159,7 +160,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [jacred, configured, apikey]
+                required: [jacred, configured, apikey, version]
                 properties:
                   jacred:
                     type: boolean
@@ -171,6 +172,10 @@ paths:
                   apikey:
                     type: boolean
                     description: true if key is valid or server has no apikey configured
+                  version:
+                    type: string
+                    description: Build version string (same as GET /version `version`)
+                    example: "3.7.1-next+726f1544"
 
   /api/v2.0/indexers/{status}/results:
     get:

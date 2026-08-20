@@ -74,7 +74,8 @@ namespace JacRed.Controllers
             {
                 jacred = true,
                 configured = isConfigured,
-                apikey = !isConfigured || JacRedKeyUtils.SecureEquals(provided, configuredKey)
+                apikey = !isConfigured || JacRedKeyUtils.SecureEquals(provided, configuredKey),
+                version = VersionInfo.Version
             });
         }
     }
