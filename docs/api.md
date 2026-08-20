@@ -93,7 +93,7 @@ REST API и страница **`/settings`** для редактирования
 
 ## Прочее управление
 
-- **`GET /api/v1.0/conf`** — identity + apikey probe: `{ jacred: true, configured, apikey }` (`?apikey=...` / `X-Api-Key` / Bearer). `configured` — задан ли ключ на сервере; `apikey` — ключ принят (или не требуется).
+- **`GET /api/v1.0/conf`** — identity + apikey probe: `{ jacred: true, configured, apikey }` (`?apikey=...` / `X-Api-Key` / Bearer). Full response combinations: [conf-endpoint.md](conf-endpoint.md).
 - **`GET /jsondb/save`** — сохранить БД на диск (при использовании syncapi скрипт установки не вызывает save; при собственном парсинге cron вызывает save по расписанию).
   - Доступ: политика **DevAdmin** — LAN или `devkey`; при `apikey` — также ключ для middleware (см. [Безопасность](security.md)).
 
