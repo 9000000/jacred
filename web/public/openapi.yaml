@@ -143,20 +143,31 @@ paths:
   /api/v1.0/conf:
     get:
       tags: [System]
-      summary: Validate API key
-      description: Returns whether the provided apikey matches server configuration. Whitelisted without apikey.
+      summary: JacRed identity and API key probe
+      description: |
+        Public discovery endpoint for clients and external apps.
+        Always identifies the host as JacRed, reports whether an API key is configured,
+        and whether the provided key is accepted (or none is required). Whitelisted without apikey.
       operationId: checkApiKey
       security: []
       parameters:
         - $ref: "#/components/parameters/ApiKeyQuery"
       responses:
         "200":
-          description: Key validation result
+          description: Identity and key validation result
           content:
             application/json:
               schema:
                 type: object
+                required: [jacred, configured, apikey]
                 properties:
+                  jacred:
+                    type: boolean
+                    const: true
+                    description: Always true — this host is JacRed
+                  configured:
+                    type: boolean
+                    description: true when the server has a non-blank apikey configured
                   apikey:
                     type: boolean
                     description: true if key is valid or server has no apikey configured

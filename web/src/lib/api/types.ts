@@ -84,8 +84,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Validate API key
-         * @description Returns whether the provided apikey matches server configuration. Whitelisted without apikey.
+         * JacRed identity and API key probe
+         * @description Public discovery endpoint for clients and external apps.
+         *     Always identifies the host as JacRed, reports whether an API key is configured,
+         *     and whether the provided key is accepted (or none is required). Whitelisted without apikey.
          */
         get: operations["checkApiKey"];
         put?: never;
@@ -1374,15 +1376,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Key validation result */
+            /** @description Identity and key validation result */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
+                        /**
+                         * @description Always true — this host is JacRed
+                         * @constant
+                         */
+                        jacred: true;
+                        /** @description true when the server has a non-blank apikey configured */
+                        configured: boolean;
                         /** @description true if key is valid or server has no apikey configured */
-                        apikey?: boolean;
+                        apikey: boolean;
                     };
                 };
             };

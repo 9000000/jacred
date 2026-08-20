@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/v1.0/conf**', (route) =>
-    route.fulfill({ json: { apikey: true } }),
+    route.fulfill({ json: { jacred: true, configured: false, apikey: true } }),
   )
   await page.route('**/api/v1.0/torrents**', (route) =>
     route.fulfill({

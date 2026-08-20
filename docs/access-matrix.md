@@ -39,7 +39,7 @@ tags:
 | `/api/v1.0/config` | ConfigApi | API настроек (секреты в ответе) |
 | `/`, `/stats`, `/settings` | Public | Vue SPA shell (`index.html`) |
 | `/health`, `/health/background-jobs`, `/version`, `/lastupdatedb` | Public | Health-пробы + in-process cron job status |
-| `/api/v1.0/conf` | Public | Проверка apikey (Jackett) |
+| `/api/v1.0/conf` | Public | JacRed identity + apikey probe |
 | `/sync/` | Public | Middleware пропускает; `opensync` в SyncController |
 | `/swagger`, `/openapi.yaml` | Public | Документация API |
 | `/assets/`, `/img/`, `/fonts/` | Public | Статика SPA (при `web=true`) |
@@ -62,7 +62,7 @@ tags:
 | `GET /health/background-jobs` | HealthController | In-process ParseAll/UpdateTasks |
 | `GET /version` | HealthController | — |
 | `GET /lastupdatedb` | HealthController | — |
-| `GET /api/v1.0/conf` | HealthController | Подсказка о валидности apikey |
+| `GET /api/v1.0/conf` | HealthController | Identity (`jacred`), configured key, validity |
 | `GET /sync/conf` | SyncController | — |
 | `GET /sync/fdb` | SyncController | `opensync` |
 | `GET /sync/fdb/torrents` | SyncController | `opensync` |
