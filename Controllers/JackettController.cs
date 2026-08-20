@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JacRed.Application.Search;
+using JacRed.Infrastructure.Security;
 using JacRed.Models.Api;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -25,7 +26,9 @@ namespace JacRed.Controllers
                 Query = HttpContext.Request.Query,
                 QueryStringValue = HttpContext.Request.QueryString.Value ?? "",
                 UserAgent = HttpContext.Request.Headers.UserAgent.ToString(),
-                ApiKey = apikey,
+                ApiKey = string.IsNullOrWhiteSpace(apikey)
+                    ? JacRedKeyUtils.GetApiKeyFromRequest(HttpContext)
+                    : apikey,
                 QueryText = query,
                 Title = title,
                 TitleOriginal = title_original,

@@ -72,8 +72,28 @@ describe('apiRequest', () => {
   })
 })
 
+describe('apiClient.getConf', () => {
+  it('passes stored apikey as query and X-Api-Key header', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ apikey: true }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+
+    await apiClient.getConf()
+
+    const called = String(fetchMock.mock.calls[0]?.[0])
+    expect(called).toContain('/api/v1.0/conf')
+    expect(called).toContain('apikey=api-secret')
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.get('X-Api-Key')).toBe('api-secret')
+  })
+})
+
 describe('apiClient.getJackettResults', () => {
-  it('calls Jackett v2 results with Category[]', async () => {
+  it('calls Jackett v2 results with Category[] and stored apikey', async () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(
@@ -94,5 +114,8 @@ describe('apiClient.getJackettResults', () => {
     expect(called).toContain('is_serial=1')
     expect(called).toContain('Category%5B%5D=2000')
     expect(called).toContain('Category%5B%5D=5000')
+    expect(called).toContain('apikey=api-secret')
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.get('X-Api-Key')).toBe('api-secret')
   })
 })
