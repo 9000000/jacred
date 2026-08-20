@@ -86,6 +86,7 @@ nav:
       - Безопасность: security.md
       - Матрица доступа: access-matrix.md
       - API: api.md
+      - GET /api/v1.0/conf: conf-endpoint.md
   - Разработка:
       - Архитектура: architecture.md
   - Теги: tags.md

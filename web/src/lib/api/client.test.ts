@@ -77,7 +77,12 @@ describe('apiClient.getConf', () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(
-        new Response(JSON.stringify({ apikey: true }), {
+        new Response(JSON.stringify({
+          jacred: true,
+          configured: false,
+          apikey: true,
+          version: '3.7.1-next+726f1544',
+        }), {
           headers: { 'Content-Type': 'application/json' },
         }),
       )

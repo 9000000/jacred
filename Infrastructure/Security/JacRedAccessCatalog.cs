@@ -19,7 +19,7 @@ namespace JacRed.Infrastructure.Security
             new("/health/background-jobs", JacRedAccessPolicy.Public, "HealthController", "In-process ParseAll/UpdateTasks"),
             new("/version", JacRedAccessPolicy.Public, "HealthController"),
             new("/lastupdatedb", JacRedAccessPolicy.Public, "HealthController"),
-            new("/api/v1.0/conf", JacRedAccessPolicy.Public, "HealthController", "JacRed identity + apikey probe"),
+            new("/api/v1.0/conf", JacRedAccessPolicy.Public, "HealthController", "JacRed identity + apikey probe + version"),
             new("/openapi.yaml", JacRedAccessPolicy.Public, "Startup"),
             new("/swagger", JacRedAccessPolicy.Public, "Swagger"),
             new("/swagger/index.html", JacRedAccessPolicy.Public, "Swagger"),

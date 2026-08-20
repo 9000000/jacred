@@ -35,7 +35,7 @@ Swagger UI по умолчанию загружает **`/openapi.yaml`**; в в
 - **Веб-UI:** Vue 3 SPA в [`web/`](https://github.com/jacred-fdb/jacred/tree/main/web) (Vite + Tailwind + shadcn-vue); `make web` / [`./scripts/build-web-ui.sh`](https://github.com/jacred-fdb/jacred/blob/main/scripts/build-web-ui.sh) собирает publish-папку `wwwroot/` (в git не хранится).
 - **`GET /health`** — проверка работы. Ответ JSON: `{"status":"OK"}`.
 - **`GET /health/background-jobs`** — активные in-process ParseAll / UpdateTasks (cron). Ответ JSON: `{"jobs":[…]}` (пустой массив, если ничего не запущено). Page-only парсеры (`anistar`, `leproduction`, `viruseproject`, `anifilm`) сюда обычно **не** попадают.
-- **`GET /version`** — версия приложения. Ответ JSON: `{"version":"1.0.0"}`.
+- **`GET /version`** — версия сборки (`VersionInfo`). Ответ JSON: `{"version":"…","gitSha":"…","gitBranch":"…","buildDate":"…"}`. Поле `version` также в [`GET /api/v1.0/conf`](conf-endpoint.md).
 - **`GET /lastupdatedb`** — дата/время последнего обновления БД (UTC). Ответ JSON: `{"lastupdatedb":"dd.MM.yyyy HH:mm"}`.
 
 ## API поиска
