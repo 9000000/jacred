@@ -1,0 +1,72 @@
+---
+title: "Настройка трекера Rutor"
+sidebarTitle: "Rutor"
+icon: "/images/trackers/rutor.ico"
+description: "Настройте Rutor, запустите свежий и полный парсинг и проверьте очередь задач в JacRed."
+keywords:
+  - JacRed
+  - Rutor
+  - трекер
+  - парсинг
+  - cron
+---
+
+Rutor относится к trio-трекерам: JacRed регулярно читает свежую страницу, обновляет карту страниц и продолжает полный обход архива по сохранённому checkpoint.
+
+## Конфигурация
+
+```yaml
+Rutor:
+  host: http://rutor.info
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+- `host` задаёт основной адрес.
+- `alias` заменяет адрес запросов, например для доступного зеркала.
+- `useproxy` применяет настроенный глобальный прокси.
+- `parseDelay` задаёт паузу между страницами полного обхода в миллисекундах.
+
+Rutor не требует учётных данных. Не добавляйте логины или cookie в этот блок.
+
+## Действия парсера
+
+| Путь | Назначение |
+| --- | --- |
+| `/cron/rutor/Parse?page=0` | Разобрать одну страницу всех поддерживаемых категорий |
+| `/cron/rutor/UpdateTasksParse` | Обновить карту страниц в `Data/temp/rutor_taskParse.json` |
+| `/cron/rutor/ParseAllTask` | Продолжить фоновый полный обход карты |
+| `/cron/rutor/ParseLatest?pages=5` | Разобрать первые страницы каждой категории |
+
+`ParseAllTask` хранит состояние цикла в `Data/temp/rutor_parseAllCycle.json`. Следующий запуск продолжает незавершённый цикл.
+
+## Расписание
+
+Стандартный `Data/crontab` использует:
+
+```crontab
+1,16,31,46 * * * * /opt/jacred/Data/run-job.sh rutor-parse http://127.0.0.1:9117/cron/rutor/parse 900
+5 2 * * * /opt/jacred/Data/run-job.sh rutor-UpdateTasksParse http://127.0.0.1:9117/cron/rutor/UpdateTasksParse 60
+30 4,16 * * * /opt/jacred/Data/run-job.sh rutor-ParseAllTask http://127.0.0.1:9117/cron/rutor/ParseAllTask 60
+```
+
+<Note>
+  `UpdateTasksParse` и `ParseAllTask` запускают работу в фоне, поэтому runner ждёт только подтверждение старта. Следите за задачей через `/health/background-jobs`.
+</Note>
+
+## Поддерживаемые категории
+
+Парсер обрабатывает фильмы, сериалы, документальные материалы, телепередачи, мультфильмы, аниме, спорт и юмор. Категория иностранных релизов принимает только заголовки с меткой `UKR`.
+
+## Диагностика
+
+```bash
+curl http://127.0.0.1:9117/cron/rutor/parse
+curl http://127.0.0.1:9117/health/background-jobs
+tail -f /opt/jacred/Data/log/rutor.log
+```
+
+Если запросы к Rutor не проходят, проверьте `host`, `alias` и [настройку прокси](/configuration/proxy). Если endpoint возвращает `401` или `403`, проверьте [матрицу доступа](/operations/access-matrix).

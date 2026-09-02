@@ -1,0 +1,93 @@
+---
+title: "Интеграция JacRed с Alloha TV API"
+sidebarTitle: "Alloha"
+description: "Alloha TV API резолвит ID-запросы (tt..., kp..., tmdb...) в названия и год. Настройте alloha.token и alloha.baseUrl для поиска по IMDb/Kinopoisk/TMDB."
+keywords: ["JacRed", "конфигурация", "Alloha", "init.yaml"]
+---
+
+При поиске по идентификатору (IMDb `tt...`, Kinopoisk `kp...`, TMDB `tmdb...`) JacRed не хранит соответствие ID → название локально. Он обращается к внешнему сервису [Alloha](https://alloha.tv/) для получения оригинального и русского названия, а затем ищет их в FileDB.
+
+## Как включить
+
+```yaml
+alloha:
+  enable: true
+  baseUrl: "https://apbugall.org"
+  token: "YOUR_BEARER_TOKEN"
+  timeoutSeconds: 10
+  cacheHours: 24
+  filterByYear: true
+```
+
+<ParamField path="enable" type="boolean">
+  Включает резолв ID через Alloha. При `false` ID-запросы возвращают пустой результат.
+</ParamField>
+
+<ParamField path="baseUrl" type="string">
+  Базовый URL Alloha API. По умолчанию `https://apbugall.org`.
+</ParamField>
+
+<ParamField path="token" type="string" required>
+  Bearer-токен для авторизации в Alloha. Получите в личном кабинете Alloha.
+</ParamField>
+
+<ParamField path="timeoutSeconds" type="number">
+  Таймаут HTTP-запроса к Alloha в секундах.
+</ParamField>
+
+<ParamField path="cacheHours" type="number">
+  Время кеширования результата резолва в памяти. `0` — без кеша.
+</ParamField>
+
+<ParamField path="filterByYear" type="boolean">
+  Если клиент не передал `year`, использовать год из Alloha ±1 для фильтрации FileDB.
+</ParamField>
+
+## Как это работает
+
+<Steps>
+  <Step title="Клиент отправляет ID-запрос">
+    Например, `GET /api/v1.0/torrents?search=tt0133093`.
+  </Step>
+  <Step title="JacRed определяет тип">
+    Префикс `tt` → IMDb, `kp` → Kinopoisk, `tmdb` → TMDB.
+  </Step>
+  <Step title="Резолв через Alloha">
+    JacRed отправляет ID в Alloha и получает `{title, title_original, year}`.
+  </Step>
+  <Step title="Поиск в FileDB">
+    По названиям и году идёт обычный поиск в FileDB.
+  </Step>
+</Steps>
+
+## Пример запроса
+
+```bash
+curl "http://localhost:9117/api/v1.0/torrents?search=tt0133093&apikey=KEY"
+```
+
+Резолв `tt0133093 → Матрица / The Matrix / 1999`, затем поиск.
+
+## Кеширование
+
+```yaml
+alloha:
+  cacheHours: 24
+```
+
+Первый запрос по ID идёт в Alloha, последующие в течение 24 часов используют кеш в памяти. При перезапуске JacRed кеш очищается.
+
+## Диагностика
+
+```bash
+# Проверить ответ Alloha напрямую
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://apbugall.org/?imdb=tt0133093"
+
+# Логи резолва в консоли JacRed
+docker compose logs jacred | grep -i alloha
+```
+
+<Warning>
+  Без валидного токена Alloha ID-запросы будут возвращать пустой результат. Клиенты вроде Lampa используют ID-запросы для точного сопоставления, поэтому Alloha критична для корректной работы.
+</Warning>

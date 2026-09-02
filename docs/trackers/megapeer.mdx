@@ -1,0 +1,47 @@
+---
+title: "Megapeer: анонимный трекер с кодировкой cp1251"
+sidebarTitle: "Megapeer"
+icon: "/images/trackers/megapeer.ico"
+description: "Megapeer (megapeer.vip) работает без авторизации, использует cp1251. Trio-кластер, ~113k раздач. Требует корректный Referer для категорий."
+keywords: ["JacRed", "Megapeer", "трекер", "парсинг"]
+---
+
+Megapeer, slug `megapeer`, содержит около 113 тысяч раздач и работает без авторизации. Сайт отдаёт HTML в кодировке cp1251, JacRed автоматически конвертирует её в UTF-8. Парсер устанавливает `Referer` при обходе категорий. Входит в trio-кластер.
+
+## Конфигурация
+
+```yaml
+Megapeer:
+  host: http://megapeer.vip
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+## Расписание cron
+
+```crontab
+# Парсинг раз в час
+8 * * * *  /opt/jacred/Data/run-job.sh megapeer-parse http://127.0.0.1:9117/cron/megapeer/parse 900
+
+# Обновление очереди раз в сутки
+20 2 * * *  /opt/jacred/Data/run-job.sh megapeer-UpdateTasksParse http://127.0.0.1:9117/cron/megapeer/UpdateTasksParse 60
+
+# Полный перебор дважды в сутки
+45 4,16 * * *  /opt/jacred/Data/run-job.sh megapeer-ParseAllTask http://127.0.0.1:9117/cron/megapeer/ParseAllTask 60
+```
+
+## Особенности
+
+- **Кодировка cp1251**: JacRed конвертирует названия и описания в UTF-8 автоматически.
+- **Магниты по запросу**: magnet извлекается со страницы каждой раздачи.
+- **Referer**: устанавливается автоматически при обходе категорий.
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/megapeer/parse"
+tail -f /opt/jacred/Data/log/megapeer.log
+```

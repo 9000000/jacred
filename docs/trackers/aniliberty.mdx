@@ -1,0 +1,33 @@
+---
+title: "Aniliberty: JSON API с прямыми магнет-ссылками"
+sidebarTitle: "Aniliberty"
+icon: "/images/trackers/aniliberty.ico"
+description: "Aniliberty (aniliberty.top) — публичный JSON API без авторизации. ~5k аниме-раздач. Page-range кластер, прямые magnet в ответах."
+keywords: ["JacRed", "Aniliberty", "трекер", "парсинг"]
+---
+
+Aniliberty, slug `aniliberty`, содержит около 5 тысяч аниме-раздач и работает через публичный JSON API без авторизации. Магнет-ссылки возвращаются прямо в ответе API.
+
+## Конфигурация
+
+```yaml
+Aniliberty:
+  host: https://aniliberty.top
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+## Расписание cron
+
+```crontab
+6,21,36,51 * * * *  /opt/jacred/Data/run-job.sh aniliberty-parse http://127.0.0.1:9117/cron/aniliberty/parse 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/aniliberty/parse"
+tail -f /opt/jacred/Data/log/aniliberty.log
+```

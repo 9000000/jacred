@@ -1,0 +1,47 @@
+---
+title: "Ultradox: трекер с обязательным поисковым Referer"
+sidebarTitle: "Ultradox"
+icon: "/images/trackers/ultradox.ico"
+description: "Ultradox (ultradox.onl) работает без авторизации, но требует Referer, похожий на поисковую выдачу Google или Yandex. Rutor-стиль trio + ParseLatest."
+keywords: ["JacRed", "Ultradox", "трекер", "парсинг"]
+---
+
+Ultradox, slug `ultradox`, работает без авторизации. Использует Rutor-стиль trio плюс `ParseLatest`. Сайт возвращает 503, если запрос приходит с Referer собственного домена; JacRed автоматически подставляет Referer, похожий на страницу поиска Google или Yandex.
+
+<Warning>
+  Не переопределяйте заголовок `Referer` в прокси или CDN на пути от JacRed к `ultradox.onl`. Собственный Referer вызовет ответ 503.
+</Warning>
+
+## Конфигурация
+
+```yaml
+Ultradox:
+  host: https://ultradox.onl
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+## Расписание cron
+
+```crontab
+# Основной parse
+13,28,43,58 * * * *  /opt/jacred/Data/run-job.sh ultradox-parse http://127.0.0.1:9117/cron/ultradox/parse 900
+
+# Обновление очереди
+50 2 * * *  /opt/jacred/Data/run-job.sh ultradox-UpdateTasksParse http://127.0.0.1:9117/cron/ultradox/UpdateTasksParse 60
+
+# Полный перебор
+58 4,16 * * *  /opt/jacred/Data/run-job.sh ultradox-ParseAllTask http://127.0.0.1:9117/cron/ultradox/ParseAllTask 60
+
+# Свежие релизы раз в сутки
+20 7 * * *  /opt/jacred/Data/run-job.sh ultradox-ParseLatest http://127.0.0.1:9117/cron/ultradox/ParseLatest 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/ultradox/parse"
+tail -f /opt/jacred/Data/log/ultradox.log
+```

@@ -4,6 +4,7 @@
 
 [![Build](https://github.com/jacred-fdb/jacred/actions/workflows/build.yml/badge.svg)](https://github.com/jacred-fdb/jacred/actions/workflows/build.yml)
 [![Release](https://github.com/jacred-fdb/jacred/actions/workflows/release.yml/badge.svg)](https://github.com/jacred-fdb/jacred/actions/workflows/release.yml)
+[![Documentation](https://img.shields.io/badge/docs-Mintlify-0D9373?logo=mintlify&logoColor=white)](https://docs.jacred.stream)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/jacred-fdb/jacred?label=version)](https://github.com/jacred-fdb/jacred/releases)
 [![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/jacred-fdb/jacred?include_prereleases&label=pre-release)](https://github.com/jacred-fdb/jacred/tags)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -20,7 +21,7 @@
 - 🌐 **Веб-интерфейс** — поиск, статистика и редактор конфигурации
 - ⚙️ **Настройки в браузере** — `/settings` (форма, YAML/JSON, валидация, diff перед сохранением)
 - 📖 **OpenAPI / Swagger** — `/openapi.yaml`, интерактивная документация на `/swagger`
-- 🗂️ **25 трекера** — парсинг и sync (см. [Трекеры и парсинг](docs/trackers-and-parsing.md))
+- 🗂️ **25 трекеров** — парсинг и sync (см. [каталог трекеров](docs/trackers/overview.mdx))
 - 🔐 **Поддержка прокси** и Tor для доступа к .onion доменам
 - 📊 **Статистика** по трекерам и торрентам
 - 🎵 **Модуль tracks** для сбора метаданных треков (опционально)
@@ -63,41 +64,41 @@ curl -s https://raw.githubusercontent.com/jacred-fdb/jacred/main/jacred.sh | bas
 
 Скрипт ставит приложение в **`/opt/jacred`**, создаёт systemd-сервис `jacred` и по желанию скачивает готовую базу.
 
-Полезные опции: `--no-download-db`, `--pre-release`, `--update`, `--remove` (подробности — [установка](docs/installation.md)).
+Полезные опции: `--no-download-db`, `--pre-release`, `--update`, `--remove` (подробности — [установка](docs/installation.mdx)).
 
 После установки:
 
-- Конфиг: **`/opt/jacred/init.yaml`** или **`/opt/jacred/init.conf`**, либо веб-редактор **`/settings`** (LAN или `devkey` — см. [безопасность](docs/security.md))
+- Конфиг: **`/opt/jacred/init.yaml`** или **`/opt/jacred/init.conf`**, либо веб-редактор **`/settings`** (LAN или `devkey` — см. [аутентификацию](docs/authentication.mdx))
 - Веб-интерфейс: **`http://127.0.0.1:9117/`** (поиск), **`/stats`**, **`/settings`**
 - Перезапуск: `systemctl restart jacred`
 - Полный crontab для парсинга: `crontab /opt/jacred/Data/crontab`
 
-> По умолчанию синхронизация отключена: скрипт скачивает базу, парсинг — по cron. Чтобы подтягивать базу с внешнего сервера, укажите `syncapi` в конфиге ([конфигурация](docs/configuration.md)).
+> По умолчанию синхронизация отключена: скрипт скачивает базу, парсинг — по cron. Чтобы подтягивать базу с внешнего сервера, укажите `syncapi` в конфиге ([конфигурация](docs/configuration/overview.mdx)).
 
-Docker: [docs/docker.md](docs/docker.md).
+Docker: [документация по развёртыванию](docs/deployment/docker.mdx).
 
 ---
 
 ## Документация
 
-Онлайн: **[https://jacred-fdb.github.io/jacred/](https://jacred-fdb.github.io/jacred/)**
+Онлайн: **[https://docs.jacred.stream](https://docs.jacred.stream)**
 
-Полное оглавление: **[docs/README.md](docs/README.md)**.
+Исходники документации: **[docs/](docs/)**.
 
 | Документ | Описание |
 | --- | --- |
-| [Установка](docs/installation.md) | Скрипт, обновление, удаление |
-| [Конфигурация](docs/configuration.md) | `init.yaml` / `init.conf`, sync, logging, search, Torznab |
-| [Tracks](docs/tracks.md) | Модуль tracks (TorrServer / ffprobe) |
-| [Трекеры и парсинг](docs/trackers-and-parsing.md) | Список трекеров, cron, .onion |
-| [Безопасность](docs/security.md) | Политики доступа, `apikey` / `devkey` |
-| [API](docs/api.md) | OpenAPI, эндпоинты, `/dev/*`, cron, maintenance |
-| [Сборка](docs/building.md) | `make publish`, RID |
-| [Docker](docs/docker.md) | Run / Compose и cron снаружи контейнера |
-| [Решение проблем](docs/troubleshooting.md) | Типичные сбои |
-| [Архитектура](docs/architecture.md) | Структура проекта и фоновые процессы |
+| [Установка](docs/installation.mdx) | Скрипт, обновление, удаление |
+| [Конфигурация](docs/configuration/overview.mdx) | `init.yaml` / `init.conf`, sync, logging, search, Torznab |
+| [Tracks](docs/concepts/tracks.mdx) | Модуль tracks (TorrServer / ffprobe) |
+| [Трекеры и парсинг](docs/trackers/overview.mdx) | Список трекеров, cron, .onion |
+| [Аутентификация](docs/authentication.mdx) | Политики доступа, `apikey` / `devkey` |
+| [API](docs/api-reference/overview.mdx) | OpenAPI, эндпоинты, `/dev/*`, cron, maintenance |
+| [Сборка](docs/development/building.mdx) | `make publish`, RID |
+| [Docker](docs/deployment/docker.mdx) | Run / Compose и cron снаружи контейнера |
+| [Решение проблем](docs/operations/troubleshooting.mdx) | Типичные сбои |
+| [Архитектура](docs/concepts/architecture.mdx) | Структура проекта и фоновые процессы |
 
-Матрица доступа: [docs/access-matrix.md](docs/access-matrix.md). Веб-UI: [web/README.md](web/README.md).
+Матрица доступа: [docs/operations/access-matrix.mdx](docs/operations/access-matrix.mdx). Веб-UI: [web/README.md](web/README.md).
 
 ---
 

@@ -1,0 +1,89 @@
+---
+title: "Сборка JacRed из исходников"
+sidebarTitle: "Сборка"
+description: "Соберите JacRed 3.9.3, Vue Web UI и self-contained пакеты для Linux, Windows и macOS."
+keywords:
+  - JacRed
+  - сборка
+  - .NET 10
+  - Vue
+  - RID
+---
+
+Используйте `make` как основной интерфейс сборки. Скрипты сначала собирают Vue SPA в `wwwroot/`, затем публикуют self-contained приложение в `dist/<rid>/`.
+
+## Требования
+
+- .NET 10 SDK;
+- Node.js `22.22.2` или новее и npm 10+;
+- Git, Bash и Make.
+
+## Соберите текущую платформу
+
+```bash
+make publish
+```
+
+Сборка создаёт каталог `dist/<rid>/`. Версия формируется из Git-тега скриптом `scripts/generate-version.sh`.
+
+## Выберите целевую платформу
+
+<CodeGroup>
+```bash Один RID
+make publish RID=linux-arm64
+```
+
+```bash Несколько RID
+make publish RID="linux-x64 linux-arm64"
+```
+
+```bash Именованная цель
+make publish-linux-arm64
+```
+
+```bash Все платформы
+make publish-all
+```
+</CodeGroup>
+
+Поддерживаемые RID:
+
+- Linux: `linux-x64`, `linux-musl-x64`, `linux-musl-arm64`, `linux-arm`, `linux-arm64`;
+- Windows: `win-x64`, `win-x86`, `win-arm64`;
+- macOS: `osx-arm64`, `osx-amd64`.
+
+## Полезные цели
+
+```bash
+make web        # собрать только Vue SPA
+make build      # Debug-сборка .NET
+make test       # запустить .NET-тесты
+make test-web   # запустить unit-тесты Web UI
+make lint-web   # проверить ESLint и типы
+make docker     # собрать локальный образ jacred
+make clean      # удалить артефакты сборки
+```
+
+## Проверьте Web UI отдельно
+
+```bash
+cd web
+npm ci
+npm run gen:api
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+<Note>
+  Каталог `wwwroot/` не хранится в Git. `make web`, `make publish`, Dockerfile и CI создают его из `web/`.
+</Note>
+
+## Сохранение данных при повторной публикации
+
+`scripts/build.sh` очищает старые артефакты целевого `dist/<rid>/`, но сохраняет существующие `Data/fdb`, `Data/masterDb.bz` и корневой `init.yaml`.
+
+<Warning>
+  Не используйте `dist/` как единственное место хранения рабочей базы. Перед заменой сборки создайте отдельную резервную копию `Data/`.
+</Warning>

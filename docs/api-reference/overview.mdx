@@ -1,0 +1,85 @@
+---
+title: "JacRed API: обзор и аутентификация"
+sidebarTitle: "Обзор"
+description: "JacRed предоставляет четыре поисковых API (Jackett JSON, Torznab XML, Prowlarr и Native JSON) и управляющие эндпоинты. Базовый URL: http://HOST:9117."
+keywords: ["JacRed API", "Jackett API", "Torznab", "Prowlarr", "Native JSON", "apikey"]
+---
+
+JacRed предоставляет несколько API для поиска торрентов и управления сервисом. Все они работают на одном порту (по умолчанию 9117) и обращаются к одному FileDB-индексу.
+
+## Базовый URL
+
+```text
+http://YOUR_HOST:9117
+```
+
+## Поисковые API
+
+<Columns cols={2}>
+  <Card title="Jackett JSON" icon="code" href="/api-reference/jackett">
+    `GET /api/v2.0/indexers/{status}/results` — совместим с Lampa, Stremio и другими Jackett-клиентами.
+  </Card>
+
+  <Card title="Torznab XML" icon="code" href="/api-reference/torznab">
+    `GET /torznab/api` — стандарт Torznab для Sonarr, Radarr и Prowlarr.
+  </Card>
+
+  <Card title="Native JSON" icon="code" href="/api-reference/native">
+    `GET /api/v1.0/torrents` — расширенный API с полями ffprobe и languages.
+  </Card>
+
+  <Card title="Prowlarr Feed" icon="code" href="/api-reference/torznab">
+    `GET /api/v1/search` — поисковая лента Prowlarr. Newznab также доступен по `/api/v1/indexer/{id}/newznab`.
+  </Card>
+</Columns>
+
+## Управляющие API
+
+| Группа | Эндпоинты |
+| --- | --- |
+| [Config API](/api-reference/config) | `GET/POST /api/v1.0/config*` |
+| [Stats API](/api-reference/stats) | `GET /stats/torrents`, `/stats/tracks`, `/stats/meta` |
+| [Sync API](/api-reference/sync) | `GET /sync/fdb/torrents`, `/sync/conf` |
+| [Cron API](/api-reference/cron) | `GET /cron/{slug}/{action}`, `GET /jsondb/save` |
+| [Health API](/api-reference/health) | `GET /health`, `/version`, `/lastupdatedb`, `/api/v1.0/conf` |
+| [Dev API](/api-reference/dev) | `GET /dev/*` — сервисные операции над FileDB и Tracks |
+
+## Аутентификация
+
+| Ключ | Параметр | Заголовок | Защищает |
+| --- | --- | --- | --- |
+| `apikey` | `?apikey=` | `X-Api-Key` | Поисковые эндпоинты |
+| `devkey` | `?devkey=` | `X-Dev-Key` | Конфиг, cron, dev (из интернета) |
+
+## Коды ответов
+
+| Код | Значение |
+| --- | --- |
+| `200` | Успех |
+| `401` | Неверный или отсутствующий apikey |
+| `403` | Требуется devkey или LAN |
+| `404` | Эндпоинт отключён в конфигурации |
+
+## Служебные и системные эндпоинты
+
+| Путь | Описание |
+| --- | --- |
+| `GET /health` | Проверка живости (`{status: "OK"}`) |
+| `GET /version` | Версия, git SHA, ветка, дата сборки |
+| `GET /lastupdatedb` | Время последнего обновления FileDB |
+| `GET /health/background-jobs` | Активные задачи парсинга |
+| `GET /jsondb/save` | Принудительный сброс FileDB на диск |
+| `GET /opensearch.xml` | OpenSearch-описание для браузера |
+
+## OpenAPI и Swagger
+
+```bash
+curl http://localhost:9117/openapi.yaml
+curl http://localhost:9117/swagger/v1/swagger.json
+```
+
+Swagger UI доступен по адресу `http://YOUR_HOST:9117/swagger`. Пересоберите клиентский код из спецификации:
+
+```bash
+cd web && npm run gen:api
+```

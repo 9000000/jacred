@@ -1,0 +1,62 @@
+---
+title: "Матрица доступа JacRed"
+sidebarTitle: "Матрица доступа"
+description: "Определите, какие маршруты JacRed публичны и где нужны apikey, devkey или прямой доступ из локальной сети."
+keywords:
+  - JacRed
+  - безопасность
+  - матрица доступа
+  - apikey
+  - devkey
+---
+
+JacRed назначает политику доступа по пути запроса. Источник правил — `Infrastructure/Security/JacRedEndpointRegistry.cs`.
+
+## Политики
+
+| Политика | Условие доступа |
+| --- | --- |
+| `Public` | Доступ разрешён без ключа |
+| `ApiKeyWhenConfigured` | Если `apikey` пуст, доступ открыт. Иначе передайте корректный API-ключ |
+| `ConfigApi` | Подключитесь напрямую из LAN или передайте корректный `devkey` |
+| `DevAdmin` | Подключитесь напрямую из LAN или передайте корректный `devkey` |
+
+API-ключ можно передать через `?apikey=`, `X-Api-Key` или `Authorization: Bearer`. Dev-ключ передавайте через `?devkey=` или `X-Dev-Key`.
+
+## Маршруты
+
+| Путь | Политика | Назначение |
+| --- | --- | --- |
+| `/`, `/stats`, `/settings` | `Public` | SPA-страницы |
+| `/health`, `/health/background-jobs`, `/version`, `/lastupdatedb` | `Public` | Состояние приложения |
+| `/api/v1.0/conf` | `Public` | Определение JacRed и проверка API-ключа |
+| `/swagger`, `/openapi.yaml` | `Public` | Справочник API |
+| `/sync/*` | `Public` | Контроллер дополнительно проверяет `opensync` |
+| `/api/v1.0/config*` | `ConfigApi` | Чтение и изменение конфигурации |
+| `/dev/*`, `/cron/*`, `/jsondb*` | `DevAdmin` | Диагностика, парсеры и FileDB |
+| Остальные API-маршруты | `ApiKeyWhenConfigured` | Поиск, Torznab, Prowlarr и статистика |
+
+<Warning>
+  Reverse proxy не превращает запрос в доверенный LAN-запрос. Если peer передаёт `X-Forwarded-*`, `Forwarded`, `X-Real-IP` или `CF-*`, для `ConfigApi` и `DevAdmin` нужен `devkey`.
+</Warning>
+
+## Контекст клиента
+
+| Клиент | Public | ConfigApi и DevAdmin | ApiKeyWhenConfigured |
+| --- | --- | --- | --- |
+| Loopback или прямой LAN без proxy-заголовков | Разрешён | Разрешён | Нужен `apikey`, если он настроен |
+| Reverse proxy на хосте или в Docker | Разрешён | Нужен `devkey` | Нужен `apikey`, если он настроен |
+| Интернет или туннель | Разрешён | Нужен `devkey` | Нужен `apikey`, если он настроен |
+
+## Коды ответа
+
+- `OPTIONS` получает `204`.
+- Если обязательный ключ не передан, middleware возвращает `401`.
+- Если ключ неверен или контекст клиента не разрешён, middleware возвращает `403`.
+
+```bash
+curl -H "X-Dev-Key: YOUR_DEV_KEY" \
+  "https://jacred.example.com/cron/maintenance/Status"
+```
+
+Используйте отдельные значения для `apikey` и `devkey`. Не добавляйте их в репозиторий. Подробнее о настройке читайте в разделе [Аутентификация](/authentication).

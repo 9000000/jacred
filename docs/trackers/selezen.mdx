@@ -1,0 +1,50 @@
+---
+title: "Selezen: трекер сериалов с cookie-авторизацией"
+sidebarTitle: "Selezen"
+icon: "/images/trackers/selezen.ico"
+description: "Selezen (use.selezen.club) требует cookie или логин/пароль. ~16k раздач. Page-range кластер, только задача parse."
+keywords: ["JacRed", "Selezen", "трекер", "парсинг"]
+---
+
+Selezen, slug `selezen`, содержит около 16 тысяч раздач. Требует авторизации через cookie или логин/пароль. Использует page-range кластер (только задача `parse`).
+
+## Конфигурация
+
+<CodeGroup>
+
+```yaml Cookie
+Selezen:
+  host: https://use.selezen.club
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "PHPSESSID=SESSION; uid=USER_ID"
+```
+
+```yaml Логин/пароль
+Selezen:
+  host: https://use.selezen.club
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+## Расписание cron
+
+```crontab
+9,24,39,54 * * * *  /opt/jacred/Data/run-job.sh selezen-parse http://127.0.0.1:9117/cron/selezen/parse 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/selezen/parse"
+tail -f /opt/jacred/Data/log/selezen.log
+```

@@ -1,0 +1,160 @@
+---
+title: "Torznab и Prowlarr XML API JacRed"
+sidebarTitle: "Torznab API"
+description: "GET /torznab/api и /api/v1/* — стандарт Torznab и REST Prowlarr. Включается torznab.enable. Поддерживает t=caps, search, tvsearch, moviesearch, indexers и Search Feed."
+keywords: ["JacRed API", "Torznab API", "API", "self-hosted"]
+---
+
+Torznab XML API позволяет подключить JacRed как индексер к Sonarr, Radarr, Prowlarr и другим приложениям, поддерживающим стандарт Torznab или Prowlarr REST. Включается в `init.yaml` параметром `torznab.enable: true`.
+
+## Конфигурация
+
+```yaml
+torznab:
+  enable: true
+  enrichTitles: true   # добавлять языковые метки в название
+```
+
+Если `torznab.enable: false`, все Torznab и Prowlarr эндпоинты возвращают `404`.
+
+## Эндпоинты Torznab
+
+| Путь | Описание |
+| --- | --- |
+| `GET /torznab/api` | Основной Torznab-эндпоинт |
+| `GET /api/v2.0/indexers/{indexer}/results/torznab/api` | Jackett-совместимый путь |
+| `GET /api/v1/indexer/{indexer}/newznab` | Prowlarr-совместимый путь Newznab |
+
+Плейсхолдер `{indexer}` фильтрует поиск по конкретному трекеру (например, `rutracker`) или принимает `all` для всех.
+
+## Prowlarr REST API
+
+| Путь | Описание |
+| --- | --- |
+| `GET /api/v2.0/indexers` | Список индексеров в формате Jackett/Prowlarr |
+| `GET /api/v1/indexer` | Список индексеров Prowlarr |
+| `GET /api/v1/indexer/{id:int}` | Детали индексера (только `id=1`) |
+| `GET /api/v1/search` | Prowlarr Search Feed |
+
+Search Feed Prowlarr принимает те же параметры, что и Torznab (`query`, `type`, `title`, `title_original`, `year`, `categories`, `season`, `ep`), но возвращает JSON. Совместим с [Prowlarr Search Feed](https://wiki.servarr.com/en/prowlarr/search#search-feed).
+
+## Параметры Torznab-запроса
+
+<ParamField path="query.t" type="string" required>
+  Тип запроса: `caps`, `search`, `tvsearch`, `moviesearch`, `indexers`.
+</ParamField>
+
+<ParamField path="query.apikey" type="string" required>
+  Ключ API.
+</ParamField>
+
+<ParamField path="query.q" type="string">
+  Поисковый запрос.
+</ParamField>
+
+<ParamField path="query.title" type="string">
+  Точное название.
+</ParamField>
+
+<ParamField path="query.title_original" type="string">
+  Оригинальное название.
+</ParamField>
+
+<ParamField path="query.year" type="number">
+  Год выпуска.
+</ParamField>
+
+<ParamField path="query.season" type="number">
+  Номер сезона.
+</ParamField>
+
+<ParamField path="query.ep" type="number">
+  Номер серии.
+</ParamField>
+
+<ParamField path="query.cat" type="string">
+  Категория (например, `2000` для фильмов, `5000` для сериалов).
+</ParamField>
+
+<ParamField path="query.imdbid" type="string">
+  IMDb ID в формате `tt...`.
+</ParamField>
+
+<ParamField path="query.configured" type="boolean">
+  Для `t=indexers`: если `false`, возвращает пустой список.
+</ParamField>
+
+## Подключение к Sonarr/Radarr
+
+<Steps>
+  <Step title="Откройте настройки индексеров">
+    В Sonarr/Radarr перейдите в `Settings → Indexers → Add`.
+  </Step>
+  <Step title="Выберите Torznab">
+    Выберите тип `Torznab`.
+  </Step>
+  <Step title="Укажите параметры JacRed">
+    - **URL**: `http://YOUR_HOST:9117/torznab/api`
+    - **API Key**: значение `apikey` из вашего `init.yaml`
+  </Step>
+  <Step title="Проверьте подключение">
+    Нажмите `Test`. Sonarr/Radarr выполнит запрос `?t=caps` и отобразит доступные категории.
+  </Step>
+</Steps>
+
+## Подключение к Prowlarr
+
+<Steps>
+  <Step title="Add Indexer в Prowlarr">
+    `Settings → Indexers → Add Indexer → Generic Newznab`.
+  </Step>
+  <Step title="URL и ключ">
+    - **URL**: `http://YOUR_HOST:9117/api/v1/indexer/all/newznab` или `http://YOUR_HOST:9117/torznab/api`
+    - **API Key**: значение `apikey`
+  </Step>
+  <Step title="Sync">
+    Prowlarr автоматически подтянет доступные категории через `t=caps`.
+  </Step>
+</Steps>
+
+## Примеры
+
+<CodeGroup>
+
+```bash Получить возможности
+curl "http://localhost:9117/torznab/api?t=caps&apikey=KEY"
+```
+
+```bash Список индексеров
+curl "http://localhost:9117/torznab/api?t=indexers&configured=true&apikey=KEY"
+```
+
+```bash Текстовый поиск
+curl "http://localhost:9117/torznab/api?t=search&q=матрица&apikey=KEY"
+```
+
+```bash Поиск сериала по сезону
+curl "http://localhost:9117/torznab/api?t=tvsearch&q=breaking+bad&season=1&ep=1&apikey=KEY"
+```
+
+```bash Поиск по IMDb
+curl "http://localhost:9117/torznab/api?t=moviesearch&imdbid=tt0133093&apikey=KEY"
+```
+
+```bash Prowlarr Search Feed
+curl "http://localhost:9117/api/v1/search?query=матрица&type=search&indexerIds=1&apikey=KEY"
+```
+
+```bash Список Prowlarr-индексеров
+curl "http://localhost:9117/api/v1/indexer"
+```
+
+</CodeGroup>
+
+<Note>
+  Запросы только с `tvdbid` (без `q` или `imdbid`) возвращают пустой результат, так как JacRed не поддерживает TVDB ID.
+</Note>
+
+<Tip>
+  Для отладки XML-ответа сохраните вывод в файл и откройте в браузере: `curl "…" -o caps.xml`.
+</Tip>

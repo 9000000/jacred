@@ -1,0 +1,378 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "luma",
+  "name": "JacRed",
+  "description": "Документация JacRed — самохостируемого агрегатора торрент-трекеров с FileDB и API Jackett, Torznab и Prowlarr.",
+  "logo": {
+    "light": "/logo/jacred.png",
+    "dark": "/logo/jacred.png",
+    "href": "/"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#E31B23",
+    "light": "#FF4D52",
+    "dark": "#FF4D52"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "appearance": {
+    "default": "system"
+  },
+  "background": {
+    "decoration": "grid"
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "codeblocks": {
+      "theme": {
+        "light": "github-light",
+        "dark": "github-dark"
+      }
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Релизы",
+        "href": "https://github.com/jacred-fdb/jacred/releases"
+      },
+      {
+        "type": "github",
+        "href": "https://github.com/jacred-fdb/jacred"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Установить",
+      "href": "/installation"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/jacred-fdb/jacred"
+    },
+    "links": [
+      {
+        "header": "Проект",
+        "items": [
+          {
+            "label": "Исходный код",
+            "href": "https://github.com/jacred-fdb/jacred"
+          },
+          {
+            "label": "Релизы",
+            "href": "https://github.com/jacred-fdb/jacred/releases"
+          },
+          {
+            "label": "Сообщить о проблеме",
+            "href": "https://github.com/jacred-fdb/jacred/issues"
+          }
+        ]
+      },
+      {
+        "header": "Документация",
+        "items": [
+          {
+            "label": "Быстрый старт",
+            "href": "/quickstart"
+          },
+          {
+            "label": "Справочник API",
+            "href": "/api-reference/overview"
+          },
+          {
+            "label": "Решение проблем",
+            "href": "/operations/troubleshooting"
+          }
+        ]
+      }
+    ]
+  },
+  "search": {
+    "prompt": "Поиск по документации JacRed..."
+  },
+  "metadata": {
+    "timestamp": true
+  },
+  "seo": {
+    "indexing": "navigable",
+    "metatags": {
+      "og:site_name": "Документация JacRed",
+      "og:image": "/images/jacred-social-preview.png",
+      "twitter:card": "summary_large_image",
+      "twitter:image": "/images/jacred-social-preview.png"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "mcp",
+      "cursor",
+      "download-spec"
+    ],
+    "display": "header"
+  },
+  "interaction": {
+    "drilldown": false
+  },
+  "errors": {
+    "404": {
+      "redirect": false,
+      "title": "Страница не найдена",
+      "description": "Проверьте адрес или найдите нужный раздел через поиск."
+    }
+  },
+  "redirects": [
+    {
+      "source": "/configuration",
+      "destination": "/configuration/overview"
+    },
+    {
+      "source": "/docker",
+      "destination": "/deployment/docker"
+    },
+    {
+      "source": "/building",
+      "destination": "/development/building"
+    },
+    {
+      "source": "/architecture",
+      "destination": "/concepts/architecture"
+    },
+    {
+      "source": "/tracks",
+      "destination": "/configuration/tracks"
+    },
+    {
+      "source": "/access-matrix",
+      "destination": "/operations/access-matrix"
+    },
+    {
+      "source": "/troubleshooting",
+      "destination": "/operations/troubleshooting"
+    },
+    {
+      "source": "/api",
+      "destination": "/api-reference/overview"
+    },
+    {
+      "source": "/conf-endpoint",
+      "destination": "/api-reference/conf"
+    },
+    {
+      "source": "/trackers-and-parsing",
+      "destination": "/trackers/overview"
+    },
+    {
+      "source": "/security",
+      "destination": "/authentication"
+    },
+    {
+      "source": "/tags",
+      "destination": "/"
+    }
+  ],
+  "markdown": {
+    "instructions": [
+      "Отвечайте на русском языке.",
+      "Считайте JacRed самохостируемым сервисом: адрес и ключи зависят от инстанса пользователя.",
+      "Не раскрывайте токены, cookie, API-ключи и другие секреты из примеров конфигурации."
+    ]
+  },
+  "api": {
+    "openapi": "openapi/openapi.yaml",
+    "playground": {
+      "display": "simple",
+      "proxy": false
+    },
+    "examples": {
+      "languages": [
+        "bash",
+        "javascript",
+        "python"
+      ],
+      "defaults": "required",
+      "prefill": true,
+      "autogenerate": true
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Документация",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Начало работы",
+            "icon": "rocket",
+            "pages": [
+              "index",
+              "quickstart",
+              "installation",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Концепции",
+            "icon": "boxes",
+            "pages": [
+              "concepts/architecture",
+              "concepts/filedb",
+              "concepts/search",
+              "concepts/sync",
+              "concepts/tracks",
+              "concepts/background-jobs",
+              "concepts/web-ui"
+            ]
+          },
+          {
+            "group": "Конфигурация",
+            "icon": "settings",
+            "pages": [
+              "configuration/overview",
+              "configuration/trackers",
+              "configuration/search",
+              "configuration/alloha",
+              "configuration/tracks",
+              "configuration/flaresolverr",
+              "configuration/proxy",
+              "configuration/logging"
+            ]
+          },
+          {
+            "group": "Развёртывание",
+            "icon": "server",
+            "pages": [
+              "deployment/docker",
+              "deployment/cron",
+              "deployment/cloudflare-workers"
+            ]
+          },
+          {
+            "group": "Эксплуатация",
+            "icon": "wrench",
+            "pages": [
+              "operations/access-matrix",
+              "operations/maintenance",
+              "operations/troubleshooting"
+            ]
+          },
+          {
+            "group": "Трекеры",
+            "icon": "list-filter",
+            "pages": [
+              "trackers/overview",
+              {
+                "group": "Trio-кластер",
+                "expanded": false,
+                "pages": [
+                  "trackers/rutracker",
+                  "trackers/kinozal",
+                  "trackers/rutor",
+                  "trackers/nnmclub",
+                  "trackers/megapeer",
+                  "trackers/toloka",
+                  "trackers/torrentby"
+                ]
+              },
+              {
+                "group": "Rutor-style и ParseLatest",
+                "expanded": false,
+                "pages": [
+                  "trackers/anibelka",
+                  "trackers/korsars",
+                  "trackers/ultradox"
+                ]
+              },
+              {
+                "group": "Page-range",
+                "expanded": false,
+                "pages": [
+                  "trackers/mazepa",
+                  "trackers/lostfilm",
+                  "trackers/selezen",
+                  "trackers/baibako",
+                  "trackers/animelayer",
+                  "trackers/anidub",
+                  "trackers/aniliberty",
+                  "trackers/rudub"
+                ]
+              },
+              {
+                "group": "Ежедневный parse",
+                "expanded": false,
+                "pages": [
+                  "trackers/anistar",
+                  "trackers/anifilm",
+                  "trackers/leproduction",
+                  "trackers/viruseproject"
+                ]
+              },
+              {
+                "group": "API-трекеры",
+                "expanded": false,
+                "pages": [
+                  "trackers/bitru",
+                  "trackers/knaben",
+                  "trackers/subsplease"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Справочник API",
+        "icon": "square-terminal",
+        "groups": [
+          {
+            "group": "Обзор",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/conf"
+            ]
+          },
+          {
+            "group": "Поисковые API",
+            "pages": [
+              "api-reference/jackett",
+              "api-reference/torznab",
+              "api-reference/prowlarr",
+              "api-reference/native"
+            ]
+          },
+          {
+            "group": "Управление",
+            "pages": [
+              "api-reference/config",
+              "api-reference/stats",
+              "api-reference/sync",
+              "api-reference/cron",
+              "api-reference/health",
+              "api-reference/dev"
+            ]
+          },
+          {
+            "group": "OpenAPI",
+            "openapi": "openapi/openapi.yaml"
+          }
+        ]
+      },
+      {
+        "tab": "Разработка",
+        "icon": "code-xml",
+        "groups": [
+          {
+            "group": "Для участников",
+            "pages": [
+              "development/building"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

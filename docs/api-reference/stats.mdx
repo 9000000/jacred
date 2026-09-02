@@ -1,0 +1,96 @@
+---
+title: "Stats API JacRed"
+sidebarTitle: "Stats API"
+description: "GET /stats/torrents, /stats/tracks и /stats/meta возвращают статистику по трекерам, аудиодорожкам и временным меткам обновлений. Управляется параметром openstats."
+keywords: ["JacRed API", "Stats API", "API", "self-hosted"]
+---
+
+Stats API предоставляет агрегированную статистику FileDB: количество раздач по трекерам, данные модуля Tracks и временные метки последних обновлений.
+
+## Управление доступом
+
+Параметр `openstats` в `init.yaml` определяет, открыты ли эндпоинты без apikey:
+
+```yaml
+openstats: true   # статистика доступна всем
+openstats: false  # возвращает 200 с пустыми данными
+```
+
+## Статистика по трекерам
+
+```text
+GET /stats/torrents
+```
+
+Возвращает данные из `Data/temp/stats.json`. Файл обновляется каждые `timeStatsUpdate` минут (по умолчанию 15).
+
+```json
+[
+  {
+    "tracker": "rutracker",
+    "count": 1500000,
+    "updatedAt": "2025-01-15T12:00:00Z"
+  },
+  {
+    "tracker": "kinozal",
+    "count": 550000,
+    "updatedAt": "2025-01-15T11:45:00Z"
+  }
+]
+```
+
+```bash
+curl "http://localhost:9117/stats/torrents"
+```
+
+## Статистика Tracks
+
+```text
+GET /stats/tracks
+```
+
+<ParamField path="query.includeTorrentDb" type="boolean">
+  Включить детали TracksDB в ответ.
+</ParamField>
+
+```bash
+curl "http://localhost:9117/stats/tracks?includeTorrentDb=true" \
+  -H "X-Api-Key: YOUR_KEY"
+```
+
+Ответ:
+
+```json
+{
+  "ok": true,
+  "updatedAt": "2025-01-15T12:00:00Z",
+  "fromCache": true,
+  "stats": {
+    "total": 125000,
+    "analyzed": 98000,
+    "pending": 27000,
+    "errors": 450
+  }
+}
+```
+
+## Временные метки
+
+```text
+GET /stats/meta
+```
+
+Возвращает метки последних обновлений различных компонентов:
+
+```json
+{
+  "updatedAt": "2025-01-15T12:00:00Z",
+  "tracksStatsUpdatedAt": "2025-01-15T11:55:00Z"
+}
+```
+
+## Настройка интервала обновления
+
+```yaml
+timeStatsUpdate: 90   # значение по умолчанию в релизе 3.9.3
+```

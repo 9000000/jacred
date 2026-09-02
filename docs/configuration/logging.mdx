@@ -1,0 +1,110 @@
+---
+title: "Логирование JacRed: файлы и категории"
+sidebarTitle: "Логирование"
+description: "JacRed пишет структурные логи в Data/log/ и в консоль. Настройте logFdb, logParsers и logging.categories для контроля объёма и уровня подробности."
+keywords: ["JacRed", "конфигурация", "Логирование", "init.yaml"]
+---
+
+JacRed разделяет логирование на файлы (в `Data/log/`) и консоль (`journalctl` для systemd или `docker logs`). Файловые логи содержат подробные записи парсеров и FileDB, консольные — фильтруются по уровню.
+
+## Файлы логов
+
+| Файл | Источник | Управляется |
+| --- | --- | --- |
+| `Data/log/fdb.*.log` | Изменения FileDB (append/update/delete) | `logFdb` |
+| `Data/log/{tracker}.log` | Парсер конкретного трекера | `logParsers` |
+| `Data/log/tracks.log` | Модуль Tracks (ffprobe) | `trackslog` |
+| `Data/log/sync.log` | Клиент `syncapi` | `logging.categories.sync` |
+| `Data/log/spidr.log` | Sync spidr | `logging.categories.sync_spidr` |
+
+## Ротация fdb-логов
+
+```yaml
+logFdb: true
+logFdbRetentionDays: 7    # хранить N дней, 0 — не удалять
+logFdbMaxSizeMb: 0        # максимальный размер файла, 0 — без лимита
+logFdbMaxFiles: 0         # максимальное количество файлов, 0 — без лимита
+```
+
+<Tip>
+  На маленьких VPS выключите fdb-лог целиком (`logFdb: false`) или задайте `logFdbMaxSizeMb: 50` и `logFdbMaxFiles: 5`, чтобы диск не переполнялся при массовых импортах.
+</Tip>
+
+## Логи парсеров
+
+```yaml
+logParsers: true     # писать Data/log/{tracker}.log
+```
+
+Каждый парсер пишет свой файл с деталями запросов, ответов трекера и найденных раздач. При проблемах смотрите файл конкретного трекера, а не общий `fdb.log`.
+
+## Консольные логи
+
+```yaml
+logging:
+  defaultLevel: Information   # Trace, Debug, Information, Warning, Error, Critical, None
+  consoleTimestamp: false     # дублировать timestamp в тексте сообщения
+  tracksConsoleDetail: false  # true — печатать каждый шаг Tracks
+  cronSkipFastMs: 200         # быстрые /cron/ (< 200 мс) идут в Debug
+  categories:
+    tracks: Information
+    sync: Information
+    sync_spidr: Warning
+    cron: Information
+    fdb: Warning
+    stats: Information
+    parsers: Information
+```
+
+<ParamField path="logging.defaultLevel" type="string">
+  Минимальный уровень для консоли: `Trace`, `Debug`, `Information`, `Warning`, `Error`, `Critical`, `None`.
+</ParamField>
+
+<ParamField path="logging.consoleTimestamp" type="boolean">
+  Дублировать timestamp в самой строке сообщения (systemd и Docker уже добавляют свой).
+</ParamField>
+
+<ParamField path="logging.tracksConsoleDetail" type="boolean">
+  Печатать все шаги Tracks. `false` — только ошибки и финальные итоги.
+</ParamField>
+
+<ParamField path="logging.cronSkipFastMs" type="number">
+  Cron-запросы, отработавшие быстрее N миллисекунд, понижаются до Debug. `0` — логировать все.
+</ParamField>
+
+<ParamField path="logging.categories" type="object">
+  Уровень для конкретных категорий: `tracks`, `sync`, `sync_spidr`, `cron`, `fdb`, `stats`, `parsers`. Значение `None` полностью отключает категорию.
+</ParamField>
+
+## Пример: тихий продакшн
+
+```yaml
+logFdb: false
+logParsers: true
+logging:
+  defaultLevel: Warning
+  cronSkipFastMs: 500
+  categories:
+    parsers: Information
+    fdb: Warning
+    sync: Warning
+    sync_spidr: None
+```
+
+## Пример: отладка парсера
+
+```yaml
+logFdb: true
+logParsers: true
+logging:
+  defaultLevel: Debug
+  categories:
+    parsers: Debug
+    cron: Debug
+```
+
+Затем запустите парсинг и следите за логом:
+
+```bash
+tail -f Data/log/rutracker.log
+```

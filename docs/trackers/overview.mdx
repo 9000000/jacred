@@ -1,0 +1,99 @@
+---
+title: "Трекеры JacRed: полный каталог из 25 источников"
+sidebarTitle: "Обзор"
+description: "JacRed агрегирует 25 торрент-трекеров. Обзор по кластерам синхронизации, авторизации, кодировкам и объёмам баз. Ссылки на страницы конфигурации для каждого трекера."
+keywords: ["трекеры JacRed", "synctrackers", "disable_trackers", "Rutracker", "Kinozal", "Torznab indexers"]
+---
+
+JacRed 3.9.3 включает 25 встроенных slug трекеров. Если `synctrackers` не задан, API каталога возвращает встроенный список без элементов из `disable_trackers`. Если `synctrackers` задан, каталог строится только из него. Ниже — сводка по кластерам синхронизации.
+
+## Trio-кластер
+
+Полный цикл задач: `parse` (частый) + `UpdateTasksParse` (раз в сутки) + `ParseAllTask` (дважды в сутки).
+
+| Slug | Хост | Авторизация | Объём | Особенности |
+| --- | --- | --- | --- | --- |
+| [`rutracker`](/trackers/rutracker) | rutracker.org | FlareSolverr | ~1.5M | Cloudflare |
+| [`kinozal`](/trackers/kinozal) | kinozal.guru | cookie или login | ~550k | cp1251 |
+| [`rutor`](/trackers/rutor) | rutor.info | нет | ~550k | Магниты в списке |
+| [`nnmclub`](/trackers/nnmclub) | nnmclub.to | нет | ~145k | cp1251, .onion |
+| [`megapeer`](/trackers/megapeer) | megapeer.vip | нет | ~113k | cp1251 |
+| [`toloka`](/trackers/toloka) | toloka.to | cookie или login | ~58k |  |
+| [`torrentby`](/trackers/torrentby) | torrent.by | нет | ~58k | Worker alias |
+
+## Rutor-стиль trio + ParseLatest
+
+Trio-задачи плюс ежедневный `ParseLatest` для свежих релизов.
+
+| Slug | Хост | Авторизация | Особенности |
+| --- | --- | --- | --- |
+| [`anibelka`](/trackers/anibelka) | anibelka.com | **только анонимно** | Пароли в торрентах |
+| [`korsars`](/trackers/korsars) | korsars.pro | cookie `bb_data` или login |  |
+| [`ultradox`](/trackers/ultradox) | ultradox.onl | нет | Требует поисковый Referer |
+
+## Page-range кластер
+
+Только задача `parse` без trio.
+
+| Slug | Хост | Авторизация | Объём |
+| --- | --- | --- | --- |
+| [`mazepa`](/trackers/mazepa) | mazepa.to | cookie или login | ~51k |
+| [`lostfilm`](/trackers/lostfilm) | lostfilm.tv | cookie | ~18k |
+| [`selezen`](/trackers/selezen) | use.selezen.club | cookie или login | ~16k |
+| [`animelayer`](/trackers/animelayer) | animelayer.ru | cookie или login |  |
+| [`baibako`](/trackers/baibako) | baibako.tv | cookie или login | ~5k |
+| [`aniliberty`](/trackers/aniliberty) | aniliberty.top | нет | ~5k |
+| [`anidub`](/trackers/anidub) | tr.anidub.com | нет | ~4k |
+| [`rudub`](/trackers/rudub) | r4.rudub.world | cookie или login | HD only, cp1251 |
+
+## Ежедневный parse с limit_page
+
+Раз в сутки, ограничение страниц.
+
+| Slug | Хост | Авторизация | Особенности |
+| --- | --- | --- | --- |
+| [`anistar`](/trackers/anistar) | anistar.org | опционально | host + alias для смены зеркал |
+| [`anifilm`](/trackers/anifilm) | anifilm.pro | cookie или login |  |
+| [`leproduction`](/trackers/leproduction) | le-production.online | нет |  |
+| [`viruseproject`](/trackers/viruseproject) | viruseproject.tv | нет |  |
+
+## API-трекеры
+
+Используют собственный публичный API вместо HTML-парсинга.
+
+| Slug | Хост | Авторизация | Особенности |
+| --- | --- | --- | --- |
+| [`bitru`](/trackers/bitru) | bitru.org | нет | parse + backfill архива |
+| [`knaben`](/trackers/knaben) | api.knaben.org | нет | Метапоисковик, ~106k |
+| [`subsplease`](/trackers/subsplease) | subsplease.org | нет | 1080p аниме, ParseShows |
+
+## Политика магнет-ссылок
+
+| Статус | Трекеры |
+| --- | --- |
+| Магниты в списке (быстро) | rutor, bitru, knaben, aniliberty, subsplease |
+| Магниты по запросу (из страницы топика) | rutracker, kinozal, nnmclub, megapeer, toloka, torrentby, и другие |
+| Магниты без трекеров (DHT-only) | rudub (`MagnetNoTrackers`) |
+
+## Кодировки
+
+Большинство трекеров используют UTF-8. Исключения с Windows-1251 (JacRed конвертирует автоматически):
+
+- kinozal, nnmclub, megapeer, rudub
+
+## Общие поля конфигурации
+
+Все блоки трекеров поддерживают одинаковый набор ключей:
+
+| Поле | Тип | Описание |
+| --- | --- | --- |
+| `host` | string | Канонический URL трекера |
+| `alias` | string | Зеркало или Worker URL для HTTP-запросов |
+| `useproxy` | bool | Направлять запросы через `proxy` или `globalproxy` |
+| `reqMinute` | int | Максимум запросов в минуту (по умолчанию 8) |
+| `parseDelay` | int | Задержка между страницами, мс (по умолчанию 7000) |
+| `log` | bool | Отдельный лог `Data/log/{tracker}.log` |
+| `cookie` | string | Статический cookie (предпочтительно, где поддерживается) |
+| `login.u` / `login.p` | string | Логин и пароль |
+
+Подробнее: [Настройка трекеров в init.yaml](/configuration/trackers).

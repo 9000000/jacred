@@ -1,0 +1,84 @@
+---
+title: "Веб-интерфейс JacRed на Vue 3"
+sidebarTitle: "Веб-интерфейс"
+description: "JacRed включает Vue 3 SPA на порту 9117: страницы поиска, статистики и визуальный редактор init.yaml с YAML/JSON-схемой, diff и валидацией."
+keywords: ["JacRed", "Веб-интерфейс", "документация"]
+---
+
+JacRed поставляется со встроенным веб-интерфейсом на Vue 3 + Vite. SPA отдается контроллером `HomeController` из `wwwroot/index.html` по трём маршрутам и общается с backend только через публичный API.
+
+## Маршруты SPA
+
+| Путь | Vue-компонент | Что показывает |
+| --- | --- | --- |
+| `/` | `SearchPage.vue` | Поиск торрентов в FileDB с фильтрами и превью magnet-ссылок |
+| `/stats` | `StatsPage.vue` | Статистика раздач по трекерам и `TracksDB` |
+| `/settings` | `SettingsPage.vue` | Визуальный редактор `init.yaml` c live-валидацией |
+
+Все три маршрута отдают один и тот же `index.html` (SPA shell). Клиентский роутер Vue Router обрабатывает переключение между страницами. Заголовки `Cache-Control: no-store` гарантируют, что после обновления фронта пользователь всегда получит свежую версию.
+
+## Страница поиска (`/`)
+
+Отправляет запросы в [Native API](/api-reference/native) (`/api/v1.0/torrents`) и отображает:
+
+- Название, размер, число сидов и пиров
+- Трекер и категории
+- Голоса и качество (если известны)
+- Список файлов из ffprobe
+- Кнопка «Скопировать magnet»
+
+## Страница статистики (`/stats`)
+
+Читает [Stats API](/api-reference/stats): `/stats/torrents`, `/stats/tracks`, `/stats/meta`. Показывает:
+
+- Количество активных раздач по каждому трекеру
+- Долю раздач с успешным ffprobe-анализом
+- Время последнего обновления stats.json
+
+Флаг `openstats: true` открывает `/stats` без `apikey` для публичных инстансов.
+
+## Редактор конфига (`/settings`)
+
+Полноценный редактор `init.yaml`, построенный поверх [Config API](/api-reference/config):
+
+- **Схема полей** — рисуется из `GET /api/v1.0/config/schema`. Каждое поле знает свой тип (`string`, `int`, `bool`, `stringList`, `password`) и подсказку.
+- **CodeMirror-редактор** — YAML/JSON с подсветкой синтаксиса (`@codemirror/lang-yaml`, `@codemirror/lang-json`).
+- **Валидация** — `POST /api/v1.0/config/validate` перед сохранением.
+- **Diff** — `POST /api/v1.0/config/diff` показывает изменения относительно текущего конфига.
+- **Форматирование** — `POST /api/v1.0/config/format` нормализует YAML.
+- **Сохранение** — `POST /api/v1.0/config` пишет `init.yaml` в рабочей директории и запускает горячую перезагрузку.
+
+<Tip>
+  Изменения в `/settings` применяются без перезапуска. JacRed следит за рабочим `init.yaml` и перечитывает его за ~10 секунд.
+</Tip>
+
+<Warning>
+  В Docker рабочий файл — `/app/init.yaml`. Изменения из веб-интерфейса не копируются обратно в `/app/config` и будут потеряны при пересоздании контейнера.
+</Warning>
+
+## OpenSearch
+
+`GET /opensearch.xml` возвращает [OpenSearch-описание](https://developer.mozilla.org/docs/Web/OpenSearch), которое браузеры и лаунчеры могут добавить как поисковую систему. Шаблон: `/?s={searchTerms}` — открывает `SearchPage` с заполненным запросом.
+
+## PWA
+
+Фронт собран как [Progressive Web App](https://web.dev/progressive-web-apps/): манифест, service worker и иконки генерируются через `pwa-assets-generator`. Можно установить JacRed как приложение на десктопе или телефоне.
+
+## Кастомная сборка фронта
+
+Исходники: `web/` (Vue 3, Vite, TypeScript, Tailwind, shadcn-vue). Скрипты:
+
+```bash
+cd web
+npm install
+npm run dev        # dev-сервер Vite
+npm run build      # сборка → ../wwwroot
+npm run typecheck  # vue-tsc
+npm run test       # vitest
+```
+
+Скрипт `scripts/build-web-ui.sh` вызывает `npm run build` и подставляет собранные файлы в `wwwroot/`, сохраняя `wwwroot/trackers.txt` от [TrackersWorker](/concepts/background-jobs).
+
+<Note>
+  Web UI не хранит никакого состояния локально: авторизация делается только через `apikey`/`devkey` в URL или заголовках. Секреты не сохраняются в localStorage.
+</Note>

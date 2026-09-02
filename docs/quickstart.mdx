@@ -1,0 +1,116 @@
+---
+title: "Быстрый старт JacRed за 5 минут"
+sidebarTitle: "Быстрый старт"
+description: "Запустите JacRed через Docker Compose, подключите Lampa или Sonarr и выполните первый поисковый запрос за 5 минут."
+keywords: ["JacRed Docker Compose", "установка JacRed", "Lampa", "Sonarr", "Torznab"]
+---
+
+JacRed запускается одной командой через Docker Compose. Эта страница проведёт вас от создания файла конфигурации до первого результата поиска.
+
+<Steps>
+  <Step title="Создайте docker-compose.yml">
+    Создайте рабочую директорию и файл `docker-compose.yml`:
+
+    ```bash
+    mkdir -p /opt/jacred && cd /opt/jacred
+    mkdir -p config data
+    ```
+
+    ```yaml docker-compose.yml
+    services:
+      jacred:
+        image: ghcr.io/jacred-fdb/jacred:latest
+        container_name: jacred
+        restart: unless-stopped
+        ports:
+          - "9117:9117"
+        volumes:
+          - ./config:/app/config
+          - ./data:/app/Data
+        environment:
+          - TZ=Europe/Moscow
+    ```
+  </Step>
+  <Step title="Запустите контейнер">
+    ```bash
+    docker compose up -d
+    ```
+
+    Проверьте, что приложение запустилось:
+
+    ```bash
+    curl -s http://localhost:9117/health
+    # {"status":"OK"}
+    ```
+  </Step>
+  <Step title="Откройте веб-интерфейс">
+    Перейдите по адресу `http://localhost:9117`. Вы увидите поисковый интерфейс JacRed.
+
+    Страницы веб-интерфейса:
+
+    - `/` — поиск торрентов
+    - `/stats` — статистика по трекерам
+    - `/settings` — редактор конфигурации
+  </Step>
+  <Step title="Подключите Lampa или Sonarr">
+    <Tabs>
+      <Tab title="Lampa (Jackett JSON)">
+        В настройках Lampa укажите URL Jackett-сервера:
+
+        ```text
+        http://YOUR_HOST:9117/api/v2.0/indexers/all/results
+        ```
+
+        API-ключ оставьте пустым (пока не задан `apikey` в конфиге).
+      </Tab>
+      <Tab title="Sonarr / Radarr (Torznab)">
+        В разделе Indexers добавьте Torznab-индексер:
+
+        - **URL**: `http://YOUR_HOST:9117/torznab/api`
+        - **API Key**: значение `apikey` из вашего `init.yaml`
+      </Tab>
+      <Tab title="Prowlarr">
+        Добавьте JacRed как Torznab-индексер:
+
+        - **URL**: `http://YOUR_HOST:9117/api/v1/indexer/1/newznab`
+        - **API Key**: значение `apikey` из вашего `init.yaml`
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Выполните первый поиск">
+    ```bash
+    # Текстовый поиск
+    curl -s "http://localhost:9117/api/v2.0/indexers/all/results?query=матрица"
+    
+    # Поиск по IMDb ID
+    curl -s "http://localhost:9117/api/v2.0/indexers/all/results?query=tt0133093"
+    
+    # Поиск по Кинопоиску
+    curl -s "http://localhost:9117/api/v2.0/indexers/all/results?query=kp301"
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  После первого запуска Docker FileDB пуста. Конфиг хранится в `./config/init.yaml`, а база и логи — в `./data`. Docker-образ не содержит планировщик: запускайте cron-команды с хоста или из отдельного контейнера. Готовое расписание и требования к путям описаны в разделе [Cron](/deployment/cron).
+</Note>
+
+## Следующие шаги
+
+<Columns cols={2}>
+  <Card title="Конфигурация" icon="gear" href="/configuration/overview">
+    Настройте `apikey`, трекеры и FlareSolverr в `init.yaml`.
+  </Card>
+
+  <Card title="Docker (детально)" icon="layers" href="/deployment/docker">
+    Полная конфигурация Docker Compose с FlareSolverr и WARP для VPS.
+  </Card>
+
+  <Card title="Трекеры" icon="list" href="/trackers/overview">
+    Настройте авторизацию для каждого трекера.
+  </Card>
+
+  <Card title="Cron" icon="clock" href="/deployment/cron">
+    Установите расписание парсинга трекеров.
+  </Card>
+</Columns>

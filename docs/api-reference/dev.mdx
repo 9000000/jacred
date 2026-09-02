@@ -1,0 +1,132 @@
+---
+title: "Dev API JacRed: диагностика, миграции и maintenance"
+sidebarTitle: "Dev API"
+description: "GET /dev/* — служебные эндпоинты для диагностики FileDB, миграций схемы, обслуживания и tracks-экспорта. Требуют LAN-доступа или заголовка X-Dev-Key."
+keywords: ["JacRed API", "Dev API", "API", "self-hosted"]
+---
+
+Dev API включает служебные эндпоинты для диагностики FileDB, ручных миграций и обслуживания. Все они требуют LAN-доступа или заголовка `X-Dev-Key` (см. [Аутентификация](/authentication)). Используйте эти эндпоинты только для операций администрирования; клиентские приложения не должны на них полагаться.
+
+## Диагностика
+
+Проверка целостности данных FileDB.
+
+```text
+GET /dev/FindCorrupt?sampleSize=20
+```
+
+Возвращает первые N записей с некорректной структурой (пустые обязательные поля, сломанные ссылки).
+
+```text
+GET /dev/FindDuplicateKeys?tracker=kinozal&excludeNumeric=true
+```
+
+Ищет дубликаты ключей. Фильтруйте по трекеру, чтобы сузить выборку. `excludeNumeric=true` исключает числовые ключи (обычные для серий).
+
+```text
+GET /dev/FindEmptySearchFields?sampleSize=20
+```
+
+Записи, у которых пустые `name` или `originalname` (не участвуют в поиске).
+
+<ParamField path="query.sampleSize" type="number">
+  Количество записей в выборке. По умолчанию 20.
+</ParamField>
+
+## Maintenance
+
+Обслуживание FileDB.
+
+```text
+GET /dev/UpdateSize
+```
+
+Пересчитывает размеры файлов для всех записей.
+
+```text
+GET /dev/ResetCheckTime
+```
+
+Сбрасывает `check_time` — принудительно поставит записи в очередь `UpdateTasksParse`.
+
+```text
+GET /dev/UpdateDetails
+```
+
+Пересчитывает поля `details` (озвучки, качество, тип релиза).
+
+```text
+GET /dev/UpdateSearchName
+```
+
+Пересобирает нормализованные `search_name` и `search_originalname` (нужно после смены правил нормализации).
+
+## Миграции
+
+Одноразовые исправления после изменений схемы или парсеров. Не запускайте повторно без необходимости.
+
+| Эндпоинт | Описание |
+| --- | --- |
+| `GET /dev/FixKnabenNames` | Нормализация названий Knaben |
+| `GET /dev/FixBitruNames` | Нормализация названий Bitru |
+| `GET /dev/RemoveNullValues` | Удаление `null`-значений из JSON |
+| `GET /dev/RemoveBucket?key=...` | Удалить бакет из FileDB (опционально с миграцией имён) |
+| `GET /dev/FixEmptySearchFields` | Заполнить пустые search-поля |
+| `GET /dev/MigrateAnilibertyUrls` | Обновить старые URL Aniliberty |
+| `GET /dev/RemoveDuplicateAniliberty` | Удалить дубликаты Aniliberty после миграции URL |
+| `GET /dev/FixAnimelayerDuplicates` | Слить дубликаты AnimeLayer |
+| `GET /dev/FixKinozalDomainDuplicates` | Слить дубликаты Kinozal по разным доменам |
+
+<Warning>
+  Миграции изменяют FileDB. Сделайте резервную копию каталога `Data/fdb/` перед запуском.
+</Warning>
+
+## Tracks (администрирование)
+
+```text
+GET /dev/TracksStats?includeTorrentDb=true&refresh=false
+```
+
+Статистика модуля Tracks: сколько торрентов проанализировано, сколько исключено, распределение по языкам.
+
+```text
+GET /dev/ExportTracks?dir=Data/tracks-export&dryRun=false&background=true
+```
+
+Экспорт tracks-метаданных в JSON-каталог. При `background=true` работает как фоновая задача.
+
+```text
+GET /dev/ExportTracksStatus
+```
+
+Статус активного экспорта.
+
+```text
+GET /dev/BackfillTracks?dryRun=false&migrateLegacy=true
+```
+
+Заполняет tracks-метаданными записи, у которых их нет (перезагружает через `tsuri`).
+
+<ParamField path="query.dryRun" type="boolean">
+  Не изменять данные, только показать, что было бы сделано.
+</ParamField>
+
+<ParamField path="query.includeTorrentDb" type="boolean">
+  Учитывать записи из `torrent.db` кроме FileDB.
+</ParamField>
+
+## Примеры вызовов
+
+```bash
+# Диагностика повреждённых записей
+curl -H "X-Dev-Key: YOUR_DEV_KEY" \
+  "http://localhost:9117/dev/FindCorrupt?sampleSize=50"
+
+# Пересчитать search-поля
+curl -H "X-Dev-Key: YOUR_DEV_KEY" \
+  "http://localhost:9117/dev/UpdateSearchName"
+
+# Экспорт tracks в фоне
+curl -H "X-Dev-Key: YOUR_DEV_KEY" \
+  "http://localhost:9117/dev/ExportTracks?dir=/backup/tracks&background=true"
+```

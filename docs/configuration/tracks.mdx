@@ -1,0 +1,114 @@
+---
+title: "Настройка модуля Tracks и tsuri в JacRed"
+sidebarTitle: "Tracks"
+description: "Модуль Tracks анализирует ffprobe раздач через сервис tsuri и обогащает FileDB данными об аудиодорожках, языках и качестве. Настраивается блоком tracks в init.yaml."
+keywords: ["JacRed", "конфигурация", "Tracks", "init.yaml"]
+---
+
+Модуль Tracks JacRed извлекает ffprobe-метаданные из торрентов (аудиодорожки, языки, кодеки, каналы) через внешний сервис [tsuri](https://github.com/tsuri-project). Данные сохраняются в отдельной БД и используются для фильтрации по языку и озвучке в Native API.
+
+## Как включить
+
+```yaml
+tracks: true                 # включить сбор метаданных
+trackslog: true              # писать Data/log/tracks.log
+trackscategory: "jacred-1"   # уникальная категория, свой на инстанс
+tsuri:
+  - http://127.0.0.1:8090    # список URL сервисов tsuri
+```
+
+<Warning>
+  Значение `trackscategory` должно быть уникальным на каждый инстанс. Одинаковое значение вызывает конфликты при отправке заданий в tsuri.
+</Warning>
+
+## Параметры очереди
+
+<ParamField path="tracksdelay" type="number">
+  Задержка между запросами к tsuri в миллисекундах (`ms`).
+</ParamField>
+
+<ParamField path="tracksatempt" type="number">
+  Количество попыток анализа одной раздачи перед сдачей.
+</ParamField>
+
+<ParamField path="tracksconcurrency" type="number">
+  Глобальный лимит одновременных анализов ко всем tsuri-серверам.
+</ParamField>
+
+<ParamField path="tracksffptimeout" type="number">
+  Таймаут `/ffp` в секундах, когда у раздачи есть сиды (`sid > 0`).
+</ParamField>
+
+<ParamField path="tracksffptimeoutnosid" type="number">
+  Таймаут `/ffp` в секундах, когда сидов нет (`sid == 0`).
+</ParamField>
+
+<ParamField path="tracksreadtimeout" type="number">
+  Время ожидания готовности торрента (`WaitTorrentReady`) в секундах.
+</ParamField>
+
+<ParamField path="trackspeerwaittimeout" type="number">
+  Ожидание появления сидов перед вызовом `/ffp`, в секундах.
+</ParamField>
+
+<ParamField path="tracksffpretry" type="number">
+  Количество дополнительных file id, пробуемых при retry `/ffp`.
+</ParamField>
+
+<ParamField path="tracksminbufferkb" type="number">
+  Минимальный буфер данных (KB) перед вызовом `/ffp`.
+</ParamField>
+
+<ParamField path="tracksorphansweepmin" type="number">
+  Интервал sweep-задачи для удаления «сирот» из `trackscategory` в tsuri, в минутах.
+</ParamField>
+
+## Режим и интервалы
+
+```yaml
+tracksmod: 0                 # 0 — все раздачи, 1 — только за сутки
+tracksinterval:
+  task0: 30                  # интервал task0, минуты
+  task1: 60                  # интервал task1, минуты
+```
+
+<ParamField path="tracksmod" type="string">
+  `0` — анализировать все раздачи в очереди. `1` — только те, что появились за последние сутки.
+</ParamField>
+
+## Балансировка нескольких tsuri
+
+Укажите несколько URL в списке `tsuri`, чтобы распределить нагрузку:
+
+```yaml
+tsuri:
+  - http://tsuri-1:8090
+  - http://tsuri-2:8090
+  - http://tsuri-3:8090
+tracksconcurrency: 6
+```
+
+JacRed равномерно распределяет задания между всеми URL по кругу.
+
+## Мониторинг
+
+```bash
+# Статистика Tracks
+curl "http://localhost:9117/stats/tracks?includeTorrentDb=true"
+
+# Экспорт статистики (запуск)
+curl "http://localhost:9117/dev/TracksStats"
+
+# Полный экспорт treков в JSON
+curl "http://localhost:9117/dev/ExportTracks"
+```
+
+Подробнее в [Dev API](/api-reference/dev) и [Stats API](/api-reference/stats).
+
+## Отключение Tracks
+
+```yaml
+tracks: false
+```
+
+Native API продолжит работать, но поля `ffprobe` и `languages` будут отсутствовать. Torznab XML и Jackett JSON не используют эти поля.

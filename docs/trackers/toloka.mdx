@@ -1,0 +1,58 @@
+---
+title: "Toloka: украинский трекер с cookie-авторизацией"
+sidebarTitle: "Toloka"
+icon: "/images/trackers/toloka.ico"
+description: "Toloka (toloka.to) требует cookie или логин/пароль. Trio-кластер, ~58k раздач. Настройте блок Toloka в init.yaml с login или cookie."
+keywords: ["JacRed", "Toloka", "трекер", "парсинг"]
+---
+
+Toloka, slug `toloka`, содержит около 58 тысяч раздач. Украинский трекер, требует авторизации через cookie или логин/пароль. Входит в trio-кластер.
+
+## Конфигурация
+
+<CodeGroup>
+
+```yaml Cookie (предпочтительно)
+Toloka:
+  host: https://toloka.to
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "toloka_sid=SESSION; toloka_uid=USER_ID"
+```
+
+```yaml Логин/пароль
+Toloka:
+  host: https://toloka.to
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+### Как получить cookie
+
+1. Войдите в аккаунт на toloka.to в браузере.
+2. DevTools (F12) → Application → Cookies → toloka.to.
+3. Скопируйте значения `toloka_sid` и `toloka_uid` в поле `cookie`.
+
+## Расписание cron
+
+```crontab
+14,54 * * * *  /opt/jacred/Data/run-job.sh toloka-parse http://127.0.0.1:9117/cron/toloka/parse 900
+30 2 * * *  /opt/jacred/Data/run-job.sh toloka-UpdateTasksParse http://127.0.0.1:9117/cron/toloka/UpdateTasksParse 60
+55 4,16 * * *  /opt/jacred/Data/run-job.sh toloka-ParseAllTask http://127.0.0.1:9117/cron/toloka/ParseAllTask 60
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/toloka/parse"
+tail -f /opt/jacred/Data/log/toloka.log
+```

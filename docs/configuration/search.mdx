@@ -1,0 +1,122 @@
+---
+title: "Тонкая настройка поиска и Evercache"
+sidebarTitle: "Поиск и кеш"
+description: "Настройте объединение результатов combined search (Jackett + Torznab), fuzzy-поиск и кеширование Evercache. Управляйте slotами search.mergeV1 и evercache.validHour."
+keywords: ["JacRed", "конфигурация", "Поиск и кеш", "init.yaml"]
+---
+
+Поисковый движок JacRed объединяет результаты Jackett JSON и Torznab XML в один ответ и кеширует пары `запрос → результат` через Evercache. Блоки `search` и `evercache` в `init.yaml` управляют этим поведением.
+
+## Combined search
+
+```yaml
+search:
+  mergeV1: auto              # false | auto | true
+  maxV1Pairs: 4              # для auto/true: сколько пар пробовать
+  v1Sort: sid                # sort для v1: sid, pir, size, date
+  stripTrailingYear: true    # запрос без года для fuzzy
+  stripSeasonEpisode: true   # запрос без SxxExx для fuzzy
+  skipSeasonEpisodeFilter: false
+  skipCatFilter: true
+```
+
+<ParamField path="search.mergeV1" type="string">
+  Как объединять результаты `v1` (Native API) с Torznab. `false` — только Torznab; `auto` — включать v1 только для fuzzy; `true` — всегда добавлять v1.
+</ParamField>
+
+<ParamField path="search.maxV1Pairs" type="number">
+  При `mergeV1=auto` или `true`: количество вариантов запроса (пар title/year), которые пробовать через v1 для fuzzy-поиска.
+</ParamField>
+
+<ParamField path="search.v1Sort" type="string">
+  Поле сортировки для v1: `sid`, `pir`, `size`, `date`.
+</ParamField>
+
+<ParamField path="search.stripTrailingYear" type="boolean">
+  Убирать год в конце запроса при построении fuzzy-варианта.
+</ParamField>
+
+<ParamField path="search.stripSeasonEpisode" type="boolean">
+  Убирать `SxxExx` из запроса при построении fuzzy-варианта.
+</ParamField>
+
+<ParamField path="search.skipSeasonEpisodeFilter" type="boolean">
+  Не фильтровать результаты по сезону и серии на стороне сервера. Полезно, когда клиент фильтрует сам.
+</ParamField>
+
+<ParamField path="search.skipCatFilter" type="boolean">
+  Не фильтровать по `cat`/`Category[]`. Клиент получает все категории и фильтрует локально.
+</ParamField>
+
+<Note>
+  Fuzzy-режим срабатывает, когда точное совпадение по `title` не даёт результатов. Тогда JacRed повторяет поиск с урезанным запросом (без года или SxxExx), пробуя до `maxV1Pairs` пар.
+</Note>
+
+## Evercache: кеш поисковых запросов
+
+Evercache сохраняет результаты поисковых запросов на диск (`Data/evercache/`) и переиспользует их для одинаковых запросов в течение TTL.
+
+```yaml
+evercache:
+  enable: true
+  validHour: 24              # TTL кеша в часах, 0 — бессрочно
+  maxOpenWriteTask: 4        # параллельная запись на диск
+  dropCacheTake: 5000        # сколько удалять за раз при сбросе кеша
+```
+
+<ParamField path="evercache.enable" type="boolean">
+  Включить дисковый кеш поисковых результатов.
+</ParamField>
+
+<ParamField path="evercache.validHour" type="number">
+  TTL записей в часах. `0` — записи не устаревают.
+</ParamField>
+
+<ParamField path="evercache.maxOpenWriteTask" type="number">
+  Максимум параллельных задач записи на диск.
+</ParamField>
+
+<ParamField path="evercache.dropCacheTake" type="number">
+  Размер батча удаления устаревших записей.
+</ParamField>
+
+## Пример: продакшн с ограниченным диском
+
+```yaml
+search:
+  mergeV1: auto
+  maxV1Pairs: 3
+  skipCatFilter: true
+
+evercache:
+  enable: true
+  validHour: 12
+  maxOpenWriteTask: 2
+  dropCacheTake: 2000
+```
+
+## Пример: отладка поиска
+
+```yaml
+search:
+  mergeV1: true              # всегда добавлять v1
+  maxV1Pairs: 8
+  stripTrailingYear: true
+  stripSeasonEpisode: true
+
+evercache:
+  enable: false              # каждый запрос идёт напрямую в FileDB
+```
+
+## Очистка кеша
+
+```bash
+# Удалить файлы вручную
+rm -rf Data/evercache/*
+
+# Или переключить evercache.enable в false и обратно в true
+```
+
+<Tip>
+  Evercache особенно полезен при высокой нагрузке из Sonarr/Radarr, которые часто делают одинаковые запросы. На простых инстансах с редкими поисками экономия невелика.
+</Tip>

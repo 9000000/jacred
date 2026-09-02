@@ -1,0 +1,119 @@
+---
+title: "Sync API JacRed"
+sidebarTitle: "Sync API"
+description: "GET /sync/fdb/torrents реализует инкрементальную выгрузку FileDB для внешних клиентов. Требует opensync: true. Используется sync.jacred.stream."
+keywords: ["Sync API", "/sync/fdb/torrents", "opensync", "fbd", "FileTimeUtc"]
+---
+
+Sync API предоставляет инкрементальную выгрузку содержимого FileDB для внешних клиентов синхронизации. Используется облачным сервисом `sync.jacred.stream`, а также может применяться для репликации между экземплярами JacRed.
+
+## Требования
+
+```yaml
+opensync: true   # открыть /sync/* эндпоинты
+```
+
+При `opensync: false` эндпоинты возвращают пустые коллекции.
+
+## Метаданные протокола
+
+```text
+GET /sync/conf
+```
+
+Возвращает метаданные протокола синхронизации:
+
+```json
+{
+  "fbd": true,
+  "spidr": true,
+  "version": 2
+}
+```
+
+`fbd` — имя capability-поля протокола версии 2. Оно сохраняется для совместимости.
+
+## Поиск ключей
+
+```text
+GET /sync/fdb?key={substring}
+```
+
+Возвращает первые 20 записей `masterDb`, чей ключ содержит `key`. Каждая запись включает `Key`, `updateTime`, `fileTime`, `path` (относительный путь до `Data/fdb/`) и полное содержимое торрентов.
+
+```bash
+curl "http://localhost:9117/sync/fdb?key=matrix"
+```
+
+## Инкрементальная выгрузка
+
+```text
+GET /sync/fdb/torrents
+```
+
+Основной эндпоинт для получения изменений FileDB батчами по 2000 записей.
+
+### Параметры
+
+<ParamField path="query.time" type="number">
+  Метка `.NET FileTimeUtc`. Возвращает шарды, изменённые после неё. Для первой загрузки передайте `-1`; значение `0` возвращает пустую коллекцию.
+</ParamField>
+
+<ParamField path="query.start" type="number">
+  Метка начальной синхронизации. Влияет на сокращённое представление уже известных раздач. Штатный клиент JacRed управляет параметром автоматически.
+</ParamField>
+
+<ParamField path="query.spidr" type="boolean">
+  Включить категорию spidr.
+</ParamField>
+
+### Ответ
+
+```json
+{
+  "nextread": true,
+  "countread": 2000,
+  "take": 2000,
+  "collections": [
+    {
+      "Key": "rutracker",
+      "Value": {
+        "time": "2026-09-01T12:00:00Z",
+        "fileTime": 134169264000000000,
+        "torrents": {
+          "https://tracker.example/topic/123": {
+            "sid": "12345678",
+            "title": "...",
+            "magnet": "magnet:..."
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+### Алгоритм синхронизации
+
+1. Отправьте запрос с `time=-1` для первоначальной загрузки.
+2. Сохраните `fileTime` последней записи.
+3. Повторяйте запросы, пока `nextread: true`.
+4. При следующей сессии передавайте сохранённый `time` для инкрементального обновления.
+
+```bash
+# Получить первый батч с начала
+curl "http://localhost:9117/sync/fdb/torrents?time=-1"
+
+# Продолжить пагинацию
+curl "http://localhost:9117/sync/fdb/torrents?time=134169264000000000"
+```
+
+## Фильтрация трекеров
+
+Параметр `disable_trackers` в `init.yaml` исключает трекеры из выдачи Sync API:
+
+```yaml
+disable_trackers:
+  - anibelka
+  - subsplease
+```

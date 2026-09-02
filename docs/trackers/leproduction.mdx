@@ -1,0 +1,39 @@
+---
+title: "Leproduction: анонимный аниме-трекер"
+sidebarTitle: "Leproduction"
+icon: "/images/trackers/leproduction.ico"
+description: "Leproduction (le-production.online) работает без авторизации. Раз в сутки JacRed парсит до 3 страниц свежих раздач."
+keywords: ["JacRed", "Leproduction", "трекер", "парсинг"]
+---
+
+Leproduction, slug `leproduction`, работает без авторизации. Ежедневный `parse` с ограничением `?limit_page=3`.
+
+## Конфигурация
+
+```yaml
+Leproduction:
+  host: https://www.le-production.online
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+## Расписание cron
+
+```crontab
+45 6 * * *  /opt/jacred/Data/run-job.sh leproduction-parse "http://127.0.0.1:9117/cron/leproduction/parse?limit_page=3" 900
+```
+
+### Параметры
+
+<ParamField path="query.limit_page" default="3" type="number">
+  Максимальное число страниц за запуск.
+</ParamField>
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/leproduction/parse?limit_page=3"
+tail -f /opt/jacred/Data/log/leproduction.log
+```

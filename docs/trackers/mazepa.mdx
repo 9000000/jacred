@@ -1,0 +1,39 @@
+---
+title: "Mazepa: украинский трекер с login-авторизацией"
+sidebarTitle: "Mazepa"
+icon: "/images/trackers/mazepa.ico"
+description: "Mazepa (mazepa.to) требует cookie или логин/пароль. ~51k раздач. Только задача parse (без UpdateTasksParse и ParseAllTask)."
+keywords: ["JacRed", "Mazepa", "трекер", "парсинг"]
+---
+
+Mazepa, slug `mazepa`, содержит около 51 тысячи раздач. Украинский трекер, требует авторизации. Использует только задачу `parse` без trio-кластера.
+
+## Конфигурация
+
+```yaml
+Mazepa:
+  host: https://mazepa.to
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+Cookie также поддерживается в поле `cookie` вместо `login`.
+
+## Расписание cron
+
+```crontab
+# Парсинг раз в час
+25 * * * *  /opt/jacred/Data/run-job.sh mazepa-parse http://127.0.0.1:9117/cron/mazepa/parse 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/mazepa/parse"
+tail -f /opt/jacred/Data/log/mazepa.log
+```

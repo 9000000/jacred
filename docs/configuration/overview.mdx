@@ -1,0 +1,180 @@
+---
+title: "Конфигурация JacRed"
+sidebarTitle: "Обзор"
+description: "JacRed читает конфигурацию из init.yaml (приоритет) или init.conf в рабочей директории. Горячая перезагрузка за 10 секунд. Веб-редактор доступен на /settings."
+keywords: ["init.yaml", "конфигурация JacRed", "/app/config", "Config API", "горячая перезагрузка"]
+---
+
+JacRed хранит всю конфигурацию в одном файле — `init.yaml` (или `init.conf` для JSON-формата). Приложение читает файл из рабочей директории. В Docker это `/app/init.yaml`: entrypoint копирует его из постоянного тома `/app/config`. Данные остаются отдельно в `/app/Data`. Конфиг перечитывается автоматически каждые ~10 секунд без перезапуска.
+
+## Приоритет файлов
+
+1. `init.yaml` (YAML-формат, предпочтительный)
+2. `init.conf` (JSON-формат)
+
+Если оба файла существуют, используется `init.yaml`.
+
+## Веб-редактор
+
+Откройте `http://YOUR_HOST:9117/settings` для редактирования конфигурации через браузер. Веб-редактор требует LAN-доступа или заголовка `X-Dev-Key`.
+
+<Warning>
+  В Docker редактор сохраняет рабочий `/app/init.yaml`. Entrypoint не копирует его обратно в `/app/config`. Для постоянного изменения отредактируйте файл в смонтированном томе `/app/config`.
+</Warning>
+
+## Глобальные параметры
+
+| Параметр | Тип | По умолчанию | Описание |
+| --- | --- | --- | --- |
+| `listenip` | string | `any` | IP для прослушивания |
+| `listenport` | int | `9117` | Порт |
+| `apikey` | string | `""` | Ключ для поисковых эндпоинтов |
+| `devkey` | string | `""` | Ключ для административных эндпоинтов |
+| `mergeduplicates` | bool | `true` | Объединять семантические дубли |
+| `mergenumduplicates` | bool | `true` | Объединять числовые дубли |
+| `openstats` | bool | `true` | Открыть `/stats/*` без ключа |
+| `opensync` | bool | `false` | Открыть `/sync/*` для внешних клиентов |
+| `web` | bool | `true` | Включить веб-интерфейс |
+| `logFdb` | bool | `true` | Логировать изменения FileDB |
+| `logFdbRetentionDays` | int | `7` | Хранить логи N дней |
+| `logParsers` | bool | `true` | Логировать работу парсеров |
+| `maxreadfile` | int | `250` | Макс. записей из одного шарда FileDB |
+| `fdbPathLevels` | int | `2` | Уровни вложенности директорий FileDB |
+| `timeStatsUpdate` | int | `15` | Интервал обновления stats.json, минуты |
+| `timeSync` | int | `120` | Интервал синхронизации, минуты |
+| `syncapi` | string | `""` | URL сервера синхронизации |
+
+## Минимальный init.yaml
+
+```yaml
+listenip: any
+listenport: 9117
+apikey: "your-api-key"
+devkey: "your-dev-key"
+```
+
+## Полная структура конфига
+
+```yaml
+listenip: any
+listenport: 9117
+apikey: ""
+devkey: ""
+
+# Объединение дублей
+mergeduplicates: true
+mergenumduplicates: true
+
+# Доступность эндпоинтов
+openstats: true
+opensync: false
+web: true
+
+# Логирование FileDB
+logFdb: true
+logFdbRetentionDays: 7
+logFdbMaxSizeMb: 0
+logFdbMaxFiles: 0
+logParsers: true
+
+# FileDB
+maxreadfile: 250
+fdbPathLevels: 2
+
+# Синхронизация
+syncapi: ""
+synctrackers: [rutracker, kinozal, rutor, ...]
+disable_trackers: []
+syncsport: true
+syncspidr: true
+timeSync: 120
+timeSyncSpidr: 360
+saveCheckpointEveryNBatches: 5
+timeStatsUpdate: 15
+
+# Поиск
+search:
+  mergeV1: auto
+  maxV1Pairs: 4
+  v1Sort: sid
+  stripTrailingYear: true
+  stripSeasonEpisode: true
+  skipSeasonEpisodeFilter: false
+  skipCatFilter: true
+
+# Torznab
+torznab:
+  enable: true
+  enrichTitles: true
+
+# Alloha TV API (для ID-поиска)
+# alloha:
+#   enable: true
+#   token: ""
+#   cacheHours: 24
+
+# FlareSolverr (для Rutracker)
+flaresolverr:
+  enable: false
+  url: http://127.0.0.1:8191/v1
+
+# Tracks-модуль
+tracks: false
+tsuri:
+  - http://127.0.0.1:8090
+
+# Блоки трекеров
+Rutracker:
+  host: https://rutracker.org
+  ...
+```
+
+## Config API
+
+Конфиг можно читать и изменять программно:
+
+```bash
+# Прочитать текущий конфиг
+curl "http://localhost:9117/api/v1.0/config?format=yaml" \
+  -H "X-Dev-Key: YOUR_DEV_KEY"
+
+# Сохранить новый конфиг
+curl -X POST "http://localhost:9117/api/v1.0/config" \
+  -H "X-Dev-Key: YOUR_DEV_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "listenport: 9117\napikey: newkey"}'
+```
+
+Подробнее в разделе [Config API](/api-reference/config).
+
+## Дальше
+
+<Columns cols={2}>
+  <Card title="Трекеры" icon="list" href="/configuration/trackers">
+    Общая структура блоков трекеров, cookie и login/password.
+  </Card>
+
+  <Card title="Прокси" icon="shield" href="/configuration/proxy">
+    Единый пул `proxy` и правила `globalproxy` по regex URL.
+  </Card>
+
+  <Card title="FlareSolverr" icon="cloud" href="/configuration/flaresolverr">
+    Обход Cloudflare для Rutracker через реальный браузер.
+  </Card>
+
+  <Card title="Alloha TV" icon="film" href="/configuration/alloha">
+    Резолвинг IMDb / KP / TMDB идентификаторов в названия.
+  </Card>
+
+  <Card title="Поиск" icon="magnifying-glass" href="/configuration/search">
+    Параметры `search.*` и `evercache.*`.
+  </Card>
+
+  <Card title="Tracks" icon="film" href="/configuration/tracks">
+    ffprobe через tsuri: расписание, воркеры, ретраи.
+  </Card>
+
+  <Card title="Логирование" icon="file" href="/configuration/logging">
+    Уровни, ротация, категории.
+  </Card>
+</Columns>

@@ -1,0 +1,95 @@
+---
+title: "Настройка трекера Rutracker"
+sidebarTitle: "Rutracker"
+icon: "/images/trackers/rutracker.ico"
+description: "Rutracker защищён Cloudflare. JacRed использует FlareSolverr для обхода. Настройте блок flaresolverr, cron-прогрев и блок Rutracker в init.yaml."
+keywords: ["JacRed", "Rutracker", "трекер", "парсинг"]
+---
+
+Rutracker — крупнейший трекер в базе JacRed (~1.5 миллиона раздач). Он защищён Cloudflare, что требует специальной настройки через FlareSolverr.
+
+## Требования
+
+- FlareSolverr для обхода Cloudflare challenge
+- На VPS с датацентровым IP: WARP + FlareSolverr
+
+## Конфигурация
+
+```yaml
+flaresolverr:
+  enable: true
+  url: http://flaresolverr:8191/v1   # в docker-compose
+  maxTimeoutMs: 300000
+  sessionIdleMinutes: 120
+  browserTimeoutRetries: 1
+  recycleAfterTimeouts: 3
+  guardedHours: 6
+  recheckMinutes: 30
+
+Rutracker:
+  host: https://rutracker.org
+  alias: ""              # Worker URL если flaresolverr.enable=false
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  topicFetchAttempts: 5  # повторов на получение магнета
+  log: true
+```
+
+## Расписание cron
+
+```crontab
+# Прогрев каждые 20 минут
+5,25,45 * * * *  /opt/jacred/Data/run-job.sh cloudflare-keepalive http://127.0.0.1:9117/cron/cloudflare/Warmup 300
+
+# Warmup перед parse
+55 * * * *  /opt/jacred/Data/run-job.sh cloudflare-warmup http://127.0.0.1:9117/cron/cloudflare/Warmup 300
+
+# Парсинг каждый час
+0 * * * *   /opt/jacred/Data/run-job.sh rutracker-parse http://127.0.0.1:9117/cron/rutracker/parse 3600
+
+# Обновление очереди
+20 3 * * *  /opt/jacred/Data/run-job.sh rutracker-UpdateTasksParse http://127.0.0.1:9117/cron/rutracker/UpdateTasksParse 60
+
+# Полный перебор (2 раза в сутки)
+40 4,11 * * *  /opt/jacred/Data/run-job.sh rutracker-ParseAllTask http://127.0.0.1:9117/cron/rutracker/ParseAllTask 60
+```
+
+## Принцип работы с Cloudflare
+
+```text
+JacRed → FlareSolverr → Chromium → rutracker.org (CF challenge ~11s)
+                      → кеш сессии (~0.5s при активном Chromium)
+```
+
+`cf_clearance` хранится в браузерной сессии FlareSolverr (`jacred`). JacRed переиспользует сессию между запросами.
+
+## Режим без FlareSolverr
+
+Если FlareSolverr недоступен, установите `alias` — Worker URL для проксирования запросов:
+
+```yaml
+Rutracker:
+  host: https://rutracker.org
+  alias: "https://your-worker.example.com"
+
+flaresolverr:
+  enable: false
+```
+
+<Warning>
+  Без FlareSolverr или alias JacRed получит 403 от Cloudflare при каждом запросе к rutracker.org.
+</Warning>
+
+## Диагностика
+
+```bash
+# Проверить статус FlareSolverr-сессии
+curl "http://localhost:9117/cron/cloudflare/Warmup"
+
+# Запустить парсинг вручную
+curl "http://localhost:9117/cron/rutracker/parse"
+
+# Проверить фоновые задачи
+curl "http://localhost:9117/health/background-jobs"
+```

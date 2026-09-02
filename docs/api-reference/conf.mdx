@@ -1,0 +1,69 @@
+---
+title: "GET /api/v1.0/conf"
+sidebarTitle: "Conf API"
+description: "Определите экземпляр JacRed, необходимость API-ключа и версию сборки через публичный endpoint /api/v1.0/conf."
+keywords:
+  - JacRed
+  - API
+  - conf
+  - apikey
+  - discovery
+---
+
+`GET /api/v1.0/conf` — публичный discovery endpoint. Используйте его, чтобы определить JacRed и проверить API-ключ до вызова защищённых маршрутов.
+
+```bash
+curl "https://jacred.example.com/api/v1.0/conf" \
+  -H "X-Api-Key: YOUR_API_KEY"
+```
+
+## Аутентификация
+
+<ParamField path="query.apikey" type="string">
+  API-ключ для проверки. Вместо query-параметра можно передать `X-Api-Key` или `Authorization: Bearer`.
+</ParamField>
+
+Endpoint остаётся публичным и не возвращает сам настроенный ключ.
+
+## Ответ
+
+<ResponseField name="jacred" type="boolean" required>
+  Всегда `true`. Значение подтверждает, что хост обслуживает JacRed.
+</ResponseField>
+
+<ResponseField name="configured" type="boolean" required>
+  `true`, если в конфигурации сервера задан непустой `apikey`.
+</ResponseField>
+
+<ResponseField name="apikey" type="boolean" required>
+  `true`, если ключ не требуется или переданное значение совпало с серверным `apikey`.
+</ResponseField>
+
+<ResponseField name="version" type="string" required>
+  Версия текущей сборки. То же значение возвращает поле `version` маршрута `/version`.
+</ResponseField>
+
+```json
+{
+  "jacred": true,
+  "configured": true,
+  "apikey": true,
+  "version": "3.9.3"
+}
+```
+
+## Интерпретация
+
+| `configured` | `apikey` | Результат |
+| --- | --- | --- |
+| `false` | `true` | API-ключ на сервере не настроен |
+| `true` | `true` | Переданный ключ верен |
+| `true` | `false` | Ключ отсутствует или неверен |
+
+Сочетание `configured: false` и `apikey: false` не используется.
+
+<Note>
+  Неверный ключ не меняет форму ответа: endpoint сообщает `apikey: false`. Защищённые API-маршруты при этом отклонят запрос.
+</Note>
+
+Для проверки состояния процесса используйте [Health API](/api-reference/health), а правила передачи ключей смотрите в [матрице доступа](/operations/access-matrix).

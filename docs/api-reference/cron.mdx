@@ -1,0 +1,152 @@
+---
+title: "Cron API JacRed"
+sidebarTitle: "Cron API"
+description: "GET /cron/{slug}/{action} запускает парсеры и служебные задачи. Требует прямого LAN-доступа или X-Dev-Key. Включает эндпоинты трекеров и FlareSolverr."
+keywords: ["Cron API", "GET /cron", "GET /jsondb/save", "X-Dev-Key", "парсеры JacRed"]
+---
+
+Cron API — HTTP-интерфейс для ручного или запланированного запуска парсеров и служебных задач. Используйте метод `GET`. Все эндпоинты требуют прямого LAN-доступа или `devkey`; через reverse proxy ключ обязателен.
+
+## Шаблоны URL
+
+| Задача | URL | Описание |
+| --- | --- | --- |
+| Парсинг новых | `GET /cron/{slug}/parse` | Парсит новые страницы трекера |
+| Обновление очереди | `GET /cron/{slug}/UpdateTasksParse` | Обновляет очередь существующих раздач |
+| Полный перебор | `GET /cron/{slug}/ParseAllTask` | Полный обход всей базы трекера |
+| Warmup CF | `GET /cron/cloudflare/Warmup` | Прогревает FlareSolverr-сессию |
+| Сохранить FileDB | `GET /jsondb/save` | Сбрасывает FileDB на диск |
+| Проверка | `GET /cron/maintenance/Check` | Диагностика системы |
+
+## Примеры вызовов
+
+<CodeGroup>
+
+```bash Парсинг Kinozal (LAN)
+curl "http://localhost:9117/cron/kinozal/parse"
+```
+
+```bash Парсинг с devkey (из интернета)
+curl -H "X-Dev-Key: YOUR_DEV_KEY" \
+  "http://localhost:9117/cron/kinozal/parse"
+```
+
+```bash Прогрев FlareSolverr
+curl "http://localhost:9117/cron/cloudflare/Warmup"
+```
+
+```bash Полный перебор Rutracker
+curl "http://localhost:9117/cron/rutracker/ParseAllTask"
+```
+
+```bash Сохранить FileDB на диск
+curl "http://localhost:9117/jsondb/save"
+```
+
+</CodeGroup>
+
+## Специальные параметры
+
+Некоторые трекеры поддерживают дополнительные параметры:
+
+```bash
+# Bitru: backfill последних N страниц
+curl "http://localhost:9117/cron/bitru/backfill?pages=20"
+
+# Rudub: лимит страниц парсинга
+curl "http://localhost:9117/cron/rudub/parse?limit_page=50"
+
+# SubsPlease: парсинг шоу
+curl "http://localhost:9117/cron/subsplease/ParseShows"
+
+# Maintenance с отчётом
+curl "http://localhost:9117/cron/maintenance/Check?mode=report"
+```
+
+## Проверка целостности FileDB
+
+```text
+GET /cron/maintenance/Check
+GET /cron/maintenance/Status
+```
+
+Запускает проверку целостности FileDB. Возвращает `ok` при старте или `work`, если уже выполняется.
+
+<ParamField path="query.mode" default="report" type="string">
+  Режим: `report` (только отчёт), `safe` (безопасные исправления), `full` (все исправления).
+</ParamField>
+
+<ParamField path="query.sampleSize" default="20" type="number">
+  Размер выборки для отчёта.
+</ParamField>
+
+<ParamField path="query.excludeNumericXx" default="true" type="boolean">
+  Исключить служебные ключи с числовыми окончаниями.
+</ParamField>
+
+```bash
+# Запустить проверку
+curl "http://localhost:9117/cron/maintenance/Check?mode=safe&sampleSize=50"
+
+# Проверить статус
+curl "http://localhost:9117/cron/maintenance/Status"
+```
+
+`Status` возвращает `{ running, mode, startedAt, lastReport }` с полным отчётом последнего запуска.
+
+## Сохранение FileDB
+
+```text
+GET /jsondb/save
+```
+
+Асинхронно сбрасывает изменения `masterDb` на диск. Ответ приходит сразу, а сохранение выполняется в фоне.
+
+Возможные ответы:
+
+| Тело | Значение |
+| --- | --- |
+| `ok` | Сохранение запущено в фоне |
+| `work` | Предыдущее сохранение ещё не завершено |
+| `syncapi` | JacRed работает в режиме клиента `syncapi`; локальное сохранение отключено |
+
+```bash
+curl "http://localhost:9117/jsondb/save"
+```
+
+<Note>
+  JacRed автоматически сохраняет FileDB по расписанию. Ручной вызов нужен только для аварийного сброса перед перезапуском.
+</Note>
+
+## Мониторинг фоновых задач
+
+```text
+GET /health/background-jobs
+```
+
+Возвращает статус всех активных фоновых задач:
+
+```json
+{
+  "jobs": [
+    {
+      "Key": "kinozal-parse-20250115",
+      "Tracker": "kinozal",
+      "JobLabel": "parse",
+      "startedAtUtc": "2025-01-15T12:00:00Z",
+      "ageSec": 45,
+      "progressCurrent": 150,
+      "progressTotal": 500,
+      "ProgressDetail": "page 150/500"
+    }
+  ]
+}
+```
+
+```bash
+curl "http://localhost:9117/health/background-jobs"
+```
+
+<Warning>
+  Не запускайте один парсер параллельно. При запуске через `Data/run-job.sh` повторный процесс блокируется с помощью `flock`.
+</Warning>

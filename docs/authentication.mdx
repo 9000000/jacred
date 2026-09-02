@@ -1,0 +1,133 @@
+---
+title: "Аутентификация в JacRed API"
+sidebarTitle: "Аутентификация"
+description: "Настройте apikey для защиты поиска и devkey для доступа к конфигурации и cron-эндпоинтам через интернет. Передавайте ключи через параметр запроса или заголовок."
+keywords: ["apikey", "devkey", "X-Api-Key", "X-Dev-Key", "reverse proxy", "LAN"]
+---
+
+JacRed поддерживает два независимых ключа доступа: `apikey` защищает поисковые эндпоинты от неавторизованного использования, а `devkey` открывает доступ к административным эндпоинтам (`/dev/`, `/cron/`, `/api/v1.0/config/*`) из внешней сети.
+
+## apikey: защита поиска
+
+Если в конфиге задан `apikey`, все поисковые запросы должны содержать его. Без ключа сервер вернёт `401 Unauthorized`.
+
+Задайте ключ в `init.yaml`:
+
+```yaml
+apikey: "your-secret-key-here"
+```
+
+### Как передать apikey
+
+<CodeGroup>
+
+```bash Параметр запроса
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=матрица&apikey=your-secret-key-here"
+```
+
+```bash Заголовок X-Api-Key
+curl -H "X-Api-Key: your-secret-key-here" \
+  "http://localhost:9117/api/v2.0/indexers/all/results?query=матрица"
+```
+
+</CodeGroup>
+
+<Warning>
+  Если `apikey` не задан (пустая строка), поиск открыт для всех в сети. Устанавливайте ключ, если JacRed доступен из интернета.
+</Warning>
+
+## devkey: доступ к административным эндпоинтам
+
+`devkey` защищает конфигурацию, cron и dev-утилиты. Прямой запрос с loopback или частного LAN-адреса доступен без ключа. Запрос через обратный прокси или туннель с forwarding-заголовками требует `devkey`, даже если сам прокси находится в LAN или Docker-сети.
+
+Задайте ключ в `init.yaml`:
+
+```yaml
+devkey: "your-dev-key-here"
+```
+
+### Как передать devkey
+
+<CodeGroup>
+
+```bash Параметр запроса
+curl "http://localhost:9117/api/v1.0/config?devkey=your-dev-key-here"
+```
+
+```bash Заголовок X-Dev-Key
+curl -H "X-Dev-Key: your-dev-key-here" \
+  "http://localhost:9117/api/v1.0/config"
+```
+
+</CodeGroup>
+
+<Tip>
+  Не полагайтесь на частный адрес прокси. Задайте `devkey` для любого доступа через Nginx, Traefik, Caddy, cloudflared или другой reverse proxy.
+</Tip>
+
+## Модель доступа
+
+JacRed использует четыре класса доступа. Роутер применяет их к каждому пути автоматически через `JacRedAuthorizationMiddleware`:
+
+| Политика | Кто получает доступ | Пример путей |
+| --- | --- | --- |
+| `Public` | Все, без ключей | `/`, `/health`, `/version`, `/opensearch.xml`, `/openapi.yaml`, `/swagger`, `/sync/*` |
+| `ApiKeyWhenConfigured` | Все, если `apikey` пуст; иначе — с ключом | `/api/v1.0/torrents`, `/api/v2.0/indexers/*`, `/torznab/api`, `/api/v1/search`, `/stats/*` |
+| `ConfigApi` | LAN или `devkey` | `/api/v1.0/config`, `/api/v1.0/config/*` |
+| `DevAdmin` | LAN или `devkey` | `/dev/*`, `/cron/*`, `/jsondb/save`, `/cron/maintenance/Check` |
+
+<Note>
+  Публичные `/sync/*` дополнительно проверяют флаг `opensync` в контроллере. Публичные `/stats/*` — флаг `openstats`.
+</Note>
+
+## Уровни доступа эндпоинтов
+
+| Эндпоинт | Без ключей | Нужен apikey | Нужен devkey/LAN |
+| --- | --- | --- | --- |
+| `GET /health` | Да |  |  |
+| `GET /version` | Да |  |  |
+| `GET /lastupdatedb` | Да |  |  |
+| `GET /health/background-jobs` | Да |  |  |
+| `GET /api/v1.0/conf` | Да |  |  |
+| `GET /openapi.yaml`, `/swagger` | Да |  |  |
+| `GET /sync/conf`, `/sync/fdb*` | Да (+ `opensync`) |  |  |
+| `GET /api/v2.0/indexers/*/results` | Нет | Да |  |
+| `GET /api/v1.0/torrents` | Нет | Да |  |
+| `GET /torznab/api` | Нет | Да |  |
+| `GET /api/v1/search` | Нет | Да |  |
+| `GET /stats/torrents` (+ `openstats`) | Да | Да |  |
+| `GET/POST /api/v1.0/config*` | Нет |  | Да |
+| `GET /cron/*` | Нет |  | Да |
+| `GET/POST /dev/*` | Нет |  | Да |
+| `GET /jsondb/save` | Нет |  | Да |
+
+## LAN-определение
+
+Локальными считаются loopback, частные IPv4-сети, IPv6 ULA (`fc00::/7`) и link-local (`fe80::/10`). Но наличие `CF-Connecting-IP`, `CF-Ray`, `X-Forwarded-*`, `X-Real-IP` или `Forwarded` помечает запрос как проксированный. Такой запрос не получает LAN-доступ автоматически.
+
+JacRed применяет `X-Forwarded-For` к адресу клиента только для прокси на loopback. Заголовки от произвольного клиента или Docker/LAN-пира не дают доверенный доступ.
+
+<Warning>
+  Если прокси удаляет все распознаваемые forwarding-заголовки, JacRed может увидеть только его частный адрес. Всегда задавайте `devkey` и сохраняйте стандартные proxy-заголовки.
+</Warning>
+
+## Проверка подключения
+
+Для проверки, принимает ли JacRed ваш ключ, используйте эндпоинт `/api/v1.0/conf`:
+
+```bash
+curl -s "http://localhost:9117/api/v1.0/conf?apikey=your-secret-key-here"
+```
+
+Ответ при корректном ключе:
+
+```json
+{
+  "jacred": true,
+  "configured": true,
+  "apikey": true,
+  "version": "3.9.3"
+}
+```
+
+Поле `apikey: false` означает, что ключ неверен или не задан.

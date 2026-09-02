@@ -1386,7 +1386,7 @@ export interface operations {
                     "application/json": {
                         /**
                          * @description Always true — this host is JacRed
-                         * @constant
+                         * @enum {boolean}
                          */
                         jacred: true;
                         /** @description true when the server has a non-blank apikey configured */

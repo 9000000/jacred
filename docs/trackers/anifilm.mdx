@@ -1,0 +1,56 @@
+---
+title: "Anifilm: аниме-трекер с cookie или login"
+sidebarTitle: "Anifilm"
+icon: "/images/trackers/anifilm.ico"
+description: "Anifilm (anifilm.pro) требует cookie (XSRF-TOKEN + anifilm_session) или логин/пароль. Ежедневный parse с таймаутом 1800s."
+keywords: ["JacRed", "Anifilm", "трекер", "парсинг"]
+---
+
+Anifilm, slug `anifilm`, требует авторизации через cookie или логин/пароль. Раз в сутки JacRed запускает `parse` с увеличенным таймаутом 1800 секунд.
+
+## Конфигурация
+
+<CodeGroup>
+
+```yaml Cookie
+Anifilm:
+  host: https://anifilm.pro
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "XSRF-TOKEN=TOKEN; anifilm_session=SESSION"
+```
+
+```yaml Логин/пароль
+Anifilm:
+  host: https://anifilm.pro
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+### Как получить cookie
+
+1. Войдите в аккаунт на anifilm.pro в браузере.
+2. DevTools (F12) → Application → Cookies → anifilm.pro.
+3. Скопируйте значения `XSRF-TOKEN` и `anifilm_session` в поле `cookie`.
+
+## Расписание cron
+
+```crontab
+55 6 * * *  /opt/jacred/Data/run-job.sh anifilm-parse http://127.0.0.1:9117/cron/anifilm/parse 1800
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/anifilm/parse"
+tail -f /opt/jacred/Data/log/anifilm.log
+```

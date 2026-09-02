@@ -61,7 +61,7 @@ namespace JacRed.Infrastructure.Security
         {
             if (IsTrustedLanClient(network, httpContext))
                 return true;
-            // Empty/missing devkey = LAN-only (docs/example.conf); do not treat as world-open.
+            // Empty/missing devkey = LAN-only (Data/example.conf); do not treat as world-open.
             if (string.IsNullOrEmpty(AppInit.conf?.devkey))
                 return false;
             return JacRedKeyUtils.DevKeyMatches(httpContext, AppInit.conf.devkey);

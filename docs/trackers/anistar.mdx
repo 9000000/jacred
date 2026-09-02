@@ -1,0 +1,46 @@
+---
+title: "Anistar: две ссылки host и alias для смены зеркал"
+sidebarTitle: "Anistar"
+icon: "/images/trackers/anistar.ico"
+description: "Anistar использует host для FDB-URL и alias для живых запросов. При смене зеркала меняется только alias, а FDB остаётся стабильным. Cookie опционально."
+keywords: ["JacRed", "Anistar", "трекер", "парсинг"]
+---
+
+Anistar, slug `anistar`, использует двухуровневую модель URL: `host` — канонический адрес для FDB (все ссылки в базе), `alias` — живое зеркало для HTTP-запросов. При смене зеркала обновите только `alias`, чтобы существующие FDB-записи остались работоспособны.
+
+## Конфигурация
+
+```yaml
+Anistar:
+  host: https://anistar.org      # каноническая FDB-ссылка
+  alias: https://v30.astar.bz    # текущее живое зеркало
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: ""                     # опционально
+```
+
+<Warning>
+  Меняйте только `alias` при смене зеркала. Значение `host` захардкожено в существующих FDB-записях — его изменение сломает существующие ссылки.
+</Warning>
+
+## Расписание cron
+
+```crontab
+# Раз в сутки, до 3 страниц
+40 6 * * *  /opt/jacred/Data/run-job.sh anistar-parse "http://127.0.0.1:9117/cron/anistar/parse?limit_page=3" 900
+```
+
+### Параметры
+
+<ParamField path="query.limit_page" default="3" type="number">
+  Максимальное число страниц за запуск. Для первичного наполнения базы поднимите до 20 – 30.
+</ParamField>
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/anistar/parse?limit_page=3"
+tail -f /opt/jacred/Data/log/anistar.log
+```

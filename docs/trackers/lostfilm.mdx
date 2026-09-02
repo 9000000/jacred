@@ -1,0 +1,46 @@
+---
+title: "Lostfilm: сериалы 1080p и 2160p с cookie-авторизацией"
+sidebarTitle: "Lostfilm"
+icon: "/images/trackers/lostfilm.ico"
+description: "Lostfilm (www.lostfilm.tv) требует cookie-авторизацию. ~18k раздач, только 1080p и 2160p. Качество кодируется в хеше URL раздачи."
+keywords: ["JacRed", "Lostfilm", "трекер", "парсинг"]
+---
+
+Lostfilm, slug `lostfilm`, содержит около 18 тысяч раздач. Работает через cookie-авторизацию. Отдаёт только 1080p и 2160p, качество закодировано в хеше URL раздачи.
+
+## Конфигурация
+
+```yaml
+Lostfilm:
+  host: https://www.lostfilm.tv
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "lf_loyal_person=0; lf_session=SESSION; lf_udv=UDV; PHPSESSID=PHPSESSID"
+```
+
+### Как получить cookie
+
+1. Войдите в аккаунт на [www.lostfilm.tv](http://www.lostfilm.tv) в браузере.
+2. DevTools (F12) → Application → Cookies → [www.lostfilm.tv](http://www.lostfilm.tv).
+3. Скопируйте четыре значения: `lf_loyal_person`, `lf_session`, `lf_udv`, `PHPSESSID`.
+4. Соберите их в одну строку в формате `имя=значение; ...`.
+
+<Warning>
+  Cookie протухает при явном выходе из аккаунта или при истечении срока сессии. При пустых результатах парсинга обновите cookie.
+</Warning>
+
+## Расписание cron
+
+```crontab
+# Парсинг каждые 15 минут
+11,26,41,56 * * * *  /opt/jacred/Data/run-job.sh lostfilm-parse http://127.0.0.1:9117/cron/lostfilm/parse 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/lostfilm/parse"
+tail -f /opt/jacred/Data/log/lostfilm.log
+```

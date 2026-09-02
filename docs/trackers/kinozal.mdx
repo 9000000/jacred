@@ -1,0 +1,79 @@
+---
+title: "Настройка трекера Kinozal"
+sidebarTitle: "Kinozal"
+icon: "/images/trackers/kinozal.ico"
+description: "Kinozal требует авторизации. Настройте cookie или login/password в блоке Kinozal в init.yaml. Кодировка cp1251. Trio-кластер, ~550k раздач."
+keywords: ["JacRed", "Kinozal", "трекер", "парсинг"]
+---
+
+Kinozal — один из крупнейших трекеров в базе JacRed (~550 тысяч раздач). Требует авторизации через cookie или логин/пароль. Использует кодировку cp1251, которую JacRed конвертирует автоматически.
+
+## Конфигурация
+
+<CodeGroup>
+
+```yaml Cookie (предпочтительно)
+Kinozal:
+  host: https://kinozal.guru
+  useproxy: false
+  reqMinute: 4
+  parseDelay: 10000
+  log: true
+  cookie: "uid=USER_ID; pass=PASS_HASH"
+```
+
+```yaml Логин/пароль
+Kinozal:
+  host: https://kinozal.guru
+  useproxy: false
+  reqMinute: 4
+  parseDelay: 10000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+### Как получить cookie
+
+1. Войдите в аккаунт на текущем домене Kinozal.
+2. Откройте DevTools (F12) → Application → Cookies.
+3. Скопируйте значения `uid` и `pass`.
+4. Вставьте в формате `uid=ЗНАЧЕНИЕ; pass=ЗНАЧЕНИЕ`.
+
+<Warning>
+  Cookie протухает при явном выходе из аккаунта или смене пароля. При пустых результатах парсинга проверьте актуальность cookie.
+</Warning>
+
+## Расписание cron
+
+```crontab
+# Парсинг каждые 15 минут
+3,18,33,48 * * * *  /opt/jacred/Data/run-job.sh kinozal-parse http://127.0.0.1:9117/cron/kinozal/parse 900
+
+# Обновление очереди
+10 2 * * *  /opt/jacred/Data/run-job.sh kinozal-UpdateTasksParse http://127.0.0.1:9117/cron/kinozal/UpdateTasksParse 60
+
+# Полный перебор (2 раза в сутки)
+35 4,16 * * *  /opt/jacred/Data/run-job.sh kinozal-ParseAllTask http://127.0.0.1:9117/cron/kinozal/ParseAllTask 60
+```
+
+## Домен и зеркала
+
+В релизе 3.9.3 домен по умолчанию — `kinozal.guru`. Обновляйте `host`, если рабочее зеркало изменилось.
+
+<Note>
+  Магниты извлекаются из страниц топиков через hash-to-magnet конвертацию, а не из страницы списка. Это занимает больше времени, чем у трекеров с магнитами в списке.
+</Note>
+
+## Диагностика
+
+```bash
+# Ручной запуск парсинга
+curl "http://localhost:9117/cron/kinozal/parse"
+
+# Проверить логи
+tail -f /opt/jacred/Data/log/kinozal.log
+```

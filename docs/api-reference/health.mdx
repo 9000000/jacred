@@ -1,0 +1,141 @@
+---
+title: "Health API JacRed: статус, версия и фоновые задачи"
+sidebarTitle: "Health API"
+description: "GET /health, /health/background-jobs, /version, /lastupdatedb и /api/v1.0/conf возвращают статус сервиса, версию, активные фоновые задачи и время последнего обновления БД."
+keywords: ["GET /health", "GET /version", "healthcheck", "background jobs", "JacRed 3.9.3"]
+---
+
+Health API JacRed предоставляет диагностические эндпоинты для проверки состояния сервиса, версии сборки, активных фоновых задач и подтверждения корректно настроенного `apikey`. Все эндпоинты работают без авторизации (кроме проверки apikey), удобны для health-check в Docker, Kubernetes или мониторинга.
+
+## Проверка статуса
+
+```text
+GET /health
+```
+
+Возвращает `200 OK` с JSON-объектом:
+
+```json
+{ "status": "OK" }
+```
+
+```bash
+curl "http://localhost:9117/health"
+```
+
+Используйте в Docker healthcheck или для liveness-проб.
+
+## Версия сборки
+
+```text
+GET /version
+```
+
+Возвращает информацию о версии, git-коммите и дате сборки:
+
+```json
+{
+  "version": "3.9.3",
+  "gitSha": "c704d032",
+  "gitBranch": "main",
+  "buildDate": "YYYY-MM-DD HH:mm:ss UTC"
+}
+```
+
+```bash
+curl "http://localhost:9117/version"
+```
+
+## Время последнего обновления БД
+
+```text
+GET /lastupdatedb
+```
+
+Возвращает дату и время самой свежей записи в `masterDb`:
+
+```json
+{ "lastupdatedb": "15.01.2025 12:34" }
+```
+
+```bash
+curl "http://localhost:9117/lastupdatedb"
+```
+
+## Проверка apikey и совместимости
+
+```text
+GET /api/v1.0/conf?apikey=YOUR_KEY
+```
+
+Проверяет, что переданный apikey соответствует настройке `apikey` в конфиге. Полезно для интеграций (Lampa и другие клиенты используют этот эндпоинт при первом подключении).
+
+<ParamField path="query.apikey" type="string">
+  Проверяемый ключ. Можно передать через параметр или заголовок `X-Api-Key`.
+</ParamField>
+
+Ответ:
+
+```json
+{
+  "jacred": true,
+  "configured": true,
+  "apikey": true,
+  "version": "3.9.3"
+}
+```
+
+Поля:
+
+| Поле | Значение |
+| --- | --- |
+| `jacred` | Всегда `true`, маркер сервиса JacRed |
+| `configured` | `true`, если в конфиге задан `apikey` |
+| `apikey` | `true`, если переданный ключ совпадает с настройкой (или `apikey` не сконфигурирован) |
+| `version` | Версия JacRed |
+
+## Активные фоновые задачи
+
+```text
+GET /health/background-jobs
+```
+
+Возвращает список активных `ParseAll` и `UpdateTasks` задач. Используйте для проверки, что парсер не завис.
+
+```json
+{
+  "jobs": [
+    {
+      "Key": "kinozal-ParseAllTask-20250115",
+      "Tracker": "kinozal",
+      "JobLabel": "ParseAllTask",
+      "startedAtUtc": "2025-01-15T12:00:00Z",
+      "ageSec": 45,
+      "progressCurrent": 150,
+      "progressTotal": 500,
+      "ProgressDetail": "page 150/500"
+    }
+  ]
+}
+```
+
+```bash
+curl "http://localhost:9117/health/background-jobs"
+```
+
+<Note>
+  Короткие синхронные запуски `parse` могут завершиться до проверки и не попасть в список. Отслеживайте их через `Data/log/{tracker}.log`.
+</Note>
+
+## Пример healthcheck для Docker
+
+```yaml
+services:
+  jacred:
+    image: ghcr.io/jacred-fdb/jacred:latest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9117/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+```

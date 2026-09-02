@@ -1,0 +1,54 @@
+---
+title: "AnimeLayer: аниме-трекер с cookie-авторизацией"
+sidebarTitle: "AnimeLayer"
+icon: "/images/trackers/animelayer.ico"
+description: "AnimeLayer (animelayer.ru) требует cookie или логин/пароль. Page-range кластер. Автоматический перелогин при пустой странице."
+keywords: ["JacRed", "AnimeLayer", "трекер", "парсинг"]
+---
+
+AnimeLayer, slug `animelayer`, требует авторизации через cookie или логин/пароль. Использует page-range кластер. При получении пустой страницы JacRed автоматически выполняет перелогин по паре `login.u` / `login.p`.
+
+## Конфигурация
+
+<CodeGroup>
+
+```yaml Cookie
+Animelayer:
+  host: https://animelayer.ru
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "session=SESSION_VALUE"
+```
+
+```yaml Логин/пароль (с авто-перелогином)
+Animelayer:
+  host: https://animelayer.ru
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+<Tip>
+  Для стабильной работы предпочтителен `login.u` / `login.p`: JacRed сам обновит cookie при получении пустой страницы. При использовании только `cookie` требуется ручное обновление.
+</Tip>
+
+## Расписание cron
+
+```crontab
+2,17,32,47 * * * *  /opt/jacred/Data/run-job.sh animelayer-parse http://127.0.0.1:9117/cron/animelayer/parse 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/animelayer/parse"
+tail -f /opt/jacred/Data/log/animelayer.log
+```

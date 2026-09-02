@@ -1,0 +1,52 @@
+---
+title: "Knaben: метапоисковик через API с backfill подкатегорий"
+sidebarTitle: "Knaben"
+icon: "/images/trackers/knaben.ico"
+description: "Knaben (api.knaben.org) — публичный API-агрегатор торрентов. ~106k раздач. Backfill проходит листовые подкатегории TV и Movies asc→desc в окне 10k."
+keywords: ["JacRed", "Knaben", "трекер", "парсинг"]
+---
+
+Knaben, slug `knaben`, содержит около 106 тысяч раздач в базе JacRed. Метапоисковик, работает через публичный API без авторизации. Backfill обходит листовые подкатегории TV и Movies в порядке `asc → desc` в пределах окна Knaben (10 000 раздач на подкатегорию).
+
+## Конфигурация
+
+```yaml
+Knaben:
+  host: https://api.knaben.org
+  useproxy: false
+  reqMinute: 120
+  log: true
+```
+
+<Note>
+  `reqMinute: 120` установлен выше стандартного (8), потому что Knaben отдаёт данные через быстрый API, а не HTML.
+</Note>
+
+## Расписание cron
+
+```crontab
+# Оперативный парсинг свежих раздач
+12,32,52 * * * *  /opt/jacred/Data/run-job.sh knaben-parse http://127.0.0.1:9117/cron/knaben/parse 900
+
+# Backfill листовых подкатегорий
+42 * * * *  /opt/jacred/Data/run-job.sh knaben-backfill "http://127.0.0.1:9117/cron/knaben/backfill?pages=10" 900
+```
+
+### Параметры backfill
+
+<ParamField path="query.pages" default="10" type="number">
+  Количество страниц подкатегорий за запуск. Состояние сохраняется в `Data/temp/knaben_backfill.json` (курсор + прогресс по подкатегориям).
+</ParamField>
+
+<Tip>
+  Чтобы полностью пересобрать backfill с нуля, остановите сервис и удалите файл `Data/temp/knaben_backfill.json`.
+</Tip>
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/knaben/parse"
+curl "http://localhost:9117/cron/knaben/backfill?pages=10"
+tail -f /opt/jacred/Data/log/knaben.log
+cat /opt/jacred/Data/temp/knaben_backfill.json
+```

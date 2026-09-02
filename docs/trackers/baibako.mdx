@@ -1,0 +1,50 @@
+---
+title: "Baibako: сериалы с login или cookie-авторизацией"
+sidebarTitle: "Baibako"
+icon: "/images/trackers/baibako.ico"
+description: "Baibako (baibako.tv) требует cookie (PHPSESSID/uid/pass) или логин/пароль. ~5k раздач с низким churn. Page-range кластер."
+keywords: ["JacRed", "Baibako", "трекер", "парсинг"]
+---
+
+Baibako, slug `baibako`, содержит около 5 тысяч раздач с низкой частотой обновлений. Требует авторизации через cookie или логин/пароль. Использует page-range кластер (только `parse`).
+
+## Конфигурация
+
+<CodeGroup>
+
+```yaml Cookie
+Baibako:
+  host: http://baibako.tv
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "PHPSESSID=SESSION; uid=USER_ID; pass=PASS_HASH"
+```
+
+```yaml Логин/пароль
+Baibako:
+  host: http://baibako.tv
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+## Расписание cron
+
+```crontab
+8,23,38,53 * * * *  /opt/jacred/Data/run-job.sh baibako-parse http://127.0.0.1:9117/cron/baibako/parse 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/baibako/parse"
+tail -f /opt/jacred/Data/log/baibako.log
+```

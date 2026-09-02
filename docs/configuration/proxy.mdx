@@ -1,0 +1,143 @@
+---
+title: "Настройка прокси в JacRed"
+sidebarTitle: "Прокси"
+description: "JacRed поддерживает HTTP и SOCKS5 прокси: глобальный по паттернам URL и индивидуальный для каждого трекера через useproxy: true."
+keywords: ["JacRed", "конфигурация", "Прокси", "init.yaml"]
+---
+
+JacRed позволяет направлять трафик трекеров через прокси двумя способами: единый прокси-пул для трекеров с `useproxy: true` (блок `proxy`) или набор правил по регулярным выражениям URL (блок `globalproxy`).
+
+## Единый прокси-пул: proxy
+
+Блок `proxy` описывает один пул адресов, из которого JacRed случайным образом выбирает прокси для трекеров с `useproxy: true`.
+
+```yaml
+proxy:
+  pattern: ""              # необязательный regex для дополнительной фильтрации URL
+  useAuth: true
+  BypassOnLocal: true
+  username: "proxyuser"
+  password: "proxypass"
+  list:
+    - "10.0.0.1:8080"
+    - "socks5://10.0.0.2:1080"
+```
+
+<ParamField path="proxy.pattern" type="string">
+  Регулярное выражение URL. Если указано, прокси применяется только к URL, совпавшим с паттерном.
+</ParamField>
+
+<ParamField path="proxy.useAuth" type="boolean">
+  Использовать `username`/`password` при подключении к прокси.
+</ParamField>
+
+<ParamField path="proxy.BypassOnLocal" type="boolean">
+  Не применять прокси к локальным адресам (`127.0.0.1`, `localhost`).
+</ParamField>
+
+<ParamField path="proxy.username" type="string">
+</ParamField>
+
+<ParamField path="proxy.password" type="string">
+</ParamField>
+
+<ParamField path="proxy.list" type="array">
+  Список адресов прокси. Форматы: `ip:port` (HTTP), `socks5://ip:port` (SOCKS5). JacRed случайным образом выбирает один адрес из списка на каждый запрос.
+</ParamField>
+
+## Правила по URL: globalproxy
+
+Секция `globalproxy` — массив правил, применяющихся ко всем HTTP-запросам JacRed по совпадению URL с regex. Работает независимо от `useproxy` в блоке трекера.
+
+```yaml
+globalproxy:
+  - pattern: ".*\\.onion$"
+    useAuth: false
+    bypassOnLocal: true
+    list:
+      - "socks5://127.0.0.1:9050"
+```
+
+Несколько правил обрабатываются по порядку. Первое совпавшее правило применяется.
+
+### Параметры ProxySettings
+
+<ParamField path="pattern" type="string">
+  Регулярное выражение для URL. Например, `".*\\.onion$"` направляет все `.onion`-запросы через Tor.
+</ParamField>
+
+<ParamField path="useAuth" type="boolean">
+  Включить авторизацию на прокси-сервере.
+</ParamField>
+
+<ParamField path="bypassOnLocal" type="boolean">
+  Не использовать прокси для локальных адресов (127.0.0.1, localhost).
+</ParamField>
+
+<ParamField path="username" type="string">
+  Логин для авторизации на прокси.
+</ParamField>
+
+<ParamField path="password" type="string">
+  Пароль для авторизации на прокси.
+</ParamField>
+
+<ParamField path="list" type="array">
+  Список адресов прокси. Форматы: `ip:port` (HTTP) или `socks5://ip:port` (SOCKS5).
+</ParamField>
+
+## Прокси для конкретного трекера
+
+Установите `useproxy: true` в блоке трекера. JacRed возьмёт первое подходящее правило из `globalproxy`:
+
+```yaml
+Nnmclub:
+  host: http://nnmclub.to
+  useproxy: true
+  ...
+```
+
+## Примеры
+
+### Tor для .onion-трекеров
+
+```yaml
+globalproxy:
+  - pattern: ".*\\.onion$"
+    useAuth: false
+    bypassOnLocal: true
+    list:
+      - "socks5://127.0.0.1:9050"
+```
+
+### HTTP-прокси для конкретного домена
+
+```yaml
+globalproxy:
+  - pattern: "kinozal\\.tv"
+    useAuth: true
+    bypassOnLocal: false
+    username: "proxyuser"
+    password: "proxypass"
+    list:
+      - "http://10.0.0.1:8080"
+```
+
+### Общий прокси для всего трафика трекеров
+
+```yaml
+globalproxy:
+  - pattern: ".*"
+    useAuth: false
+    bypassOnLocal: true
+    list:
+      - "socks5://10.0.0.2:1080"
+```
+
+<Note>
+  Переменная `PROXY_URL` для FlareSolverr задаётся через окружение Docker-контейнера, а не через `init.yaml`. JacRed не управляет прокси-соединением FlareSolverr напрямую.
+</Note>
+
+<Tip>
+  В Docker Compose разместите Tor-контейнер в той же сети, что и JacRed, и укажите `socks5://tor:9050` вместо `socks5://127.0.0.1:9050`.
+</Tip>

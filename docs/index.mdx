@@ -1,0 +1,71 @@
+---
+title: "JacRed: агрегатор торрент-трекеров"
+sidebarTitle: "Введение"
+description: "JacRed — самохостируемый агрегатор 25 торрент-трекеров с FileDB, поиском через Jackett/Torznab/Prowlarr API и веб-интерфейсом на Vue 3."
+keywords: ["JacRed", "торрент-трекеры", "FileDB", "Jackett", "Torznab", "Prowlarr"]
+---
+
+JacRed — это самохостируемое .NET-приложение, которое собирает раздачи с 25 русскоязычных и аниме-трекеров, хранит их в локальной файловой базе данных FileDB и предоставляет единый поисковый API, совместимый с Jackett, Torznab и Prowlarr. Подключите его к Lampa, Sonarr, Radarr или любому другому клиенту и ищите торренты через один эндпоинт.
+
+<Frame caption="JacRed объединяет поиск по торрент-трекерам и локальную FileDB">
+  <img
+    src="/images/jacred-social-preview.png"
+    alt="Логотип JacRed-FDB с подписью Torrent aggregator and file database"
+  />
+</Frame>
+
+## Возможности
+
+<Columns cols={2}>
+  <Card title="25 трекеров" icon="list">
+    Rutracker, Kinozal, Rutor, NNMClub, Megapeer, Bitru, Knaben, Toloka, Mazepa, Lostfilm, Selezen, Animelayer, Anidub, Anistar, Anibelka, Aniliberty, Anifilm, Leproduction, Viruseproject, Korsars, Ultradox, Baibako, Rudub, SubsPlease, TorrentBy.
+  </Card>
+
+  <Card title="Совместимые API" icon="code">
+    Jackett JSON (`/api/v2.0/...`), Torznab XML (`/torznab/api`), Prowlarr Search Feed (`/api/v1/search`) и Native JSON (`/api/v1.0/torrents`).
+  </Card>
+
+  <Card title="FileDB" icon="database">
+    Хранилище на JSON-файлах без СУБД. Данные в `Data/fdb/`, индекс в памяти, горячая перезагрузка конфига за 10 секунд.
+  </Card>
+
+  <Card title="Поиск по ID" icon="magnifying-glass">
+    IMDb (`tt...`), Кинопоиск (`kp...`), TMDB (`tmdb...`) — автоматически разрешаются через Alloha TV API в точный поиск по названию.
+  </Card>
+
+  <Card title="Веб-интерфейс" icon="globe">
+    Vue 3 SPA на порту 9117. Страницы: `/` (поиск), `/stats` (статистика), `/settings` (редактор конфига).
+  </Card>
+
+  <Card title="Docker" icon="layers">
+    Официальный образ `ghcr.io/jacred-fdb/jacred` для amd64, arm64, arm, 386. Запускается в один контейнер.
+  </Card>
+</Columns>
+
+## Архитектура
+
+JacRed состоит из трёх слоев:
+
+1. **Крон-парсеры** — HTTP-вызовы к `/cron/{slug}/parse` по расписанию из `Data/crontab`. Парсят трекеры и записывают раздачи в FileDB.
+2. **FileDB** — JSON-файлы в `Data/fdb/`, шардированные по MD5-хешу ключа. In-memory индекс `masterDb` для быстрого поиска.
+3. **API** — ASP.NET на порту 9117. Обрабатывает поисковые запросы, управление конфигом и синхронизацию.
+
+## Быстрый старт
+
+<Columns cols={2}>
+  <Card title="Быстрый старт" icon="rocket" href="/quickstart">
+    Запустите JacRed через Docker Compose за 5 минут.
+  </Card>
+
+  <Card title="Конфигурация" icon="gear" href="/configuration/overview">
+    Настройте init.yaml, трекеры, прокси и FlareSolverr.
+  </Card>
+
+  <Card title="Трекеры" icon="list" href="/trackers/overview">
+    Полный каталог из 25 трекеров с методами авторизации.
+  </Card>
+
+  <Card title="Справочник API" icon="code" href="/api-reference/overview">
+    Jackett, Torznab, Prowlarr и Native API.
+  </Card>
+</Columns>

@@ -1,0 +1,33 @@
+---
+title: "Anidub: анонимный аниме-трекер"
+sidebarTitle: "Anidub"
+icon: "/images/trackers/anidub.ico"
+description: "Anidub (tr.anidub.com) работает без авторизации. ~4k раздач. Page-range кластер, только задача parse."
+keywords: ["JacRed", "Anidub", "трекер", "парсинг"]
+---
+
+Anidub, slug `anidub`, содержит около 4 тысяч раздач и работает без авторизации. Использует page-range кластер (только `parse`).
+
+## Конфигурация
+
+```yaml
+Anidub:
+  host: https://tr.anidub.com
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+## Расписание cron
+
+```crontab
+4,19,34,49 * * * *  /opt/jacred/Data/run-job.sh anidub-parse http://127.0.0.1:9117/cron/anidub/parse 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/anidub/parse"
+tail -f /opt/jacred/Data/log/anidub.log
+```

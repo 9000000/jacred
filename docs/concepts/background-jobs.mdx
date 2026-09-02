@@ -1,0 +1,104 @@
+---
+title: "Фоновые процессы JacRed: workers и cron"
+sidebarTitle: "Фоновые процессы"
+description: "JacRed запускает шесть встроенных BackgroundService: FastDbRefresh, Sync, Trackers, Stats, FileDb и Tracks. Они обновляют индексы и синхронизируют состояние без внешнего cron."
+keywords: ["JacRed", "Фоновые процессы", "документация"]
+---
+
+Внутри JacRed работают шесть встроенных фоновых сервисов ASP.NET (`BackgroundService`). Они запускаются автоматически при старте контейнера, поддерживают индексы в актуальном состоянии и не требуют внешнего cron.
+
+## Обзор сервисов
+
+| Сервис | Класс | Что делает | Интервал |
+| --- | --- | --- | --- |
+| FastDbRefresh | `FastDbRefreshWorker` | Периодически пересобирает `IFastDbIndex` (in-memory ускоритель поиска) | 10 минут |
+| Sync | `SyncWorker` | Клиент `syncapi`: подтягивает обновления из удалённого JacRed | `timeSync`, `timeSyncSpidr` |
+| Trackers | `TrackersWorker` | Собирает публичные announce-URL из magnet-ссылок в `wwwroot/trackers.txt` | 1 час (при `evercache.enable` и `validHour: 0`) |
+| Stats | `StatsWorker` | Обновляет `Data/temp/stats.json` и `tracks-stats.json` | `timeStatsUpdate` |
+| FileDb | `FileDbWorker` | Периодическое сохранение FileDB на диск (`Cron` + `CronFast`) | Внутренний таймер |
+| Tracks | `TracksWorker` | Очередь ffprobe-анализа через tsuri | `tracksinterval.task0`, `task1` |
+
+## FastDbRefreshWorker
+
+Пересобирает in-memory индекс `FastDb`, ускоряющий поиск по FileDB.
+
+- При старте: `FastDb.Rebuild()` + инициализация `TracksDB`.
+- Каждые 10 минут: перестройка `FastDb`.
+
+Индекс используется поисковыми запросами `/api/v1.0/torrents` и Torznab-эндпоинтами.
+
+## SyncWorker
+
+Загружает FileDB с удалённого JacRed через `syncapi`.
+
+```yaml
+syncapi: "https://sync.jacred.stream"
+timeSync: 60            # минуты, обычный sync
+timeSyncSpidr: 60       # минуты, sync spidr
+```
+
+Клиент вызывает `/sync/fdb/torrents` с курсором `time` и складывает батчи в локальный FileDB. См. [Синхронизация](/concepts/sync).
+
+## TrackersWorker
+
+Собирает валидные announce-URL из magnet-ссылок в FileDB и записывает их в `wwwroot/trackers.txt`, чтобы клиенты (Lampa и другие) могли забрать актуальный список публичных трекеров.
+
+```bash
+curl http://localhost:9117/trackers.txt
+```
+
+Запускается только при `evercache.enable: true` и `evercache.validHour: 0`, иначе спит.
+
+## StatsWorker
+
+Собирает статистику по FileDB и Tracks:
+
+- `Data/temp/stats.json` — счётчики раздач по трекерам.
+- `Data/temp/tracks-stats.json` — статистика ffprobe-анализа.
+
+Читается эндпоинтами [Stats API](/api-reference/stats): `GET /stats/torrents`, `/stats/tracks`, `/stats/meta`.
+
+```yaml
+timeStatsUpdate: 90   # интервал обновления в минутах
+```
+
+## FileDbWorker
+
+Запускает два внутренних цикла:
+
+- `FileDB.Cron` — периодическое сохранение изменённых шардов.
+- `FileDB.CronFast` — быстрый flush горячих ключей.
+
+Ручное сохранение доступно через `GET /jsondb/save` (см. [Cron API](/api-reference/cron)).
+
+## TracksWorker
+
+Очередь анализа новых раздач через tsuri. Обходит FileDB, отправляет неанализированные торренты в tsuri по расписанию и записывает результат в `TracksDB` (`Data/tracks/`).
+
+```yaml
+tracks: true
+tsuri:
+  - http://tsuri-1:8090
+tracksinterval:
+  task0: 30   # все раздачи
+  task1: 60   # за сутки (tracksmod: 1)
+```
+
+Подробнее в [Конфигурация Tracks](/configuration/tracks).
+
+## Мониторинг
+
+```bash
+# Активные ParseAll/UpdateTasks задачи парсеров
+curl http://localhost:9117/health/background-jobs
+
+# Время последнего обновления FileDB
+curl http://localhost:9117/lastupdatedb
+
+# Метки обновления stats
+curl http://localhost:9117/stats/meta
+```
+
+<Note>
+  Фоновые сервисы работают внутри процесса JacRed и не требуют настройки. Внешний cron (`Data/crontab`) отвечает только за запуск парсеров трекеров, а не за эти сервисы.
+</Note>

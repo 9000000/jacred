@@ -1,0 +1,78 @@
+---
+title: "Обслуживание FileDB"
+sidebarTitle: "Обслуживание"
+description: "Проверьте целостность FileDB в режимах report, safe и full через HTTP или автономную команду JacRed maintain."
+keywords:
+  - JacRed
+  - FileDB
+  - обслуживание
+  - maintain
+  - целостность базы
+---
+
+JacRed проверяет ключи FileDB, shard-файлы и записи раздач одной операцией. Сначала запустите режим `report`, затем выберите исправляющий режим по отчёту.
+
+## Режимы
+
+| Режим | Действия |
+| --- | --- |
+| `report` | Только ищет несогласованные данные и создаёт отчёт |
+| `safe` | Дополнительно удаляет `null`, восстанавливает поисковые поля, мигрирует затронутые бакеты, удаляет пустые бакеты и пересобирает fastdb |
+| `full` | Дополнительно исправляет ключи и URL, удаляет отсутствующие и orphan-shards, а также полностью неполные записи |
+
+Отчёт сохраняется в `Data/temp/maintenance-last.json`. Параметр `sampleSize` задаёт число примеров каждой ошибки от 1 до 200.
+
+## Онлайн-проверка
+
+`Check` запускает фоновую задачу с лимитом шесть часов и сразу возвращает `ok` или `work`. `Status` показывает прогресс и последний отчёт.
+
+```bash
+curl "http://127.0.0.1:9117/cron/maintenance/Check?mode=report&sampleSize=20"
+curl "http://127.0.0.1:9117/cron/maintenance/Status"
+```
+
+<Info>
+  Маршруты `/cron/*` используют политику `DevAdmin`. Для запроса через reverse proxy или туннель передайте `devkey`. См. [матрицу доступа](/operations/access-matrix).
+</Info>
+
+## Автономная проверка
+
+CLI работает без Kestrel и без шестичасового лимита.
+
+<Steps>
+  <Step title="Перейдите в каталог установки">
+    ```bash
+    cd /opt/jacred
+    ```
+  </Step>
+  <Step title="Создайте отчёт">
+    ```bash
+    ./JacRed maintain --mode=report
+    ```
+  </Step>
+  <Step title="Остановите сервис перед исправлением">
+    ```bash
+    sudo systemctl stop jacred
+    ```
+  </Step>
+  <Step title="Примените выбранный режим">
+    ```bash
+    ./JacRed maintain --mode=safe --sample-size=50
+    sudo systemctl start jacred
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Не запускайте `safe` или `full` параллельно с работающим JacRed. Оба процесса будут изменять один каталог `Data/`. Перед `full` сделайте резервную копию.
+</Warning>
+
+Чтобы включить числовые ключи вида `123:123` в проверку, добавьте `--include-numeric-xx`. Нажатие `Ctrl+C` корректно отменяет автономный проход.
+
+## Плановая проверка
+
+Стандартный `Data/crontab` запускает read-only проверку каждое воскресенье в 05:00:
+
+```crontab
+0 5 * * 0 /opt/jacred/Data/run-job.sh maintenance-check http://127.0.0.1:9117/cron/maintenance/Check?mode=report 60
+```

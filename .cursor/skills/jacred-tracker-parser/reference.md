@@ -77,4 +77,4 @@ Often missing: anidub, aniliberty, animelayer, baibako, knaben, mazepa, megapeer
 
 ## Docs touch list
 
-`docs/trackers-and-parsing.md`, `docs/configuration.md` (auth), `docs/api.md` (cron + OpenAPI version), `docs/troubleshooting.md`, `docs/docker.md`, README tracker count.
+`docs/trackers/overview.mdx`, tracker-specific page, `docs/configuration/trackers.mdx` (auth), `docs/api-reference/cron.mdx` (cron + OpenAPI version), `docs/operations/troubleshooting.mdx`, `docs/deployment/docker.mdx`, README tracker count.

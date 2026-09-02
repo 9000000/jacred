@@ -1,0 +1,67 @@
+---
+title: "Korsars: трекер с cookie bb_data или login"
+sidebarTitle: "Korsars"
+icon: "/images/trackers/korsars.ico"
+description: "Korsars (korsars.pro) требует cookie bb_data или логин/пароль. Rutor-стиль trio + ParseLatest. Поддержка alias для запросов через зеркало."
+keywords: ["JacRed", "Korsars", "трекер", "парсинг"]
+---
+
+Korsars, slug `korsars`, требует авторизации через cookie `bb_data` или логин/пароль. Использует Rutor-стиль trio плюс дополнительную задачу `ParseLatest`. Поддерживает `alias` для смены зеркала: FDB-ссылки остаются на `host`, HTTP-запросы идут через `rqHost`.
+
+## Конфигурация
+
+<CodeGroup>
+
+```yaml Cookie
+Korsars:
+  host: https://korsars.pro
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "bb_data=1-USER_ID-HASH-IP-UA_HASH"
+```
+
+```yaml Логин/пароль
+Korsars:
+  host: https://korsars.pro
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+### Формат cookie
+
+Значение `bb_data` состоит из пяти сегментов, разделённых дефисами: `1-USER_ID-HASH-IP-UA_HASH`. Получите его из DevTools: Application → Cookies → korsars.pro.
+
+## Расписание cron
+
+```crontab
+# Основной parse
+15,27,45,57 * * * *  /opt/jacred/Data/run-job.sh korsars-parse http://127.0.0.1:9117/cron/korsars/parse 900
+
+# Обновление очереди
+45 2 * * *  /opt/jacred/Data/run-job.sh korsars-UpdateTasksParse http://127.0.0.1:9117/cron/korsars/UpdateTasksParse 60
+
+# Полный перебор
+53 4,16 * * *  /opt/jacred/Data/run-job.sh korsars-ParseAllTask http://127.0.0.1:9117/cron/korsars/ParseAllTask 60
+
+# Свежие релизы раз в сутки
+15 7 * * *  /opt/jacred/Data/run-job.sh korsars-ParseLatest http://127.0.0.1:9117/cron/korsars/ParseLatest 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/korsars/parse"
+curl "http://localhost:9117/cron/korsars/ParseLatest"
+tail -f /opt/jacred/Data/log/korsars.log
+```

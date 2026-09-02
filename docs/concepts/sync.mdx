@@ -1,0 +1,116 @@
+---
+title: "Синхронизация данных в JacRed"
+sidebarTitle: "Синхронизация"
+description: "JacRed синхронизирует FileDB через облачный Sync API (sync.jacred.stream) или через локальные крон-парсеры. Изучите протокол /sync/fdb/torrents и параметры batching."
+keywords: ["JacRed sync", "syncapi", "/sync/fdb/torrents", "opensync", "FileDB replication"]
+---
+
+JacRed может получать данные двумя способами: через облачный Sync API (загружает базу от центрального сервера) или через локальные крон-парсеры (самостоятельно обходит трекеры). Оба режима можно комбинировать.
+
+## Режимы синхронизации
+
+### Облачная синхронизация (syncapi)
+
+Укажите URL сервера синхронизации в `init.yaml`:
+
+```yaml
+syncapi: "https://sync.jacred.stream"
+```
+
+JacRed будет периодически загружать обновления FileDB с сервера синхронизации, не обращаясь к трекерам напрямую. Это удобно, если у вас нет доступа к трекерам или вы хотите быстро заполнить базу.
+
+### Локальная синхронизация (cron-парсеры)
+
+Крон-задачи вызывают `GET /cron/{slug}/parse`, трекеры обходятся напрямую, данные сохраняются в FileDB. Для принудительного сброса используйте `GET /jsondb/save`.
+
+## Параметры синхронизации
+
+```yaml
+synctrackers:           # список трекеров для синхронизации
+  - rutracker
+  - kinozal
+  - rutor
+  # ...
+
+disable_trackers: []    # исключить трекеры из синхронизации
+
+opensync: true          # открыть /sync/* эндпоинты для внешних клиентов
+
+syncsport: true         # включить спортивную категорию
+syncspidr: true         # включить категорию spidr
+
+timeSync: 60            # интервал синхронизации в минутах
+timeSyncSpidr: 60       # интервал синхронизации spidr в минутах
+
+saveCheckpointEveryNBatches: 5  # сохранять на диск каждые N батчей
+```
+
+## Протокол /sync/fdb/torrents
+
+Эндпоинт `GET /sync/fdb/torrents` используется сервером синхронизации для инкрементальной выгрузки FileDB клиентам.
+
+### Параметры запроса
+
+<ParamField path="query.time" type="number">
+  Метка `.NET FileTimeUtc`. Возвращает шарды, изменённые после неё. Для первой загрузки клиент JacRed использует `-1`.
+</ParamField>
+
+<ParamField path="query.start" type="number">
+  Метка начальной синхронизации. Сервер использует её, чтобы вернуть сокращённые данные для уже известных раздач. Клиент JacRed управляет параметром автоматически.
+</ParamField>
+
+<ParamField path="query.spidr" type="boolean">
+  Включить категорию spidr в выгрузку.
+</ParamField>
+
+### Формат ответа
+
+```json
+{
+  "nextread": true,
+  "countread": 2000,
+  "take": 2000,
+  "collections": [
+    {
+      "Key": "rutracker",
+      "Value": {
+        "time": "2026-09-01T12:00:00Z",
+        "fileTime": 134169264000000000,
+        "torrents": {
+          "https://tracker.example/topic/123": {
+            "sid": "12345678",
+            "magnet": "magnet:..."
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+### Пагинация
+
+Повторяйте запросы, пока `nextread: true`:
+
+```bash
+# Первый батч
+curl "http://localhost:9117/sync/fdb/torrents?time=-1"
+
+# Следующий батч (используйте fileTime последней записи)
+curl "http://localhost:9117/sync/fdb/torrents?time=134169264000000000"
+```
+
+## Метаданные синхронизации
+
+```bash
+# Получить метаданные протокола
+curl "http://localhost:9117/sync/conf"
+# {"fbd": true, "spidr": true, "version": 2}
+
+# Поиск ключей masterDb
+curl "http://localhost:9117/sync/fdb?key=rutracker"
+```
+
+<Warning>
+  Поле `fbd` в `/sync/conf` именно так называется в протоколе версии 2. Это не имя параметра конфигурации. При `opensync: false` эндпоинты данных возвращают пустые коллекции.
+</Warning>

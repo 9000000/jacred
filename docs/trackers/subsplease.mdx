@@ -1,0 +1,52 @@
+---
+title: "SubsPlease: публичный API с 1080p аниме-релизами"
+sidebarTitle: "SubsPlease"
+icon: "/images/trackers/subsplease.ico"
+description: "SubsPlease (subsplease.org) — публичный API без авторизации. Только 1080p магнеты. Две задачи: parse (свежие релизы) и ParseShows (полный каталог)."
+keywords: ["JacRed", "SubsPlease", "трекер", "парсинг"]
+---
+
+SubsPlease, slug `subsplease`, работает через публичный API без авторизации. Отдаёт только 1080p магнет-ссылки. Использует две задачи: `parse` (свежие релизы) и `ParseShows` (полный каталог по батчам).
+
+## Конфигурация
+
+```yaml
+SubsPlease:
+  host: https://subsplease.org
+  useproxy: false
+  reqMinute: 30
+  parseDelay: 1000
+  log: true
+```
+
+<Note>
+  `reqMinute: 30` и `parseDelay: 1000` установлены выше стандартных значений, потому что SubsPlease отдаёт данные через быстрый API.
+</Note>
+
+## Расписание cron
+
+```crontab
+# Свежие релизы, 2 страницы
+35 * * * *  /opt/jacred/Data/run-job.sh subsplease-parse "http://127.0.0.1:9117/cron/subsplease/parse?pages=2" 900
+
+# Полный каталог раз в сутки (батчи по 50 шоу)
+25 5 * * *  /opt/jacred/Data/run-job.sh subsplease-ParseShows http://127.0.0.1:9117/cron/subsplease/ParseShows 1800
+```
+
+### Параметры
+
+<ParamField path="query.pages" default="2" type="number">
+  Количество страниц свежих релизов для задачи `parse`.
+</ParamField>
+
+<ParamField path="query.limit" default="50" type="number">
+  Размер батча для задачи `ParseShows`.
+</ParamField>
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/subsplease/parse?pages=2"
+curl "http://localhost:9117/cron/subsplease/ParseShows"
+tail -f /opt/jacred/Data/log/subsplease.log
+```

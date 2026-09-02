@@ -1,0 +1,98 @@
+---
+title: "Поиск торрентов в JacRed"
+sidebarTitle: "Поиск"
+description: "JacRed поддерживает текстовый поиск, поиск по IMDb/Кинопоиск/TMDB через Alloha TV API и fuzzy-режим с объединением дублей. Доступен через Jackett JSON, Torznab XML и Native API."
+keywords: ["JacRed", "Поиск", "документация"]
+---
+
+JacRed предоставляет три поисковых API: Jackett JSON, Torznab XML и Native JSON. Все три работают с одним и тем же FileDB-индексом и поддерживают поиск по тексту, идентификаторам внешних баз и дополнительным фильтрам.
+
+## Поисковые API
+
+| API | URL | Формат | Клиенты |
+| --- | --- | --- | --- |
+| Jackett JSON | `GET /api/v2.0/indexers/all/results` | JSON | Lampa, Stremio, другие |
+| Torznab XML | `GET /torznab/api?t=search` | XML/RSS | Sonarr, Radarr, Prowlarr |
+| Native JSON | `GET /api/v1.0/torrents` | JSON | Собственная интеграция |
+
+## Параметры поиска
+
+<ParamField path="query.query" type="string">
+  Текстовый поисковый запрос. Поддерживает идентификаторы: `tt...` (IMDb), `kp...` (Кинопоиск), `tmdb...` (TMDB).
+</ParamField>
+
+<ParamField path="query.title" type="string">
+  Точное название фильма или сериала (на русском или оригинальном языке).
+</ParamField>
+
+<ParamField path="query.title_original" type="string">
+  Оригинальное (не локализованное) название.
+</ParamField>
+
+<ParamField path="query.year" type="number">
+  Год выпуска. Ограничивает результаты по году.
+</ParamField>
+
+<ParamField path="query.is_serial" type="number">
+  Тип контента: `1` = фильм, `2` = сериал.
+</ParamField>
+
+## Поиск по ID через Alloha TV
+
+Если в `query` передан идентификатор (`tt...`, `kp...`, `tmdb...`), JacRed отправляет запрос в Alloha TV API v2 для получения названий фильма, затем выполняет точный поиск по этим названиям в FileDB.
+
+```bash
+# По IMDb ID
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=tt0133093&apikey=KEY"
+
+# По Кинопоиску
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=kp301&apikey=KEY"
+
+# По TMDB
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=tmdb603&apikey=KEY"
+```
+
+Чтобы ID-поиск работал, настройте блок `alloha` в `init.yaml`:
+
+```yaml
+alloha:
+  enable: true
+  token: "YOUR_ALLOHA_TOKEN"
+  cacheHours: 24
+```
+
+## Настройки поиска в init.yaml
+
+```yaml
+search:
+  mergeV1: auto      # объединять дубли: auto / true / false
+  maxV1Pairs: 4      # макс. пар для объединения
+  v1Sort: sid        # сортировка объединённых: sid / pir / size
+  stripTrailingYear: true         # убирать год из конца запроса
+  stripSeasonEpisode: true        # убирать S01/S01E01 из запроса
+  skipSeasonEpisodeFilter: false  # не фильтровать по сезону/серии
+  skipCatFilter: true             # не фильтровать по категории
+```
+
+### Объединение дублей
+
+`mergeduplicates: true` и `mergenumduplicates: true` объединяют результаты с одинаковым содержимым от разных трекеров, оставляя запись с лучшими показателями сидов/пиров.
+
+| Параметр | Описание |
+| --- | --- |
+| `mergeduplicates` | Объединять семантические дубли |
+| `mergenumduplicates` | Объединять дубли по числовым ключам |
+| `mergeV1: auto` | Применять объединение автоматически при ID-поиске |
+
+## Примеры
+
+```bash
+# Текстовый поиск фильма
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=матрица&year=1999&apikey=KEY"
+
+# Поиск сериала
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=во+все+тяжкие&is_serial=2&apikey=KEY"
+
+# Native API с фильтром по трекеру
+curl "http://localhost:9117/api/v1.0/torrents?search=матрица&tracker=rutracker&apikey=KEY"
+```

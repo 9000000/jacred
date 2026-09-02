@@ -1,0 +1,51 @@
+---
+title: "Bitru: JSON API с backfill архива через курсор"
+sidebarTitle: "Bitru"
+icon: "/images/trackers/bitru.ico"
+description: "Bitru (bitru.org) использует официальный JSON API. ~175k раздач. Две задачи: parse (свежая страница) и backfill?pages=N (архив со стойким курсором)."
+keywords: ["JacRed", "Bitru", "трекер", "парсинг"]
+---
+
+Bitru, slug `bitru`, содержит около 175 тысяч раздач. Работает без авторизации через официальный JSON API. Использует две задачи: `parse` (только свежая страница) и `backfill?pages=N` (последовательное наполнение архива с сохранением курсора).
+
+## Конфигурация
+
+```yaml
+Bitru:
+  host: https://bitru.org
+  alias: ""
+  useproxy: false
+  log: true
+```
+
+<Note>
+  Bitru отдаёт данные через API, поэтому `parseDelay` и `reqMinute` можно не задавать. Курсор `backfill` сохраняется между запусками.
+</Note>
+
+## Расписание cron
+
+```crontab
+# Свежая страница каждые 20 минут
+10,30,50 * * * *  /opt/jacred/Data/run-job.sh bitru-parse http://127.0.0.1:9117/cron/bitru/parse 900
+
+# Backfill архива раз в час, pages=20 ≈ до 2000 раздач/час
+40 * * * *  /opt/jacred/Data/run-job.sh bitru-backfill "http://127.0.0.1:9117/cron/bitru/backfill?pages=20" 900
+```
+
+### Параметры backfill
+
+<ParamField path="query.pages" default="20" type="number">
+  Количество страниц архива за запуск. Значения ограничены `1..50` (`pages=50` для быстрого наполнения). Курсор хранится между запусками и постепенно проходит весь архив.
+</ParamField>
+
+<Warning>
+  В официальной документации Bitru поле `after_date` называется наоборот: JacRed трактует `after_date` как «старее указанной даты» (older-than).
+</Warning>
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/bitru/parse"
+curl "http://localhost:9117/cron/bitru/backfill?pages=50"
+tail -f /opt/jacred/Data/log/bitru.log
+```

@@ -1,0 +1,117 @@
+---
+title: "Jackett JSON API для поиска торрентов"
+sidebarTitle: "Jackett API"
+description: "GET /api/v2.0/indexers/{status}/results — Jackett-совместимый JSON-поиск для Lampa и других клиентов. Поддерживает id-поиск по IMDb, Кинопоиску и TMDB."
+keywords: ["JacRed API", "Jackett API", "API", "self-hosted"]
+---
+
+Jackett JSON API — основной поисковый интерфейс JacRed, совместимый с Lampa, Stremio и другими приложениями, которые поддерживают Jackett-индексеры.
+
+## Endpoint
+
+```text
+GET /api/v2.0/indexers/{status}/results
+```
+
+### Параметр {status}
+
+| Значение | Описание |
+| --- | --- |
+| `all` | Все настроенные трекеры |
+| `status:healthy` | Аналогично `all` |
+| `rutracker` | Только Rutracker |
+| `kinozal` | Только Kinozal |
+| `{любой slug}` | Конкретный трекер |
+
+## Параметры запроса
+
+<ParamField path="query.apikey" type="string" required>
+  Ключ API. Альтернатива: заголовок `X-Api-Key`.
+</ParamField>
+
+<ParamField path="query.query" type="string">
+  Текстовый запрос или идентификатор: `tt...` (IMDb), `kp...` (Кинопоиск), `tmdb...` (TMDB).
+</ParamField>
+
+<ParamField path="query.q" type="string">
+  Псевдоним `query`.
+</ParamField>
+
+<ParamField path="query.title" type="string">
+  Точное название (используется для exact-поиска).
+</ParamField>
+
+<ParamField path="query.title_original" type="string">
+  Оригинальное название.
+</ParamField>
+
+<ParamField path="query.year" type="number">
+  Год выпуска.
+</ParamField>
+
+<ParamField path="query.is_serial" type="number">
+  Тип: `1` = фильм, `2` = сериал.
+</ParamField>
+
+## Формат ответа
+
+```json
+{
+  "Results": [
+    {
+      "Title": "Матрица / The Matrix (1999) BDRip 1080p",
+      "Guid": "https://rutracker.org/forum/viewtopic.php?t=12345678",
+      "Tracker": "rutracker",
+      "TrackerId": "rutracker.org",
+      "CategoryDesc": "Movies/HD",
+      "Size": 10995116277760,
+      "Seeders": 50,
+      "Peers": 10,
+      "MagnetUri": "magnet:?xt=urn:btih:...",
+      "InfoUrl": "https://rutracker.org/forum/viewtopic.php?t=12345678",
+      "Imdb": "tt0133093",
+      "Kp": "301",
+      "Tmdb": "603"
+    }
+  ]
+}
+```
+
+## Примеры
+
+<CodeGroup>
+
+```bash Текстовый поиск
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=матрица&year=1999&apikey=KEY"
+```
+
+```bash Поиск по IMDb
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=tt0133093&apikey=KEY"
+```
+
+```bash Поиск по Кинопоиску
+curl "http://localhost:9117/api/v2.0/indexers/all/results?query=kp301&apikey=KEY"
+```
+
+```bash Поиск на конкретном трекере
+curl "http://localhost:9117/api/v2.0/indexers/kinozal/results?query=матрица&apikey=KEY"
+```
+
+```bash Заголовок вместо параметра
+curl -H "X-Api-Key: KEY" \
+  "http://localhost:9117/api/v2.0/indexers/all/results?query=матрица"
+```
+
+</CodeGroup>
+
+## Список индексеров
+
+```bash
+GET /api/v2.0/indexers
+```
+
+Возвращает массив индексеров: `id=all` и по одному на каждый трекер из `synctrackers`.
+
+```bash
+curl "http://localhost:9117/api/v2.0/indexers?apikey=KEY"
+```

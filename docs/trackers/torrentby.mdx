@@ -1,0 +1,45 @@
+---
+title: "TorrentBy: белорусский трекер с Worker-зеркалом"
+sidebarTitle: "TorrentBy"
+icon: "/images/trackers/torrentby.ico"
+description: "TorrentBy (torrent.by) работает без авторизации. Trio-кластер, ~58k раздач. Поддерживает Cloudflare Worker в качестве alias при блокировке домена."
+keywords: ["JacRed", "TorrentBy", "трекер", "парсинг"]
+---
+
+TorrentBy, slug `torrentby`, содержит около 58 тысяч раздач. Белорусский трекер, работает без авторизации. Входит в trio-кластер. При региональной блокировке основного домена укажите Cloudflare Worker в поле `alias`.
+
+## Конфигурация
+
+```yaml
+TorrentBy:
+  host: https://torrent.by
+  alias: ""            # например: https://torrentby.workers.dev
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+<Tip>
+  Если основной домен `torrent.by` заблокирован, разверните Cloudflare Worker с проксированием запросов и укажите его URL в `alias`. FDB-ссылки останутся на `host`, HTTP-запросы пойдут через alias.
+</Tip>
+
+## Расписание cron
+
+```crontab
+# Парсинг каждые 15 минут
+7,22,37,52 * * * *  /opt/jacred/Data/run-job.sh torrentby-parse http://127.0.0.1:9117/cron/torrentby/parse 900
+
+# Обновление очереди
+25 2 * * *  /opt/jacred/Data/run-job.sh torrentby-UpdateTasksParse http://127.0.0.1:9117/cron/torrentby/UpdateTasksParse 60
+
+# Полный перебор
+50 4,16 * * *  /opt/jacred/Data/run-job.sh torrentby-ParseAllTask http://127.0.0.1:9117/cron/torrentby/ParseAllTask 60
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/torrentby/parse"
+tail -f /opt/jacred/Data/log/torrentby.log
+```

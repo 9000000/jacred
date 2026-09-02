@@ -1,0 +1,175 @@
+---
+title: "Native JSON API JacRed"
+sidebarTitle: "Native API"
+description: "GET /api/v1.0/torrents — нативный JSON-поиск JacRed с расширенными полями ffprobe и languages. Поддерживает фильтрацию по трекеру, качеству и точный поиск."
+keywords: ["JacRed API", "Native API", "API", "self-hosted"]
+---
+
+Native JSON API возвращает результаты поиска в формате JacRed с расширенными полями, недоступными в Jackett/Torznab: данные ffprobe, языковые метки, дополнительные фильтры. Используется веб-интерфейсом JacRed и пользовательскими интеграциями.
+
+## Поиск торрентов
+
+```text
+GET /api/v1.0/torrents
+```
+
+### Параметры
+
+<ParamField path="query.apikey" type="string" required>
+  Ключ API.
+</ParamField>
+
+<ParamField path="query.search" type="string">
+  Поисковый запрос или идентификатор (`tt...`, `kp...`, `tmdb...`).
+</ParamField>
+
+<ParamField path="query.title" type="string">
+  Точное название.
+</ParamField>
+
+<ParamField path="query.title_original" type="string">
+  Оригинальное название.
+</ParamField>
+
+<ParamField path="query.year" type="number">
+  Год выпуска.
+</ParamField>
+
+<ParamField path="query.type" type="string">
+  Тип контента: `movie` или `serial`.
+</ParamField>
+
+<ParamField path="query.tracker" type="string">
+  Фильтр по конкретному трекеру, например `rutracker`.
+</ParamField>
+
+<ParamField path="query.exact" type="boolean">
+  Точный поиск (автоматически включается при ID-запросах).
+</ParamField>
+
+<ParamField path="query.quality" type="number">
+  Фильтр по качеству (720, 1080, 2160).
+</ParamField>
+
+<ParamField path="query.altname" type="string">
+  Альтернативное название, используется при неудачном сопоставлении по `title`/`title_original`.
+</ParamField>
+
+<ParamField path="query.sort" type="string">
+  Поле сортировки: `size`, `seeders`, `peers`, `date`.
+</ParamField>
+
+<ParamField path="query.voice" type="string">
+  Фильтр по голосу/озвучке (строка тега голоса).
+</ParamField>
+
+<ParamField path="query.videotype" type="string">
+  Тип видео: `bdremux`, `bdrip`, `webdl`, `hdtv` и другие.
+</ParamField>
+
+<ParamField path="query.relased" type="number">
+  Фильтр по году выпуска.
+</ParamField>
+
+<ParamField path="query.season" type="number">
+  Фильтр по номеру сезона.
+</ParamField>
+
+### Ответ
+
+```json
+[
+  {
+    "title": "Матрица / The Matrix (1999) BDRip 1080p",
+    "sid": "12345678",
+    "tracker": "rutracker",
+    "magnet": "magnet:?xt=urn:btih:...",
+    "url": "https://rutracker.org/forum/viewtopic.php?t=12345678",
+    "size": 10995116277760,
+    "seeders": 50,
+    "peers": 10,
+    "year": 1999,
+    "languages": ["ru", "en"],
+    "ffprobe": {
+      "audio": [
+        { "codec": "aac", "channels": 6, "lang": "rus" }
+      ]
+    }
+  }
+]
+```
+
+## Вспомогательные эндпоинты
+
+### Список трекеров
+
+```bash
+GET /api/v1.0/trackers
+```
+
+Возвращает трекеры из `synctrackers` с информацией о статусе.
+
+### Агрегация по качеству
+
+```bash
+GET /api/v1.0/qualitys?name=матрица&originalname=Matrix&type=movie&page=1&take=1000
+```
+
+<ParamField path="query.name" type="string">
+  Основное название.
+</ParamField>
+
+<ParamField path="query.originalname" type="string">
+  Оригинальное название.
+</ParamField>
+
+<ParamField path="query.type" type="string">
+  `movie` или `serial`.
+</ParamField>
+
+<ParamField path="query.page" default="1" type="number">
+  Номер страницы.
+</ParamField>
+
+<ParamField path="query.take" default="1000" type="number">
+  Размер страницы.
+</ParamField>
+
+Возвращает статистику по качеству найденных раздач.
+
+### Информация об экземпляре
+
+```bash
+GET /api/v1.0/conf
+```
+
+```json
+{
+  "jacred": true,
+  "configured": true,
+  "apikey": true,
+  "version": "3.9.3"
+}
+```
+
+## Примеры
+
+<CodeGroup>
+
+```bash Текстовый поиск
+curl "http://localhost:9117/api/v1.0/torrents?search=матрица&apikey=KEY"
+```
+
+```bash Поиск по трекеру
+curl "http://localhost:9117/api/v1.0/torrents?search=матрица&tracker=rutracker&apikey=KEY"
+```
+
+```bash Поиск по IMDb ID
+curl "http://localhost:9117/api/v1.0/torrents?search=tt0133093&apikey=KEY"
+```
+
+```bash Фильтр по качеству
+curl "http://localhost:9117/api/v1.0/torrents?search=матрица&quality=1080p&apikey=KEY"
+```
+
+</CodeGroup>

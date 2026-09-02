@@ -46,13 +46,13 @@ cp .dev.vars.example .dev.vars
 # edit JACRED_ORIGIN=https://your-jacred-host
 ```
 
-2. Local preview (build + `wrangler dev`):
+1. Local preview (build + `wrangler dev`):
 
 ```bash
 npm run preview:cf
 ```
 
-3. Deploy:
+1. Deploy:
 
 ```bash
 # set production origin in the dashboard (Workers → Settings → Variables)
@@ -70,7 +70,7 @@ The Worker forwards `User-Agent`, `Referer`, `Origin`, API keys, and visitor IP 
 
 ## Stack
 
-See [docs/modern-web-ui-plan.md](../docs/modern-web-ui-plan.md).
+See the [web UI documentation](../docs/concepts/web-ui.mdx).
 
 ## Useful scripts
 

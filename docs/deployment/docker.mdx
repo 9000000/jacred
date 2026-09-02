@@ -1,0 +1,198 @@
+---
+title: "Развёртывание JacRed через Docker"
+sidebarTitle: "Docker"
+description: "Запустите JacRed через Docker Compose с томом данных, FlareSolverr и опциональным WARP для VPS. Образ ghcr.io/jacred-fdb/jacred поддерживает amd64, arm64, arm и 386."
+keywords: ["JacRed Docker", "Docker Compose", "/app/config", "/app/Data", "init.yaml", "FlareSolverr"]
+---
+
+JacRed распространяется в виде Docker-образа и запускается одним контейнером. Данные хранятся в именованном томе или bind-mount директории, что обеспечивает сохранность FileDB при пересборке контейнера.
+
+## Параметры образа
+
+| Параметр | Значение |
+| --- | --- |
+| Реестр | `ghcr.io/jacred-fdb/jacred:latest` |
+| Архитектуры | `amd64`, `arm64`, `arm`, `386` |
+| Порт | `9117/tcp` |
+| Тома | `/app/config` (конфиг), `/app/Data` (FileDB, логи, Tracks) |
+| Рабочая директория | `/app` |
+| Пользователь | `jacred:jacred` (UID/GID `1000:1000`, non-root) |
+| Entrypoint | `dumb-init /entrypoint.sh` |
+
+Переменные окружения:
+
+| Переменная | Описание | По умолчанию |
+| --- | --- | --- |
+| `TZ` | Часовой пояс контейнера | `UTC` |
+| `UMASK` | Маска прав файлов, создаваемых JacRed | `0027` |
+| `CONFIG_FILE_MODE` | Права на скопированный `init.yaml` / `init.conf` | `600` |
+| `ASPNETCORE_URLS` | Адрес прослушивания | `http://0.0.0.0:9117` |
+| `ASPNETCORE_ENVIRONMENT` | Режим ASP.NET | `Production` |
+| `DOTNET_USE_POLLING_FILE_WATCHER` | Polling для файлов (нужен для bind-mount) | `1` |
+
+## Конфигурация через два тома
+
+Entrypoint хранит постоянную копию конфига в `/app/config` и перед запуском копирует её в рабочую директорию:
+
+- Если `/app/config/init.yaml` существует, он копируется в `/app/init.yaml`. Для legacy JSON аналогично используется `init.conf`.
+- Если `/app/config` пуст, entrypoint сначала ищет конфиг в `/app/Data`, затем в `/app/defaults`, и сохраняет рабочую копию в `/app/config`.
+- Используйте `/app/Data` для FileDB, логов, Tracks, временных файлов и cron-скриптов. Конфиг из `Data` учитывается только как источник первичной инициализации.
+- `init.yaml` имеет приоритет. Entrypoint удаляет альтернативный `init.conf`, чтобы форматы не расходились.
+
+Копирование одностороннее: `/app/config/init.yaml` → `/app/init.yaml`. Веб-редактор и Config API изменяют рабочий `/app/init.yaml`, но не записывают файл обратно в `/app/config`. Для сохранения после пересоздания контейнера редактируйте смонтированный `config/init.yaml`.
+
+```yaml
+services:
+  jacred:
+    image: ghcr.io/jacred-fdb/jacred:latest
+    volumes:
+      - ./data:/app/Data       # FileDB, tracks, logs
+      - ./config:/app/config   # init.yaml — только конфиг
+```
+
+<Tip>
+  Разделение `Data` и `config` удобно для управления через IaC (Ansible, Terraform): конфиг лежит в git-репозитории, а FileDB — на быстром диске рядом с сервером.
+</Tip>
+
+## Минимальный запуск
+
+```yaml docker-compose.yml
+services:
+  jacred:
+    image: ghcr.io/jacred-fdb/jacred:latest
+    container_name: jacred
+    restart: unless-stopped
+    ports:
+      - "9117:9117"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/Data
+    environment:
+      - TZ=Europe/Moscow
+```
+
+```bash
+docker compose up -d
+docker compose logs -f jacred
+```
+
+## С FlareSolverr (для Rutracker)
+
+```yaml docker-compose.yml
+services:
+  jacred:
+    image: ghcr.io/jacred-fdb/jacred:latest
+    container_name: jacred
+    restart: unless-stopped
+    ports:
+      - "9117:9117"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/Data
+    environment:
+      - TZ=Europe/Moscow
+    depends_on:
+      - flaresolverr
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Moscow
+      - LOG_LEVEL=info
+```
+
+В `config/init.yaml` укажите:
+
+```yaml
+flaresolverr:
+  enable: true
+  url: http://flaresolverr:8191/v1
+```
+
+## С WARP для VPS (датацентровой IP)
+
+На VPS без residential-IP Cloudflare блокирует FlareSolverr. Добавьте WARP-контейнер:
+
+```yaml docker-compose.yml
+services:
+  jacred:
+    image: ghcr.io/jacred-fdb/jacred:latest
+    depends_on:
+      - flaresolverr
+    ports:
+      - "9117:9117"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/Data
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    network_mode: host
+    environment:
+      - PROXY_URL=socks5://127.0.0.1:20001
+      - DISABLE_MEDIA=true
+
+  warp:
+    image: caomingjun/warp
+    container_name: warp
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - warp-data:/var/lib/cloudflare-warp
+
+volumes:
+  warp-data:
+```
+
+## Шаги развёртывания
+
+<Steps>
+  <Step title="Создайте директорию проекта">
+    ```bash
+    mkdir -p /opt/jacred && cd /opt/jacred
+    mkdir -p config data
+    ```
+  </Step>
+  <Step title="Создайте docker-compose.yml">
+    Скопируйте подходящий шаблон из примеров выше.
+  </Step>
+  <Step title="Запустите стек">
+    ```bash
+    docker compose up -d
+    ```
+  </Step>
+  <Step title="Проверьте здоровье">
+    ```bash
+    curl -f http://localhost:9117/health
+    # {"status":"OK"}
+    ```
+  </Step>
+  <Step title="Настройте конфиг">
+    Создайте или отредактируйте `config/init.yaml`. В контейнере entrypoint копирует его в `/app/init.yaml`. Конфиг перечитывается автоматически.
+
+    Веб-редактор `http://localhost:9117/settings` подходит для проверки изменений, но его рабочая копия не сохраняется обратно в том `/app/config`.
+  </Step>
+</Steps>
+
+## Обновление
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+## Health Check
+
+```bash
+# Статус приложения
+curl http://localhost:9117/health
+
+# Версия
+curl http://localhost:9117/version
+
+# Статус фоновых задач
+curl http://localhost:9117/health/background-jobs
+```

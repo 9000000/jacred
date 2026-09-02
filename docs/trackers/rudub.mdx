@@ -1,0 +1,69 @@
+---
+title: "Rudub: преемник BaibaKoTV, только HD и без трекеров в магнетах"
+sidebarTitle: "Rudub"
+icon: "/images/trackers/rudub.ico"
+description: "Rudub (r4.rudub.world в релизе 3.9.3) требует cookie или login. Кодировка cp1251. Только 1080p и 2160p. Магнеты без трекеров."
+keywords: ["JacRed", "Rudub", "трекер", "парсинг"]
+---
+
+Rudub, slug `rudub`, — преемник BaibaKoTV. Требует авторизации через cookie или логин/пароль. Кодировка cp1251, JacRed конвертирует в UTF-8. Хранит только HD-раздачи (1080p и 2160p). Магнет-ссылки отдаются без трекеров (`MagnetNoTrackers`), клиент должен находить пиров через DHT.
+
+## Конфигурация
+
+<CodeGroup>
+
+```yaml Cookie
+Rudub:
+  host: https://r4.rudub.world
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "PHPSESSID=SESSION; uid=USER_ID; pass=PASS_HASH"
+```
+
+```yaml Логин/пароль
+Rudub:
+  host: https://r4.rudub.world
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+<Tip>
+  Зеркала Rudub ротируются в формате `rN.rudub.world` (r1, r2, r3, ...). При отказе текущего зеркала обновите `host` на актуальное.
+</Tip>
+
+## Расписание cron
+
+```crontab
+# Раз в час, страницы 0..9 × vf 4+5
+40 * * * *  /opt/jacred/Data/run-job.sh rudub-parse "http://127.0.0.1:9117/cron/rudub/parse?limit_page=10" 1800
+```
+
+### Параметры
+
+<ParamField path="query.limit_page" default="10" type="number">
+  Количество страниц за запуск (максимум 100). Для первичного наполнения базы используйте `?limit_page=50`.
+</ParamField>
+
+## Особенности
+
+- **Только HD**: JacRed парсит категории 1080p и 2160p; SD и 720p игнорируются.
+- **Магнеты без трекеров**: BitTorrent-клиент должен искать пиров через DHT/PEX.
+- **Кодировка cp1251**: JacRed декодирует автоматически.
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/rudub/parse?limit_page=10"
+tail -f /opt/jacred/Data/log/rudub.log
+```

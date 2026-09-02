@@ -1,0 +1,49 @@
+---
+title: "Anibelka: анонимный аниме-трекер без cookie"
+sidebarTitle: "Anibelka"
+icon: "/images/trackers/anibelka.ico"
+description: "Anibelka (anibelka.com) работает строго анонимно. Cookie и логин запрещены (passkey не должен попасть в магнет). Rutor-стиль trio + ParseLatest."
+keywords: ["JacRed", "Anibelka", "трекер", "парсинг"]
+---
+
+Anibelka, slug `anibelka`, работает **только анонимно**. Пароли встроены прямо в торрент-файлы, поэтому передавать passkey в магнет-ссылки нельзя. Не задавайте `cookie`, `login.u`, `login.p`. Использует Rutor-стиль trio + дополнительная задача `ParseLatest`.
+
+<Warning>
+  **Не заполняйте `cookie` или `login` для Anibelka.** Passkey из аккаунта попадёт в магнет-ссылку и станет публичным при передаче через API JacRed.
+</Warning>
+
+## Конфигурация
+
+```yaml
+Anibelka:
+  host: https://anibelka.com
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  # cookie и login должны оставаться пустыми
+```
+
+## Расписание cron
+
+```crontab
+# Основной parse каждые 15 минут
+29,44,59 * * * *  /opt/jacred/Data/run-job.sh anibelka-parse http://127.0.0.1:9117/cron/anibelka/parse 900
+
+# Обновление очереди
+40 2 * * *  /opt/jacred/Data/run-job.sh anibelka-UpdateTasksParse http://127.0.0.1:9117/cron/anibelka/UpdateTasksParse 60
+
+# Полный перебор
+48 4,16 * * *  /opt/jacred/Data/run-job.sh anibelka-ParseAllTask http://127.0.0.1:9117/cron/anibelka/ParseAllTask 60
+
+# Свежие релизы раз в сутки
+10 7 * * *  /opt/jacred/Data/run-job.sh anibelka-ParseLatest http://127.0.0.1:9117/cron/anibelka/ParseLatest 900
+```
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/anibelka/parse"
+curl "http://localhost:9117/cron/anibelka/ParseLatest"
+tail -f /opt/jacred/Data/log/anibelka.log
+```

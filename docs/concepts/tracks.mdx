@@ -1,0 +1,107 @@
+---
+title: "Модуль Tracks: метаданные аудиодорожек"
+sidebarTitle: "Tracks"
+description: "Модуль Tracks анализирует содержимое торрентов через TorrServer и ffprobe, обогащая результаты поиска языковыми метками и кодеками аудиодорожек."
+keywords: ["JacRed", "Tracks", "документация"]
+---
+
+Модуль Tracks анализирует мультимедийные файлы торрентов через TorrServer, извлекает данные аудиодорожек с помощью ffprobe и добавляет языковые метки к результатам поиска. Это позволяет фильтровать раздачи по языку озвучки прямо в поисковом клиенте.
+
+## Включение модуля
+
+```yaml
+tracks: true
+tsuri:
+  - http://127.0.0.1:8090
+```
+
+## Параметры
+
+<ParamField path="tsuri" type="array">
+  URL-адреса TorrServer. JacRed использует их по очереди для анализа файлов через `/ffp`.
+</ParamField>
+
+<ParamField path="tracksdelay" type="number">
+  Задержка между запросами к TorrServer в миллисекундах. По умолчанию: 20000.
+</ParamField>
+
+<ParamField path="tracksconcurrency" type="number">
+  Количество параллельных анализов. По умолчанию: 2.
+</ParamField>
+
+<ParamField path="tracksatempt" type="number">
+  Максимальное количество неудачных попыток на один торрент перед пропуском. По умолчанию: 20.
+</ParamField>
+
+<ParamField path="tracksffptimeout" type="number">
+  Таймаут запроса ffp при наличии сидов, секунды. По умолчанию: 60.
+</ParamField>
+
+<ParamField path="tracksffptimeoutnosid" type="number">
+  Таймаут запроса ffp при отсутствии сидов, секунды. По умолчанию: 30.
+</ParamField>
+
+<ParamField path="tracksreadtimeout" type="number">
+  Таймаут получения file_stats от TorrServer, секунды. По умолчанию: 30.
+</ParamField>
+
+<ParamField path="trackspeerwaittimeout" type="number">
+  Таймаут ожидания пиров перед началом анализа, секунды. По умолчанию: 30.
+</ParamField>
+
+<ParamField path="tracksffpretry" type="number">
+  Число дополнительных file id для попыток повтора. По умолчанию: 2.
+</ParamField>
+
+<ParamField path="tracksminbufferkb" type="number">
+  Минимальный буфер в KB для старта ffprobe-анализа. По умолчанию: 512.
+</ParamField>
+
+<ParamField path="tracksmod" type="number">
+  Режим выборки: `0` = все торренты, `1` = только добавленные сегодня. По умолчанию: 0.
+</ParamField>
+
+<ParamField path="tracksinterval" type="object">
+  Интервалы фоновых задач в минутах. `task0: 180` (полный перебор), `task1: 60` (инкрементальный).
+</ParamField>
+
+<ParamField path="tracksorphansweepmin" type="number">
+  Период очистки осиротевших записей TracksDB, минуты. По умолчанию: 15.
+</ParamField>
+
+## Логирование
+
+```yaml
+trackslog: true
+```
+
+Логи записываются в `Data/log/tracks.log`.
+
+## Данные в ответах поиска
+
+После успешного анализа торрент получает поля `ffprobe` и `languages` в Native API:
+
+```json
+{
+  "Title": "Матрица / The Matrix (1999)",
+  "Tracker": "rutracker",
+  "languages": ["ru", "en"],
+  "ffprobe": {
+    "audio": [
+      { "codec": "aac", "channels": 6, "lang": "rus" },
+      { "codec": "aac", "channels": 2, "lang": "eng" }
+    ]
+  }
+}
+```
+
+## Статистика
+
+```bash
+curl "http://localhost:9117/stats/tracks?includeTorrentDb=true" \
+  -H "X-Api-Key: YOUR_KEY"
+```
+
+<Tip>
+  Если TorrServer на той же машине, что и JacRed, оставьте `tsuri` по умолчанию. При вынесенном TorrServer укажите его реальный адрес.
+</Tip>

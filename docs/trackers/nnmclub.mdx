@@ -1,0 +1,54 @@
+---
+title: "NNMClub: анонимный трекер с cp1251 и .onion"
+sidebarTitle: "NNMClub"
+icon: "/images/trackers/nnmclub.ico"
+description: "NNMClub (nnmclub.to) работает без авторизации, использует кодировку cp1251 и поддерживает .onion зеркало через Tor. Trio-кластер, ~145k раздач."
+keywords: ["JacRed", "NNMClub", "трекер", "парсинг"]
+---
+
+NNMClub, slug `nnmclub`, содержит около 145 тысяч раздач и работает без авторизации. Сайт отдаёт HTML в кодировке cp1251, JacRed автоматически конвертирует её в UTF-8. Трекер поддерживает .onion зеркало для доступа через Tor. Входит в trio-кластер: `parse`, `UpdateTasksParse`, `ParseAllTask`.
+
+## Конфигурация
+
+```yaml
+NNMClub:
+  host: https://nnmclub.to
+  alias: ""            # опционально: .onion или обычное зеркало
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+<Tip>
+  Для доступа через Tor укажите `alias: http://nnmclub....onion` и включите `useproxy: true`. Правило `globalproxy` с паттерном `\.onion` направит запросы через `socks5://127.0.0.1:9050`. Подробнее: [Прокси](/configuration/proxy).
+</Tip>
+
+## Расписание cron
+
+```crontab
+# Парсинг новых страниц каждые 15 минут
+5,20,35,50 * * * *  /opt/jacred/Data/run-job.sh nnmclub-parse http://127.0.0.1:9117/cron/nnmclub/parse 900
+
+# Обновление очереди раз в сутки
+15 2 * * *  /opt/jacred/Data/run-job.sh nnmclub-UpdateTasksParse http://127.0.0.1:9117/cron/nnmclub/UpdateTasksParse 60
+
+# Полный перебор дважды в сутки
+42 4,16 * * *  /opt/jacred/Data/run-job.sh nnmclub-ParseAllTask http://127.0.0.1:9117/cron/nnmclub/ParseAllTask 60
+```
+
+## Особенности
+
+- **Кодировка cp1251**: JacRed конвертирует названия и описания в UTF-8 автоматически.
+- **Магниты по запросу**: magnet-ссылка извлекается со страницы каждой раздачи, а не из списка.
+- **.onion зеркало**: доступно, если основной домен заблокирован.
+
+## Диагностика
+
+```bash
+# Ручной запуск парсинга
+curl "http://localhost:9117/cron/nnmclub/parse"
+
+# Логи парсера
+tail -f /opt/jacred/Data/log/nnmclub.log
+```

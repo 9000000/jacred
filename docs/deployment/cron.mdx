@@ -1,0 +1,79 @@
+---
+title: "Cron-задачи парсеров JacRed"
+sidebarTitle: "Cron"
+description: "Крон-задачи JacRed запускают HTTP-запросы к /cron/{slug}/parse по расписанию. Используйте Data/crontab и run-job.sh для установки расписания парсинга."
+keywords: ["JacRed cron", "Data/crontab", "run-job.sh", "cron API", "парсеры трекеров"]
+---
+
+JacRed не запускает парсеры самостоятельно. Вместо этого он предоставляет HTTP-эндпоинты, которые вызываются системным cron через скрипт `Data/run-job.sh`. Это позволяет гибко управлять расписанием и избегать параллельного запуска одного парсера.
+
+## Принцип работы
+
+```text
+crontab → run-job.sh → curl GET → /cron/{slug}/{action}
+```
+
+`run-job.sh` использует `flock` для блокировки: если предыдущий запуск парсера ещё не завершился, новый пропускается.
+
+## Установка crontab
+
+```bash
+# Установить расписание из файла
+crontab /opt/jacred/Data/crontab
+
+# Проверить текущее расписание
+crontab -l
+```
+
+## Типы крон-задач
+
+| Задача | Эндпоинт | Описание |
+| --- | --- | --- |
+| `parse` | `GET /cron/{slug}/parse` | Парсинг новых страниц (частый) |
+| `UpdateTasksParse` | `GET /cron/{slug}/UpdateTasksParse` | Обновление очереди (раз в сутки) |
+| `ParseAllTask` | `GET /cron/{slug}/ParseAllTask` | Полный перебор базы (1-2 раза в сутки) |
+| `jsondb-save` | `GET /jsondb/save` | Сброс FileDB на диск |
+| `cloudflare-warmup` | `GET /cron/cloudflare/Warmup` | Прогрев FlareSolverr-сессии |
+
+## Актуальное расписание
+
+Полное расписание меняется вместе с парсерами. Используйте файл [`Data/crontab` из релиза 3.9.3](https://github.com/jacred-fdb/jacred/blob/3.9.3/Data/crontab) как источник истины. На страницах отдельных [трекеров](/trackers/overview) приведены только связанные с ними команды.
+
+## Пример записей crontab
+
+```crontab
+# Cron для Rutracker (FlareSolverr warmup за 5 минут до parse)
+55 * * * *  /opt/jacred/Data/run-job.sh cloudflare-warmup http://127.0.0.1:9117/cron/cloudflare/Warmup 300
+0 * * * *   /opt/jacred/Data/run-job.sh rutracker-parse http://127.0.0.1:9117/cron/rutracker/parse 3600
+
+# Kinozal каждые 15 минут
+3,18,33,48 * * * *  /opt/jacred/Data/run-job.sh kinozal-parse http://127.0.0.1:9117/cron/kinozal/parse 900
+
+# Rutor каждые 15 минут
+1,16,31,46 * * * *  /opt/jacred/Data/run-job.sh rutor-parse http://127.0.0.1:9117/cron/rutor/parse 900
+
+# Сохранение FileDB каждые 5 минут
+*/5 * * * *  /opt/jacred/Data/run-job.sh jsondb-save http://127.0.0.1:9117/jsondb/save 60
+```
+
+## run-job.sh
+
+Скрипт принимает три аргумента: `имя_задачи`, `URL`, `max_time_сек`:
+
+```bash
+/opt/jacred/Data/run-job.sh kinozal-parse http://127.0.0.1:9117/cron/kinozal/parse 900
+```
+
+Если запрос идёт не напрямую из LAN, добавьте `devkey` к URL:
+
+```bash
+http://127.0.0.1:9117/cron/kinozal/parse?devkey=YOUR_DEV_KEY
+```
+
+## Авторизация cron-эндпоинтов
+
+Эндпоинты `/cron/*` требуют прямого LAN-доступа или `devkey`. Через reverse proxy ключ нужен и в локальной сети. Подробнее см. [Аутентификация](/authentication).
+
+<Warning>
+  Не запускайте два `ParseAllTask` одного трекера одновременно. Это приведёт к конкурентной записи в FileDB.
+</Warning>

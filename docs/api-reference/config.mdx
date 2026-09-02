@@ -1,0 +1,130 @@
+---
+title: "Config API JacRed"
+sidebarTitle: "Config API"
+description: "GET/POST /api/v1.0/config управляет конфигурацией JacRed программно. Требует LAN-доступа или заголовка X-Dev-Key. Поддерживает чтение, сохранение, валидацию и diff."
+keywords: ["JacRed API", "Config API", "API", "self-hosted"]
+---
+
+Config API позволяет читать и изменять конфигурацию JacRed через REST без доступа к файловой системе. Используется веб-редактором на странице `/settings` и может применяться в автоматизации.
+
+## Доступ
+
+Все эндпоинты Config API требуют либо LAN-доступа (локальная сеть), либо заголовка `X-Dev-Key: YOUR_DEV_KEY`.
+
+## Получить конфиг
+
+```text
+GET /api/v1.0/config
+```
+
+<ParamField path="query.format" type="string">
+  Формат возврата: `yaml` (по умолчанию) или `json`.
+</ParamField>
+
+```bash
+curl "http://localhost:9117/api/v1.0/config?format=yaml" \
+  -H "X-Dev-Key: YOUR_DEV_KEY"
+```
+
+Ответ:
+
+```json
+{
+  "ok": true,
+  "path": "init.yaml",
+  "format": "yaml",
+  "exists": true,
+  "content": "listenport: 9117\napikey: ...",
+  "schema": { ... }
+}
+```
+
+## Сохранить конфиг
+
+```text
+POST /api/v1.0/config
+```
+
+Принимает JSON с полем `content` (YAML-текст) или `data` (JSON-объект):
+
+<CodeGroup>
+
+```bash YAML-текст
+curl -X POST "http://localhost:9117/api/v1.0/config" \
+  -H "X-Dev-Key: YOUR_DEV_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "listenport: 9117\napikey: newkey"}'
+```
+
+```bash JSON-объект
+curl -X POST "http://localhost:9117/api/v1.0/config" \
+  -H "X-Dev-Key: YOUR_DEV_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"data": {"listenport": 9117, "apikey": "newkey"}}'
+```
+
+</CodeGroup>
+
+После сохранения JacRed перечитывает конфиг автоматически в течение ~10 секунд.
+
+## Парсинг текста
+
+```text
+POST /api/v1.0/config/parse
+```
+
+Разбирает YAML- или JSON-текст в структурированные данные (используется UI-редактором для синхронизации формы и raw-режима):
+
+```bash
+curl -X POST "http://localhost:9117/api/v1.0/config/parse" \
+  -H "X-Dev-Key: YOUR_DEV_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "listenport: 9117", "format": "yaml"}'
+```
+
+## Валидация без сохранения
+
+```text
+POST /api/v1.0/config/validate
+```
+
+Проверяет синтаксис и корректность конфига, не записывая его на диск:
+
+```bash
+curl -X POST "http://localhost:9117/api/v1.0/config/validate" \
+  -H "X-Dev-Key: YOUR_DEV_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "listenport: 9117"}'
+```
+
+## Diff конфига
+
+```text
+POST /api/v1.0/config/diff
+```
+
+Сравнивает предложенный конфиг с текущим и возвращает список изменений.
+
+## Нормализация
+
+```text
+POST /api/v1.0/config/format
+```
+
+Приводит конфиг к нормализованному виду через модель `AppInit` (добавляет значения по умолчанию, убирает лишние поля).
+
+## Рендер
+
+```text
+POST /api/v1.0/config/render
+```
+
+Преобразует JSON-объект в YAML или JSON текст для предварительного просмотра перед сохранением.
+
+## Схема полей
+
+```text
+GET /api/v1.0/config/schema
+```
+
+Возвращает JSON-схему всех полей конфига для построения UI-формы в `/settings`.

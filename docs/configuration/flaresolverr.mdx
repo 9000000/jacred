@@ -1,0 +1,125 @@
+---
+title: "Настройка FlareSolverr для Rutracker"
+sidebarTitle: "FlareSolverr"
+description: "FlareSolverr обходит Cloudflare-защиту Rutracker через постоянную браузерную сессию. Настройте блок flaresolverr в init.yaml и cron-прогрев сессии."
+keywords: ["JacRed", "конфигурация", "FlareSolverr", "init.yaml"]
+---
+
+Rutracker защищён Cloudflare. Прямой `HttpClient` не может обойти `cf_clearance` cookie (отличается TLS fingerprint). FlareSolverr запускает реальный браузер Chromium для получения clearance и передаёт его JacRed.
+
+## Принцип работы
+
+1. JacRed отправляет запрос в FlareSolverr (`request.get`).
+2. FlareSolverr открывает страницу в Chromium, решает Cloudflare challenge (~11 секунд первый раз, ~0.5 секунды при активной сессии).
+3. FlareSolverr возвращает HTML с куками.
+4. JacRed парсит содержимое страницы.
+
+## Конфигурация
+
+```yaml
+flaresolverr:
+  enable: true
+  url: http://127.0.0.1:8191/v1   # или http://flaresolverr:8191/v1 в docker-compose
+  maxTimeoutMs: 300000             # 5 минут на решение challenge
+  sessionIdleMinutes: 120          # держать сессию Chromium живой
+  browserTimeoutRetries: 1         # повторить в той же сессии
+  recycleAfterTimeouts: 3          # пересоздать сессию после N таймаутов подряд
+  guardedHours: 6
+  recheckMinutes: 30
+```
+
+<ParamField path="enable" type="boolean">
+  Включить FlareSolverr. При `false` JacRed попытается использовать `Rutracker.alias`.
+</ParamField>
+
+<ParamField path="url" type="string">
+  URL FlareSolverr API. По умолчанию `http://127.0.0.1:8191/v1`.
+</ParamField>
+
+<ParamField path="maxTimeoutMs" type="number">
+  Максимальный таймаут ожидания ответа FlareSolverr в миллисекундах. Рекомендуется 300000 (5 минут).
+</ParamField>
+
+<ParamField path="sessionIdleMinutes" type="number">
+  Время неактивности сессии Chromium перед удалением. Держите 120+ чтобы минимизировать пересоздания.
+</ParamField>
+
+<ParamField path="recycleAfterTimeouts" type="number">
+  Пересоздать сессию только после N последовательных таймаутов браузера. Значение 3 защищает от лишних пересозданий.
+</ParamField>
+
+## Docker Compose с FlareSolverr
+
+```yaml
+services:
+  jacred:
+    image: ghcr.io/jacred-fdb/jacred:latest
+    ...
+    depends_on:
+      - flaresolverr
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Moscow
+      - LOG_LEVEL=info
+```
+
+В `init.yaml` укажите:
+
+```yaml
+flaresolverr:
+  enable: true
+  url: http://flaresolverr:8191/v1
+```
+
+## VPS с датацентровым IP: WARP
+
+На VPS без residential/ISP IP Cloudflare блокирует FlareSolverr. Решение: добавить WARP как SOCKS5-прокси для FlareSolverr.
+
+```yaml
+services:
+  warp:
+    image: caomingjun/warp
+    container_name: warp
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - warp-data:/var/lib/cloudflare-warp
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    network_mode: host
+    environment:
+      - PROXY_URL=socks5://127.0.0.1:20001
+      - DISABLE_MEDIA=true
+
+volumes:
+  warp-data:
+```
+
+<Note>
+  Том `warp-data` сохраняет регистрацию WARP между перезапусками. Без него каждый перезапуск создаёт новый WARP-идентификатор, что может вызвать повторные Cloudflare challenges.
+</Note>
+
+## Cron-прогрев сессии
+
+Для предотвращения закрытия сессии Chromium добавьте в `Data/crontab`:
+
+```crontab
+# Прогрев каждые 20 минут
+5,25,45 * * * *  /opt/jacred/Data/run-job.sh cloudflare-keepalive http://127.0.0.1:9117/cron/cloudflare/Warmup 300
+
+# Warmup перед запуском rutracker-parse
+55 * * * *       /opt/jacred/Data/run-job.sh cloudflare-warmup http://127.0.0.1:9117/cron/cloudflare/Warmup 300
+
+# Парсинг Rutracker каждый час
+0 * * * *        /opt/jacred/Data/run-job.sh rutracker-parse http://127.0.0.1:9117/cron/rutracker/parse 3600
+```
+
+<Warning>
+  Без прогрева сессии первый запрос к rutracker после простоя займёт ~80 секунд вместо 2-3.
+</Warning>

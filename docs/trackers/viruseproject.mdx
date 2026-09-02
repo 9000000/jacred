@@ -1,0 +1,39 @@
+---
+title: "Viruseproject: анонимный аниме-трекер"
+sidebarTitle: "Viruseproject"
+icon: "/images/trackers/viruseproject.ico"
+description: "Viruseproject (viruseproject.tv) работает без авторизации. Раз в сутки JacRed парсит до 3 страниц свежих раздач."
+keywords: ["JacRed", "Viruseproject", "трекер", "парсинг"]
+---
+
+Viruseproject, slug `viruseproject`, работает без авторизации. Ежедневный `parse` с ограничением `?limit_page=3`.
+
+## Конфигурация
+
+```yaml
+Viruseproject:
+  host: https://viruseproject.tv
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+```
+
+## Расписание cron
+
+```crontab
+50 6 * * *  /opt/jacred/Data/run-job.sh viruseproject-parse "http://127.0.0.1:9117/cron/viruseproject/parse?limit_page=3" 900
+```
+
+### Параметры
+
+<ParamField path="query.limit_page" default="3" type="number">
+  Максимальное число страниц за запуск.
+</ParamField>
+
+## Диагностика
+
+```bash
+curl "http://localhost:9117/cron/viruseproject/parse?limit_page=3"
+tail -f /opt/jacred/Data/log/viruseproject.log
+```

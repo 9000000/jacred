@@ -1,0 +1,113 @@
+---
+title: "Prowlarr API JacRed"
+sidebarTitle: "Prowlarr API"
+description: "Используйте Prowlarr-совместимые indexer endpoints, Newznab proxy и Search Feed JacRed."
+keywords:
+  - JacRed
+  - Prowlarr
+  - Torznab
+  - Newznab
+  - Search Feed
+---
+
+JacRed предоставляет один агрегированный Prowlarr indexer с `id=1`. Он объединяет результаты всех разрешённых трекеров и поддерживает REST discovery, Newznab XML и Search Feed JSON.
+
+## Включите API
+
+```yaml
+torznab:
+  enable: true
+  enrichTitles: true
+```
+
+Если `torznab.enable: false`, Prowlarr endpoints возвращают `404`.
+
+## Endpoints
+
+| Метод и путь | Назначение |
+| --- | --- |
+| `GET /api/v1/indexer` | Список indexers |
+| `GET /api/v1/indexer/1` | Данные агрегированного indexer |
+| `GET/HEAD /api/v1/indexer/1/newznab` | Torznab/Newznab XML |
+| `GET /api/v1/search` | Prowlarr Search Feed JSON |
+
+## Подключите Generic Torznab
+
+<Steps>
+  <Step title="Добавьте indexer">
+    В Prowlarr откройте **Settings → Indexers → Add Indexer** и выберите **Generic Torznab**.
+  </Step>
+  <Step title="Укажите URL">
+    Используйте `https://jacred.example.com/api/v1/indexer/1/newznab`.
+  </Step>
+  <Step title="Укажите API Key">
+    Введите значение `apikey` из конфигурации JacRed.
+  </Step>
+  <Step title="Проверьте подключение">
+    Prowlarr запросит `t=caps` и проверит категории.
+  </Step>
+</Steps>
+
+## Search Feed
+
+```bash
+curl --get "https://jacred.example.com/api/v1/search" \
+  --data-urlencode "query=Матрица The Matrix 1999" \
+  --data "type=search" \
+  --data "indexerIds=1" \
+  -H "X-Api-Key: YOUR_API_KEY"
+```
+
+<ParamField path="query.query" type="string" required>
+  Поисковая строка. Можно использовать `q` как запасное имя.
+</ParamField>
+
+<ParamField path="query.type" type="string" default="search">
+  Тип поиска: `search`, `tvsearch`, `movie`, `moviesearch`, `music` или `book`.
+</ParamField>
+
+<ParamField path="query.indexerIds" type="array">
+  `1` выбирает JacRed, `-2` — torrent indexers. Значение `-1` означает Usenet и возвращает пустой массив.
+</ParamField>
+
+<ParamField path="query.categories" type="array">
+  Категории Newznab. Например, `2000` для фильмов и `5000` для сериалов.
+</ParamField>
+
+<ParamField path="query.limit" type="number">
+  Максимальное число результатов.
+</ParamField>
+
+<ParamField path="query.offset" type="number">
+  Смещение результатов.
+</ParamField>
+
+Поисковая строка поддерживает токены Prowlarr:
+
+```text
+{ImdbId:tt0133093} {Season:1} {Episode:2}
+```
+
+JacRed также разбирает `{TmdbId:...}`, год и жанр. Запрос только с TVDB ID без названия возвращает пустой результат.
+
+<ResponseField name="guid" type="string">
+  Уникальный URL или идентификатор релиза.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Название релиза.
+</ResponseField>
+
+<ResponseField name="magnetUrl" type="string">
+  Magnet-ссылка, если она доступна.
+</ResponseField>
+
+<ResponseField name="categories" type="array">
+  Категории релиза в формате Prowlarr.
+</ResponseField>
+
+<ResponseField name="seeders" type="number">
+  Число сидов из FileDB.
+</ResponseField>
+
+Подробнее об XML-параметрах читайте в разделе [Torznab API](/api-reference/torznab).

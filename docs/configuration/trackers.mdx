@@ -1,0 +1,146 @@
+---
+title: "Настройка трекеров в init.yaml"
+sidebarTitle: "Трекеры"
+description: "Каждый из 25 трекеров JacRed настраивается отдельным блоком в init.yaml: хост, алиас, прокси, задержка, логин и сессионные cookie."
+keywords: ["JacRed", "конфигурация", "Трекеры", "init.yaml"]
+---
+
+Каждый трекер JacRed конфигурируется отдельным блоком в `init.yaml`. Имя блока совпадает со slug трекера (с заглавной первой буквой). Правильная настройка хоста и авторизации критична для стабильной работы крон-парсеров.
+
+## Структура блока трекера
+
+```yaml
+TrackerName:
+  host: "https://tracker.example.com"
+  alias: "https://mirror.example.com"
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "uid=USER_ID; pass=PASS_HASH"
+  login:
+    u: "username"
+    p: "password"
+```
+
+<ParamField path="host" type="string" required>
+  Базовый URL трекера. Используется парсером для построения всех запросов.
+</ParamField>
+
+<ParamField path="alias" type="string">
+  Зеркало или Worker URL. JacRed подставляет alias в реальные запросы вместо host.
+</ParamField>
+
+<ParamField path="useproxy" type="boolean">
+  Направлять запросы к трекеру через прокси из секции `proxy` или `globalproxy`.
+</ParamField>
+
+<ParamField path="reqMinute" type="number">
+  Максимальное число запросов в минуту. По умолчанию: 8. Уменьшите при получении ошибок 429.
+</ParamField>
+
+<ParamField path="parseDelay" type="number">
+  Задержка между страницами при парсинге, миллисекунды. По умолчанию: 7000.
+</ParamField>
+
+<ParamField path="log" type="boolean">
+  Включить отдельное журналирование для этого трекера.
+</ParamField>
+
+<ParamField path="cookie" type="string">
+  Статическая строка сессионных cookie. Предпочтительный способ авторизации (не требует повторного логина).
+</ParamField>
+
+<ParamField path="login.u" type="string">
+  Логин для авторизации. Используется, если `cookie` не задан.
+</ParamField>
+
+<ParamField path="login.p" type="string">
+  Пароль для авторизации.
+</ParamField>
+
+## Методы авторизации
+
+### Без авторизации (анонимные)
+
+Эти трекеры не требуют входа. Блок `login` и `cookie` оставляйте пустыми:
+
+| Трекер | Slug | Примечание |
+| --- | --- | --- |
+| Rutor | `rutor` | Открытый, магниты в списке |
+| NNMClub | `nnmclub` | cp1251, есть onion-зеркало |
+| Bitru | `bitru` | JSON API |
+| Knaben | `knaben` | Метапоисковик |
+| Anibelka | `anibelka` | Пароли встроены в торренты |
+| Aniliberty | `aniliberty` | JSON API |
+| Anidub | `anidub` |  |
+| Leproduction | `leproduction` |  |
+| Viruseproject | `viruseproject` |  |
+| Ultradox | `ultradox` |  |
+| SubsPlease | `subsplease` | Публичный API, 1080p |
+| Megapeer | `megapeer` | cp1251 |
+| TorrentBy | `torrentby` |  |
+
+### С авторизацией (cookie или логин/пароль)
+
+| Трекер | Slug | Рекомендуемый способ |
+| --- | --- | --- |
+| Rutracker | `rutracker` | FlareSolverr (CF-защита) |
+| Kinozal | `kinozal` | cookie или login/password |
+| Toloka | `toloka` | cookie или login/password |
+| Mazepa | `mazepa` | cookie или login/password |
+| Lostfilm | `lostfilm` | cookie или login/password |
+| Baibako | `baibako` | cookie или login/password |
+| Rudub | `rudub` | cookie или login/password |
+| Animelayer | `animelayer` | cookie или login/password |
+| Anifilm | `anifilm` | cookie или login/password |
+| Korsars | `korsars` | cookie или login/password |
+| Selezen | `selezen` | cookie или login/password |
+| Anistar | `anistar` | cookie или login/password |
+
+## Пример конфигурации Kinozal
+
+<CodeGroup>
+
+```yaml Cookie (предпочтительно)
+Kinozal:
+  host: https://kinozal.guru
+  useproxy: false
+  reqMinute: 4
+  parseDelay: 10000
+  log: true
+  cookie: "uid=USER_ID; pass=PASS_HASH"
+```
+
+```yaml Логин/пароль
+Kinozal:
+  host: https://kinozal.guru
+  useproxy: false
+  reqMinute: 4
+  parseDelay: 10000
+  log: true
+  login:
+    u: "mylogin"
+    p: "mypassword"
+```
+
+</CodeGroup>
+
+<Warning>
+  Не сохраняйте реальные логины, пароли и cookie в публичных репозиториях. Используйте Docker secrets или переменные окружения.
+</Warning>
+
+## Пример конфигурации Rutracker
+
+```yaml
+Rutracker:
+  host: https://rutracker.org
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  topicFetchAttempts: 5
+  log: true
+```
+
+Rutracker требует отдельной настройки FlareSolverr. Подробнее на странице [FlareSolverr](/configuration/flaresolverr).

@@ -1,0 +1,91 @@
+---
+title: "Устранение неполадок JacRed"
+sidebarTitle: "Устранение неполадок"
+description: "Диагностируйте проблемы запуска, FileDB, cron, API, прокси, Rutracker и потребления памяти в JacRed."
+keywords:
+  - JacRed
+  - диагностика
+  - troubleshooting
+  - FileDB
+  - cron
+---
+
+Начните с проверки процесса, health endpoint и логов:
+
+```bash
+systemctl status jacred
+curl -f http://127.0.0.1:9117/health
+journalctl -u jacred -n 100 --no-pager
+```
+
+<AccordionGroup>
+  <Accordion title="Приложение не запускается">
+    1. Проверьте, что рядом с бинарником существует читаемый `init.yaml` или `init.conf`.
+    2. Проверьте, свободен ли порт:
+
+    ```bash
+    ss -ltnp | grep ':9117'
+    ```
+
+    3. Если .NET сообщает об отсутствующем ICU, установите пакет для вашей системы:
+
+    ```bash
+    sudo apt update
+    sudo apt install libicu-dev
+    ```
+
+    Для Docker посмотрите вывод `docker logs jacred`.
+  </Accordion>
+
+  <Accordion title="FileDB не обновляется">
+    Проверьте задания и активные фоновые операции:
+
+    ```bash
+    crontab -l
+    curl http://127.0.0.1:9117/health/background-jobs
+    tail -f /opt/jacred/Data/log/rutor.log
+    ```
+
+    Docker-образ не запускает cron внутри контейнера. Запускайте `/cron/*` и `/jsondb/save` с хоста или отдельного планировщика. Если вы меняете конфигурацию вручную, редактируйте рабочий файл рядом с бинарником, а не только копию под `Data/`.
+  </Accordion>
+
+  <Accordion title="API возвращает 401 или 403">
+    `401` обычно означает, что обязательный ключ не передан. `403` означает неверный ключ или запрещённый сетевой контекст.
+
+    ```bash
+    curl -H "X-Dev-Key: YOUR_DEV_KEY" \
+      http://127.0.0.1:9117/cron/maintenance/Status
+    ```
+
+    Для `/api/v1.0/config*`, `/cron/*`, `/dev/*` и `/jsondb*` через reverse proxy нужен `devkey`. Проверьте [матрицу доступа](/operations/access-matrix).
+  </Accordion>
+
+  <Accordion title="Rutracker возвращает 403">
+    Убедитесь, что FlareSolverr доступен и включён:
+
+    ```bash
+    curl http://127.0.0.1:8191/
+    curl http://127.0.0.1:9117/cron/cloudflare/Warmup
+    ```
+
+    Первый warmup может выполняться несколько минут. На VPS с датацентровым IP challenge может потребовать residential/ISP-прокси для FlareSolverr. См. [настройку Rutracker](/trackers/rutracker).
+  </Accordion>
+
+  <Accordion title="Прокси или Tor не работает">
+    Проверьте порт Tor, URI прокси и регулярное выражение `globalproxy.pattern`:
+
+    ```bash
+    ss -ltnp | grep ':9050'
+    ```
+
+    Для Tor используйте URI вида `socks5://127.0.0.1:9050`. Подробнее читайте в разделе [Прокси](/configuration/proxy).
+  </Accordion>
+
+  <Accordion title="JacRed потребляет много памяти">
+    Уменьшите `maxreadfile`, настройте ротацию логов и проверьте число внешних Chromium-сессий. Одна сессия FlareSolverr может занимать сотни мегабайт.
+
+    Включайте `evercache` только после оценки доступной памяти и нагрузки. Для контейнера задайте подходящий лимит памяти.
+  </Accordion>
+</AccordionGroup>
+
+Если FileDB показывает несогласованные записи, сначала выполните read-only проверку из раздела [Обслуживание FileDB](/operations/maintenance).

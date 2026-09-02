@@ -1,90 +1,45 @@
----
-title: Документация JacRed
-description: Операторская документация JacRed — установка, конфигурация, API, безопасность
-tags:
-  - start
----
-
 # Документация JacRed
 
-Агрегатор торрент-трекеров с API Jackett, файловой БД (fdb), sync и самостоятельным парсингом.
+Исходники сайта документации для [JacRed](https://github.com/jacred-fdb/jacred) — самохостируемого агрегатора торрент-трекеров с FileDB и API Jackett, Torznab и Prowlarr.
 
-<div class="hero-cta" markdown>
+Сайт построен на [Mintlify](https://mintlify.com). Основная конфигурация находится в `docs.json`, страницы — в MDX-файлах.
 
-[Установка](installation.md){ .md-button .md-button--primary }
-[Docker](docker.md){ .md-button }
+## Локальная разработка
 
-</div>
+Установите Mintlify CLI и запустите предпросмотр из каталога `docs`:
 
-<div class="grid cards" markdown>
+```bash
+npm install --global mint
+cd docs
+mint dev
+```
 
--   :material-download: **Установка**
+Сайт откроется по адресу `http://localhost:3000`.
 
-    ---
+## Проверки
 
-    Скрипт `jacred.sh`, systemd, обновление и удаление
+Перед отправкой изменений выполните:
 
-    [:octicons-arrow-right-24: Перейти](installation.md)
+```bash
+cd docs
+mint validate
+mint broken-links --check-redirects
+mint a11y
+```
 
--   :material-docker: **Docker**
+## Источники данных
 
-    ---
+- Код и операторская документация: [`jacred-fdb/jacred`](https://github.com/jacred-fdb/jacred)
+- OpenAPI: канонический файл `../web/public/openapi.yaml`, копия для Mintlify `openapi/openapi.yaml`
+- Брендинг: канонические файлы в `../web/public/img/`, копии для Mintlify в `favicon.png`, `logo/` и `images/`
+- Расписание парсеров: `../Data/crontab`
+- Схема конфигурации: `../Configuration/Schema/ConfigSchema.cs`
 
-    Run / Compose, тома и cron снаружи контейнера
+Mintlify не разрешает символические ссылки за пределы каталога `docs`. После изменения OpenAPI или бренд-ассетов обновите соответствующие копии вручную. Не добавляйте скрипт или workflow для синхронизации.
 
-    [:octicons-arrow-right-24: Перейти](docker.md)
+## Правила контента
 
--   :material-cog: **Конфигурация**
-
-    ---
-
-    `init.yaml` / `init.conf`, sync, search, Torznab
-
-    [:octicons-arrow-right-24: Перейти](configuration.md)
-
--   :material-shield-lock: **Безопасность**
-
-    ---
-
-    Политики доступа, `apikey` / `devkey`, LAN и proxy
-
-    [:octicons-arrow-right-24: Перейти](security.md)
-
--   :material-api: **API**
-
-    ---
-
-    OpenAPI, поиск, Config API, `/dev/*`, cron, maintenance
-
-    [:octicons-arrow-right-24: Перейти](api.md)
-
--   :material-music-note: **Tracks**
-
-    ---
-
-    TorrServer / ffprobe, concurrency и troubleshooting
-
-    [:octicons-arrow-right-24: Перейти](tracks.md)
-
--   :material-bug: **Решение проблем**
-
-    ---
-
-    ICU, cron, прокси, память, трекеры
-
-    [:octicons-arrow-right-24: Перейти](troubleshooting.md)
-
--   :material-sitemap: **Архитектура**
-
-    ---
-
-    Слои проекта и фоновые процессы
-
-    [:octicons-arrow-right-24: Перейти](architecture.md)
-
-</div>
-
-!!! tip "Связанные README вне сайта"
-
-    - [web/README.md](https://github.com/jacred-fdb/jacred/blob/main/web/README.md) — Vue SPA
-    - [Infrastructure/Trackers/Rutracker/README.md](https://github.com/jacred-fdb/jacred/blob/main/Infrastructure/Trackers/Rutracker/README.md) — Rutracker / FlareSolverr
+- Пишите по-русски, в активном залоге и обращайтесь к читателю на «вы».
+- Используйте корневые внутренние ссылки без расширения: `/configuration/overview`.
+- Не копируйте секреты, токены, cookie или реальные ключи из конфигурационных файлов.
+- Проверяйте технические утверждения по исходному коду JacRed и OpenAPI.

@@ -1,0 +1,87 @@
+---
+title: "Установка JacRed на Linux"
+sidebarTitle: "Установка"
+description: "Установите, обновите или удалите JacRed с помощью jacred.sh и подготовьте FileDB при первом запуске."
+keywords:
+  - JacRed
+  - установка
+  - jacred.sh
+  - FileDB
+  - systemd
+---
+
+`jacred.sh` устанавливает JacRed в `/opt/jacred`, создаёт системного пользователя и сервис `jacred`, а также добавляет задания из `Data/crontab`. Скрипт поддерживает Linux `amd64` и `arm64`.
+
+## Установите JacRed
+
+<Steps>
+  <Step title="Скачайте скрипт">
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/jacred-fdb/jacred/main/jacred.sh -o jacred.sh
+    chmod +x jacred.sh
+    ```
+  </Step>
+  <Step title="Запустите установку">
+    ```bash
+    sudo ./jacred.sh
+    ```
+
+    Скрипт установит необходимые пакеты через `apt`, загрузит последний релиз, создаст systemd-сервис и скачает готовую FileDB.
+  </Step>
+  <Step title="Проверьте сервис">
+    ```bash
+    systemctl status jacred
+    curl -f http://127.0.0.1:9117/health
+    ```
+  </Step>
+</Steps>
+
+<Info>
+  Для установки последнего предварительного релиза добавьте `--pre-release`. Этому режиму нужны `curl` и `jq`.
+</Info>
+
+## Подготовьте базу данных
+
+По умолчанию установщик загружает снимок FileDB и распаковывает его в `/opt/jacred/Data`. Если вы хотите начать с пустой базы, отключите загрузку:
+
+```bash
+sudo ./jacred.sh --no-download-db
+```
+
+После запуска заполните пустую FileDB одним из способов:
+
+- установите расписание парсеров из `Data/crontab`;
+- настройте `syncapi` для синхронизации с другим экземпляром JacRed.
+
+Подробнее о расписании читайте в разделе [Cron](/deployment/cron), а о синхронизации — в разделе [Синхронизация](/concepts/sync).
+
+## Настройте приложение
+
+Отредактируйте конфигурационный файл рядом с бинарником:
+
+```bash
+sudoedit /opt/jacred/init.yaml
+sudo systemctl restart jacred
+```
+
+Если ваша установка использует legacy-формат, редактируйте `/opt/jacred/init.conf`. Не храните оба файла одновременно.
+
+## Обновите JacRed
+
+```bash
+sudo /opt/jacred/jacred.sh --update
+```
+
+Перед заменой файлов скрипт запрашивает сохранение FileDB через `/jsondb/save`, останавливает сервис, устанавливает последний релиз и снова запускает JacRed.
+
+<Warning>
+  Перед обновлением сохраните резервную копию `/opt/jacred/Data`. Автоматический запрос сохранения не заменяет резервное копирование.
+</Warning>
+
+## Удалите JacRed
+
+```bash
+sudo /opt/jacred/jacred.sh --remove
+```
+
+Команда удаляет сервис, задания JacRed из crontab и весь каталог `/opt/jacred`, включая FileDB.
