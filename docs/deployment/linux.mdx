@@ -1,0 +1,95 @@
+---
+title: "Развёртывание JacRed на Linux"
+sidebarTitle: "Linux"
+description: "Установите JacRed как systemd-сервис через jacred.sh: каталог /opt/jacred, пользователь, crontab и libicu."
+keywords:
+  - JacRed
+  - Linux
+  - systemd
+  - jacred.sh
+  - crontab
+---
+
+На Linux JacRed ставится скриптом `jacred.sh`. Скрипт кладёт приложение в `/opt/jacred`, создаёт пользователя и systemd-сервис `jacred`, при установке добавляет задания из `Data/crontab`. Поддерживаются Debian/Ubuntu на `amd64` и `arm64`.
+
+Краткий путь установки описан в разделе [Установка](/installation). Эта страница — детали развёртывания.
+
+## Команды jacred.sh
+
+<CodeGroup>
+```bash Установка
+curl -fsSL https://raw.githubusercontent.com/jacred-fdb/jacred/main/jacred.sh -o jacred.sh
+chmod +x jacred.sh
+sudo ./jacred.sh
+```
+
+```bash Без снимка FileDB
+sudo ./jacred.sh --no-download-db
+```
+
+```bash Предрелиз
+sudo ./jacred.sh --pre-release
+```
+
+```bash Обновление
+sudo /opt/jacred/jacred.sh --update
+```
+
+```bash Обновление с предрелиза
+sudo /opt/jacred/jacred.sh --update --pre-release
+```
+
+```bash Удаление
+sudo /opt/jacred/jacred.sh --remove
+```
+</CodeGroup>
+
+`--pre-release` требует `curl` и `jq`. `--remove` удаляет сервис, задания JacRed из crontab и весь каталог `/opt/jacred`, включая FileDB.
+
+## Что появляется на диске
+
+| Путь | Назначение |
+| --- | --- |
+| `/opt/jacred/JacRed` | Self-contained бинарник |
+| `/opt/jacred/init.yaml` | Runtime-конфиг (CWD процесса) |
+| `/opt/jacred/Data/` | FileDB, логи, crontab, `run-job.sh` |
+| `jacred.service` | systemd-юнит |
+
+Процесс читает `init.yaml` рядом с бинарником. `Data/init.yaml` — только шаблон в репозитории.
+
+## systemd
+
+```bash
+systemctl status jacred
+systemctl restart jacred
+journalctl -u jacred -n 100 --no-pager
+curl -f http://127.0.0.1:9117/health
+```
+
+## libicu
+
+.NET использует ICU. Если бинарник запускается без Docker и падает с ошибкой глобализации, установите пакет дистрибутива:
+
+```bash
+sudo apt install libicu-dev
+```
+
+Имя пакета зависит от версии (`libicu76`, `libicu72`). В Docker-образе ICU уже включён.
+
+## Cron на хосте
+
+Скрипт установки добавляет задания из `Data/crontab`. Полностью заменить расписание можно так:
+
+```bash
+crontab /opt/jacred/Data/crontab
+```
+
+Задания вызывают `/opt/jacred/Data/run-job.sh`. Подробности — в разделе [Cron](/deployment/cron).
+
+## Обновление
+
+`jacred.sh --update` запрашивает `/jsondb/save`, останавливает сервис, подменяет файлы релиза и запускает JacRed снова.
+
+<Warning>
+  Сохраните резервную копию `/opt/jacred/Data` до обновления. Автоматический flush не заменяет бэкап.
+</Warning>

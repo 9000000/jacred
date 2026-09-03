@@ -6,7 +6,11 @@ description: "Baibako (baibako.tv) требует cookie (PHPSESSID/uid/pass) и
 keywords: ["JacRed", "Baibako", "трекер", "парсинг"]
 ---
 
-Baibako, slug `baibako`, содержит около 5 тысяч раздач с низкой частотой обновлений. Требует авторизации через cookie или логин/пароль. Использует page-range кластер (только `parse`).
+Baibako, slug `baibako`, содержит около 5 тысяч раздач с низкой частотой обновлений. Требует авторизации через cookie или логин/пароль. Использует page-range кластер (только `parse`, страницы с нуля). Преемник сериального каталога — slug [`rudub`](/trackers/rudub). Не переназначайте `baibako` на RuDub.
+
+<Warning>
+  В `AppOptions` парсер помечен как `TODO: fix parser`. Считайте интеграцию нестабильной, пока эта пометка не снята. Для HD-сериалов используйте [Rudub](/trackers/rudub).
+</Warning>
 
 ## Конфигурация
 
@@ -42,9 +46,20 @@ Baibako:
 8,23,38,53 * * * *  /opt/jacred/Data/run-job.sh baibako-parse http://127.0.0.1:9117/cron/baibako/parse 900
 ```
 
+<ParamField path="query.parseFrom" type="number" default="0">
+  Начальная страница. Нумерация с нуля.
+</ParamField>
+
+<ParamField path="query.parseTo" type="number" default="0">
+  Конечная страница. 0 совпадает с `parseFrom`.
+</ParamField>
+
 ## Диагностика
 
 ```bash
-curl "http://localhost:9117/cron/baibako/parse"
+curl http://127.0.0.1:9117/cron/baibako/parse
+curl http://127.0.0.1:9117/health/background-jobs
 tail -f /opt/jacred/Data/log/baibako.log
 ```
+
+Если запросы не проходят, проверьте cookie/login и [настройку прокси](/configuration/proxy). Если endpoint возвращает `401` или `403`, проверьте [матрицу доступа](/operations/access-matrix).

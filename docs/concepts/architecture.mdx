@@ -37,6 +37,27 @@ flowchart TD
 | Модели | `Models/` | DTO API, конфигурации и записей раздач |
 | Web UI | `web/` | Vue SPA, которую сборка помещает в `wwwroot/` |
 
+## Структура репозитория
+
+```text
+jacred/
+├── Controllers/            # HTTP: поиск, Torznab, Prowlarr, cron, config
+├── Application/            # сценарии поиска, обслуживание FileDB
+├── Infrastructure/
+│   ├── FileDB/             # шарды, masterDb, FastDb
+│   ├── Trackers/           # 25 slug: Parser + SyncService
+│   └── Security/           # JacRedEndpointRegistry, ключи
+├── Configuration/          # AppOptions, ConfigSchema, hot reload
+├── Models/                 # DTO API и записи раздач
+├── web/                    # Vue 3 SPA → wwwroot/
+├── Data/                   # шаблоны init.yaml, crontab, run-job.sh
+├── tests/JacRed.Tests/     # fixtures и dry-run обвязка
+├── docs/                   # Mintlify (docs.json, MDX)
+└── .devin/wiki.json        # руль публичного DeepWiki
+```
+
+Один проект `JacRed.csproj`. Runtime читает `init.yaml` из рабочей директории процесса.
+
 ## Поток поиска
 
 <Steps>

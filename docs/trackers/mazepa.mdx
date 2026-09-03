@@ -2,17 +2,35 @@
 title: "Mazepa: украинский трекер с login-авторизацией"
 sidebarTitle: "Mazepa"
 icon: "/images/trackers/mazepa.ico"
-description: "Mazepa (mazepa.to) требует cookie или логин/пароль. ~51k раздач. Только задача parse (без UpdateTasksParse и ParseAllTask)."
-keywords: ["JacRed", "Mazepa", "трекер", "парсинг"]
+description: "Настройте Mazepa с cookie или логином. Магнеты отдаются без трекеров. Только задача parse."
+keywords:
+  - JacRed
+  - Mazepa
+  - трекер
+  - MagnetNoTrackers
+  - cron
 ---
 
-Mazepa, slug `mazepa`, содержит около 51 тысячи раздач. Украинский трекер, требует авторизации. Использует только задачу `parse` без trio-кластера.
+Mazepa, slug `mazepa`, содержит около 51 тысячи раздач. Украинский трекер, требует авторизации. Специальный полный обход форумов: только задача `parse`, без trio-кластера. Магнет-ссылки собираются из `.torrent` без announce (`MagnetNoTrackers`), чтобы passkey сессии не попал в FileDB. Клиент ищет пиров через DHT.
 
 ## Конфигурация
 
-```yaml
+<CodeGroup>
+```yaml Cookie
 Mazepa:
   host: https://mazepa.to
+  alias: ""
+  useproxy: false
+  reqMinute: 8
+  parseDelay: 7000
+  log: true
+  cookie: "bb_data=SESSION"
+```
+
+```yaml Логин/пароль
+Mazepa:
+  host: https://mazepa.to
+  alias: ""
   useproxy: false
   reqMinute: 8
   parseDelay: 7000
@@ -21,19 +39,35 @@ Mazepa:
     u: "mylogin"
     p: "mypassword"
 ```
+</CodeGroup>
 
-Cookie также поддерживается в поле `cookie` вместо `login`.
+- `host` задаёт основной адрес.
+- `alias` заменяет адрес запросов.
+- `useproxy` применяет глобальный прокси.
+- Предпочитайте статическую `cookie`, если сессия уже есть.
 
-## Расписание cron
+Не коммитьте живые cookie и пароли в git.
+
+## Действия парсера
+
+| Путь | Назначение |
+| --- | --- |
+| `/cron/mazepa/Parse` | Полный обход форумов Mazepa |
+
+## Расписание
+
+Стандартный `Data/crontab` использует:
 
 ```crontab
-# Парсинг раз в час
 25 * * * *  /opt/jacred/Data/run-job.sh mazepa-parse http://127.0.0.1:9117/cron/mazepa/parse 900
 ```
 
 ## Диагностика
 
 ```bash
-curl "http://localhost:9117/cron/mazepa/parse"
+curl http://127.0.0.1:9117/cron/mazepa/parse
+curl http://127.0.0.1:9117/health/background-jobs
 tail -f /opt/jacred/Data/log/mazepa.log
 ```
+
+Если запросы не проходят, проверьте `host`, cookie/login и [настройку прокси](/configuration/proxy). Если endpoint возвращает `401` или `403`, проверьте [матрицу доступа](/operations/access-matrix).

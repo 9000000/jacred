@@ -71,7 +71,7 @@ Details per slug: [reference.md](reference.md).
 - `Data/example.yaml|conf`, `Data/init.yaml|conf` (`synctrackers` + block; **no secrets**)
 - `Data/crontab` via `run-job.sh` (stagger minutes; raise `max_time` for long crawls)
 - `web/public/openapi.yaml` `TrackerSlug` → `cd web && npm run gen:api`
-- Docs: `docs/trackers/overview.mdx`, tracker-specific page, `docs/configuration/trackers.mdx`, `docs/api-reference/cron.mdx`, README count
+- Docs: `docs/trackers/overview.mdx`, tracker-specific page, `docs/configuration/trackers.mdx`, `docs/api-reference/cron.mdx`, `docs/development/docs-workflow.mdx`, README count
 
 **Runtime config:** binary loads `./init.yaml` from **CWD**, not `Data/init.yaml` (template only).
 
@@ -112,4 +112,4 @@ Report: slug, auth, sync cluster, magnet policy, quality gate, cron endpoints, t
 - Subagent: [`.cursor/agents/jacred-tracker-parser.md`](../../agents/jacred-tracker-parser.md)
 - Catalog: [reference.md](reference.md)
 - Rutracker CF: `Infrastructure/Trackers/Rutracker/README.md`
-- Ops docs: `docs/trackers/overview.mdx`, `docs/configuration/trackers.mdx`, `docs/api-reference/cron.mdx`
+- Ops docs: `docs/trackers/overview.mdx`, `docs/configuration/trackers.mdx`, `docs/api-reference/cron.mdx`, `docs/development/adding-trackers.mdx`, `docs/development/docs-workflow.mdx`

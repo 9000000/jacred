@@ -2,38 +2,60 @@
 title: "Leproduction: анонимный аниме-трекер"
 sidebarTitle: "Leproduction"
 icon: "/images/trackers/leproduction.ico"
-description: "Leproduction (le-production.online) работает без авторизации. Раз в сутки JacRed парсит до 3 страниц свежих раздач."
-keywords: ["JacRed", "Leproduction", "трекер", "парсинг"]
+description: "Настройте Leproduction без авторизации и ограничьте ежедневный обход параметром limit_page."
+keywords:
+  - JacRed
+  - Leproduction
+  - трекер
+  - limit_page
+  - cron
 ---
 
-Leproduction, slug `leproduction`, работает без авторизации. Ежедневный `parse` с ограничением `?limit_page=3`.
+Leproduction, slug `leproduction`, работает без авторизации. Кластер ежедневного `parse` с `limit_page`. Магнет-ссылки читаются из HTML.
 
 ## Конфигурация
 
 ```yaml
 Leproduction:
   host: https://www.le-production.online
+  alias: ""
   useproxy: false
   reqMinute: 8
   parseDelay: 7000
   log: true
 ```
 
-## Расписание cron
+- `host` задаёт основной адрес.
+- `alias` заменяет адрес запросов.
+- `useproxy` применяет глобальный прокси.
+- `parseDelay` задаёт паузу между страницами категорий.
+
+Не добавляйте логины или cookie.
+
+## Действия парсера
+
+| Путь | Назначение |
+| --- | --- |
+| `/cron/leproduction/Parse` | Обойти категории. `limit_page` ≤ 0 читает последнюю страницу пагинации |
+
+<ParamField path="query.limit_page" default="3" type="number">
+  Максимальное число страниц на категорию за запуск. В crontab задано 3.
+</ParamField>
+
+## Расписание
+
+Стандартный `Data/crontab` использует:
 
 ```crontab
 45 6 * * *  /opt/jacred/Data/run-job.sh leproduction-parse "http://127.0.0.1:9117/cron/leproduction/parse?limit_page=3" 900
 ```
 
-### Параметры
-
-<ParamField path="query.limit_page" default="3" type="number">
-  Максимальное число страниц за запуск.
-</ParamField>
-
 ## Диагностика
 
 ```bash
-curl "http://localhost:9117/cron/leproduction/parse?limit_page=3"
+curl "http://127.0.0.1:9117/cron/leproduction/parse?limit_page=3"
+curl http://127.0.0.1:9117/health/background-jobs
 tail -f /opt/jacred/Data/log/leproduction.log
 ```
+
+Если запросы не проходят, проверьте `host`, `alias` и [настройку прокси](/configuration/proxy). Если endpoint возвращает `401` или `403`, проверьте [матрицу доступа](/operations/access-matrix).

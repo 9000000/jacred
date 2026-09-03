@@ -88,6 +88,8 @@ Docker: [документация по развёртыванию](docs/deployme
 | Документ | Описание |
 | --- | --- |
 | [Установка](docs/installation.mdx) | Скрипт, обновление, удаление |
+| [Linux](docs/deployment/linux.mdx) | systemd, `libicu`, crontab на хосте |
+| [Клиенты](docs/clients/overview.mdx) | Lampa, Lampac, Sonarr, Prowlarr |
 | [Конфигурация](docs/configuration/overview.mdx) | `init.yaml` / `init.conf`, sync, logging, search, Torznab |
 | [Tracks](docs/concepts/tracks.mdx) | Модуль tracks (TorrServer / ffprobe) |
 | [Трекеры и парсинг](docs/trackers/overview.mdx) | Список трекеров, cron, .onion |

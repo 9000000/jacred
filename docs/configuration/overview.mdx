@@ -2,10 +2,37 @@
 title: "Конфигурация JacRed"
 sidebarTitle: "Обзор"
 description: "JacRed читает конфигурацию из init.yaml (приоритет) или init.conf в рабочей директории. Горячая перезагрузка за 10 секунд. Веб-редактор доступен на /settings."
-keywords: ["init.yaml", "конфигурация JacRed", "/app/config", "Config API", "горячая перезагрузка"]
+keywords: ["init.yaml", "конфигурация JacRed", "/app/config", "Config API", "горячая перезагрузка", "AppOptions"]
 ---
 
-JacRed хранит всю конфигурацию в одном файле — `init.yaml` (или `init.conf` для JSON-формата). Приложение читает файл из рабочей директории. В Docker это `/app/init.yaml`: entrypoint копирует его из постоянного тома `/app/config`. Данные остаются отдельно в `/app/Data`. Конфиг перечитывается автоматически каждые ~10 секунд без перезапуска.
+JacRed хранит всю конфигурацию в одном файле — `init.yaml` (или `init.conf` для JSON-формата). Приложение читает файл из **рабочей директории**. В Docker это `/app/init.yaml`: entrypoint копирует его из постоянного тома `/app/config`. Данные остаются отдельно в `/app/Data`. Конфиг перечитывается автоматически каждые ~10 секунд без перезапуска.
+
+`Data/init.yaml` в репозитории — шаблон, а не runtime-файл.
+
+## Слои значений по умолчанию
+
+| Слой | Файл | Когда действует |
+| --- | --- | --- |
+| Код | `Configuration/AppOptions.cs` | Ключ отсутствует в runtime-файле |
+| Шаблон | `Data/init.yaml` | Новая установка `jacred.sh` и образ Docker копируют этот файл |
+| Пример | `Data/example.yaml` | Иллюстрация полного конфига. Не подставляйте его токены в прод |
+
+Ключи, которые расходятся между слоями:
+
+| Параметр | `AppOptions.cs` | `Data/init.yaml` | `Data/example.yaml` |
+| --- | --- | --- | --- |
+| `opensync` | `true` | `false` | `true` |
+| `syncapi` | пусто | пусто | `https://sync.jacred.stream` |
+| `syncsport` | `true` | `false` | `true` |
+| `syncspidr` | `true` | `false` | `true` |
+| `maxreadfile` | `200` | `250` | `250` |
+| `timeStatsUpdate` | `90` | `15` | `15` |
+| `timeSync` | `60` | `120` | `120` |
+| `timeSyncSpidr` | `60` | `360` | `360` |
+| `evercache.enable` | `true` | `false` | `false` |
+| `flaresolverr.enable` | `true` | `true` | `true` |
+
+Таблица ниже показывает **C# defaults**. Установленный инстанс почти всегда переопределяет их шаблоном `init.yaml`.
 
 ## Приоритет файлов
 
@@ -24,25 +51,27 @@ JacRed хранит всю конфигурацию в одном файле —
 
 ## Глобальные параметры
 
-| Параметр | Тип | По умолчанию | Описание |
+Значения — инициализаторы `AppOptions`, если ключ не задан в файле.
+
+| Параметр | Тип | По умолчанию (C#) | Описание |
 | --- | --- | --- | --- |
 | `listenip` | string | `any` | IP для прослушивания |
 | `listenport` | int | `9117` | Порт |
-| `apikey` | string | `""` | Ключ для поисковых эндпоинтов |
-| `devkey` | string | `""` | Ключ для административных эндпоинтов |
+| `apikey` | string | пусто | Ключ для поисковых эндпоинтов |
+| `devkey` | string | пусто | Ключ для административных эндпоинтов |
 | `mergeduplicates` | bool | `true` | Объединять семантические дубли |
 | `mergenumduplicates` | bool | `true` | Объединять числовые дубли |
 | `openstats` | bool | `true` | Открыть `/stats/*` без ключа |
-| `opensync` | bool | `false` | Открыть `/sync/*` для внешних клиентов |
+| `opensync` | bool | `true` | Открыть `/sync/*` для внешних клиентов |
 | `web` | bool | `true` | Включить веб-интерфейс |
 | `logFdb` | bool | `true` | Логировать изменения FileDB |
 | `logFdbRetentionDays` | int | `7` | Хранить логи N дней |
 | `logParsers` | bool | `true` | Логировать работу парсеров |
-| `maxreadfile` | int | `250` | Макс. записей из одного шарда FileDB |
+| `maxreadfile` | int | `200` | Макс. записей из одного шарда FileDB |
 | `fdbPathLevels` | int | `2` | Уровни вложенности директорий FileDB |
-| `timeStatsUpdate` | int | `15` | Интервал обновления stats.json, минуты |
-| `timeSync` | int | `120` | Интервал синхронизации, минуты |
-| `syncapi` | string | `""` | URL сервера синхронизации |
+| `timeStatsUpdate` | int | `90` | Интервал обновления stats.json, минуты |
+| `timeSync` | int | `60` | Интервал синхронизации, минуты |
+| `syncapi` | string | пусто | URL сервера синхронизации |
 
 ## Минимальный init.yaml
 
@@ -54,6 +83,8 @@ devkey: "your-dev-key"
 ```
 
 ## Полная структура конфига
+
+Фрагмент ниже следует шаблону `Data/init.yaml` (не C# defaults): `opensync: false`, `maxreadfile: 250`, `timeStatsUpdate: 15`.
 
 ```yaml
 listenip: any
@@ -83,10 +114,10 @@ fdbPathLevels: 2
 
 # Синхронизация
 syncapi: ""
-synctrackers: [rutracker, kinozal, rutor, ...]
+synctrackers: [rutracker, kinozal, rutor]
 disable_trackers: []
-syncsport: true
-syncspidr: true
+syncsport: false
+syncspidr: false
 timeSync: 120
 timeSyncSpidr: 360
 saveCheckpointEveryNBatches: 5
@@ -115,7 +146,7 @@ torznab:
 
 # FlareSolverr (для Rutracker)
 flaresolverr:
-  enable: false
+  enable: true
   url: http://127.0.0.1:8191/v1
 
 # Tracks-модуль
@@ -126,7 +157,6 @@ tsuri:
 # Блоки трекеров
 Rutracker:
   host: https://rutracker.org
-  ...
 ```
 
 ## Config API

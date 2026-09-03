@@ -1,0 +1,82 @@
+---
+title: "Reverse proxy и HTTPS для JacRed"
+sidebarTitle: "Reverse proxy"
+description: "Разместите JacRed за Nginx или Caddy: TLS, заголовки forwarding и обязательный devkey для административных маршрутов."
+keywords:
+  - JacRed
+  - Nginx
+  - Caddy
+  - reverse proxy
+  - HTTPS
+  - X-Forwarded-For
+---
+
+Reverse proxy завершает TLS и отдаёт клиентам единый HTTPS-хост. JacRed слушает HTTP на порту **9117**. После публикации в интернет задайте `apikey` и `devkey`.
+
+<Warning>
+  Запрос через Nginx, Caddy, Traefik или cloudflared не считается LAN. Заголовки `X-Forwarded-*`, `Forwarded`, `X-Real-IP` и `CF-*` включают политику `DevAdmin`: для `/cron/*`, `/dev/*`, `/jsondb*` и `/api/v1.0/config*` нужен `devkey`. См. [матрицу доступа](/operations/access-matrix).
+</Warning>
+
+## Ограничьте listener
+
+В runtime `init.yaml` рядом с бинарником:
+
+```yaml
+listenip: 127.0.0.1
+listenport: 9117
+apikey: "your-api-key"
+devkey: "your-dev-key"
+```
+
+Прокси на localhost получает приложение только с loopback. Клиенты ходят на `:443`.
+
+## Nginx
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name jacred.example.com;
+
+  ssl_certificate /etc/letsencrypt/live/jacred.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/jacred.example.com/privkey.pem;
+
+  client_max_body_size 4m;
+
+  location / {
+    proxy_pass http://127.0.0.1:9117;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 120s;
+  }
+}
+```
+
+Увеличьте `proxy_read_timeout`, если вызываете длинные `/cron/*` через тот же хост. Обычный поиск отвечает быстрее.
+
+## Caddy
+
+```caddy
+jacred.example.com {
+  reverse_proxy 127.0.0.1:9117
+}
+```
+
+Caddy выпускает сертификат автоматически. Политика `devkey` для административных путей сохраняется.
+
+## Cloudflare Workers
+
+Отдельный сценарий: Workers раздаёт Vue SPA и проксирует API на origin JacRed. См. [Cloudflare Workers](/deployment/cloudflare-workers).
+
+## Проверка
+
+```bash
+curl -f https://jacred.example.com/health
+curl -f -H "X-Api-Key: your-api-key" \
+  "https://jacred.example.com/api/v2.0/indexers/all/results?query=test"
+curl -f -H "X-Dev-Key: your-dev-key" \
+  https://jacred.example.com/api/v1.0/config
+```
+
+Без `devkey` конфигурация и cron через прокси вернут `403`.

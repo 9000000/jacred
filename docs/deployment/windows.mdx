@@ -1,0 +1,67 @@
+---
+title: "Развёртывание JacRed на Windows"
+sidebarTitle: "Windows"
+description: "Запустите self-contained JacRed.exe из релиза jacred-win-x64 и при необходимости оформите его как службу Windows."
+keywords:
+  - JacRed
+  - Windows
+  - JacRed.exe
+  - NSSM
+  - win-x64
+---
+
+JacRed публикует self-contained архивы `jacred-win-x64.zip` (также `win-x86` и `win-arm64` в CI). Установщик `jacred.sh` работает только на Linux. На Windows распакуйте релиз и запустите `JacRed.exe`.
+
+## Запуск из релиза
+
+<Steps>
+  <Step title="Скачайте архив">
+    Откройте [релизы](https://github.com/jacred-fdb/jacred/releases) и скачайте `jacred-win-x64.zip`.
+  </Step>
+  <Step title="Распакуйте каталог">
+    Например в `C:\jacred`. Рядом с `JacRed.exe` должен лежать рабочий `init.yaml`. Если файла нет, скопируйте шаблон из `Data\init.yaml` в корень каталога.
+  </Step>
+  <Step title="Запустите процесс">
+    ```powershell
+    cd C:\jacred
+    .\JacRed.exe
+    ```
+
+    Проверьте `http://127.0.0.1:9117/health`.
+  </Step>
+</Steps>
+
+Runtime-конфиг — `init.yaml` в **текущей рабочей директории** процесса. Не редактируйте только копию внутри `Data\`.
+
+## Служба Windows
+
+Для автозапуска используйте [NSSM](https://nssm.cc/download) или штатный планировщик. Пример NSSM от имени администратора:
+
+```cmd
+nssm install JacRed "C:\jacred\JacRed.exe"
+nssm set JacRed AppDirectory "C:\jacred"
+nssm set JacRed Start SERVICE_AUTO_START
+nssm start JacRed
+```
+
+<Warning>
+  Перед заменой файлов остановите службу. Self-contained бинарник нельзя обновлять на лету.
+</Warning>
+
+## Планировщик вместо cron
+
+В образе и zip нет crontab. Создайте задания Task Scheduler, которые вызывают HTTP:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing http://127.0.0.1:9117/cron/rutor/parse
+```
+
+Для доступа не с loopback передайте `devkey`. Расписание задач смотрите в [Cron](/deployment/cron) и `Data/crontab` репозитория.
+
+## Сборка из исходников
+
+```bash
+make publish RID=win-x64
+```
+
+Артефакт появится в `dist/win-x64/`. Подробности — в разделе [Сборка](/development/building).

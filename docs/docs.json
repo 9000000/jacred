@@ -66,6 +66,10 @@
             "href": "https://github.com/jacred-fdb/jacred/releases"
           },
           {
+            "label": "DeepWiki",
+            "href": "https://deepwiki.com/jacred-fdb/jacred"
+          },
+          {
             "label": "Сообщить о проблеме",
             "href": "https://github.com/jacred-fdb/jacred/issues"
           }
@@ -109,6 +113,9 @@
     "options": [
       "copy",
       "view",
+      "chatgpt",
+      "claude",
+      "devin",
       "mcp",
       "cursor",
       "download-spec"
@@ -120,7 +127,7 @@
   },
   "errors": {
     "404": {
-      "redirect": false,
+      "redirect": true,
       "title": "Страница не найдена",
       "description": "Проверьте адрес или найдите нужный раздел через поиск."
     }
@@ -173,6 +180,10 @@
     {
       "source": "/tags",
       "destination": "/"
+    },
+    {
+      "source": "/clients",
+      "destination": "/clients/overview"
     }
   ],
   "markdown": {
@@ -184,6 +195,9 @@
   },
   "api": {
     "openapi": "openapi/openapi.yaml",
+    "mdx": {
+      "server": "http://localhost:9117"
+    },
     "playground": {
       "display": "simple",
       "proxy": false
@@ -247,7 +261,10 @@
             "icon": "server",
             "pages": [
               "deployment/docker",
+              "deployment/linux",
+              "deployment/windows",
               "deployment/cron",
+              "deployment/reverse-proxy",
               "deployment/cloudflare-workers"
             ]
           },
@@ -258,6 +275,13 @@
               "operations/access-matrix",
               "operations/maintenance",
               "operations/troubleshooting"
+            ]
+          },
+          {
+            "group": "Клиенты",
+            "icon": "plug",
+            "pages": [
+              "clients/overview"
             ]
           },
           {
@@ -368,7 +392,9 @@
           {
             "group": "Для участников",
             "pages": [
-              "development/building"
+              "development/building",
+              "development/adding-trackers",
+              "development/docs-workflow"
             ]
           }
         ]

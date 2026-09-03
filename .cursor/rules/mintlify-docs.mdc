@@ -1,0 +1,21 @@
+---
+description: Standards for JacRed Mintlify documentation
+globs: "{docs/**/*.mdx,docs/docs.json,docs/AGENTS.md,.devin/wiki.json}"
+alwaysApply: false
+---
+
+# JacRed Mintlify documentation
+
+- Treat application code, `Configuration/AppOptions.cs`, `Configuration/Schema/ConfigSchema.cs`, `Data/crontab`, `Data/init.yaml`, `Data/example.yaml`, and `web/public/openapi.yaml` as the source of truth. Public DeepWiki is not a source of truth; do not copy MDX into `.devin/wiki.json` (30-page public cap).
+- Write user-facing content in Russian with direct, active language and sentence-case headings.
+- Every MDX page must have `title`, `sidebarTitle`, `description`, and useful `keywords`.
+- Use root-relative internal links without the `/docs/` prefix and without `.mdx`.
+- Keep `docs.json`, `.mintignore`, and `AGENTS.md` in `docs/`. Add every new page to `docs.json`; preserve existing slugs or add a redirect.
+- Load Mintlify skills from `.agents/skills/` (`mintlify`, `mintlify-docs`, `mintlify-api`) and MCP servers from `.cursor/mcp.json`.
+- Use Mintlify components only when they improve scanning: `Steps` for procedures, `Tabs`/`CodeGroup` for alternatives, callouts for risk, and `ParamField`/`ResponseField` for API contracts.
+- Give every code fence a language and keep examples runnable against port `9117`.
+- Never publish real API keys, tokens, passwords, cookies, wallet secrets, or private URLs.
+- Distinguish C# `AppOptions` defaults, packaged `Data/init.yaml`, and full `Data/example.yaml`. Never mix them silently.
+- Document `/dev/*` and destructive maintenance actions as operator-only features with warnings.
+- Do not describe retired tracker icons as active trackers.
+- Before completion, run `mint validate`, `mint broken-links --check-anchors`, and `mint a11y` from `docs/`.

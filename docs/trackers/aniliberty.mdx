@@ -2,24 +2,52 @@
 title: "Aniliberty: JSON API с прямыми магнет-ссылками"
 sidebarTitle: "Aniliberty"
 icon: "/images/trackers/aniliberty.ico"
-description: "Aniliberty (aniliberty.top) — публичный JSON API без авторизации. ~5k аниме-раздач. Page-range кластер, прямые magnet в ответах."
-keywords: ["JacRed", "Aniliberty", "трекер", "парсинг"]
+description: "Настройте Aniliberty через публичный JSON API без авторизации и проверьте page-range парсинг."
+keywords:
+  - JacRed
+  - Aniliberty
+  - трекер
+  - JSON API
+  - magnet
 ---
 
-Aniliberty, slug `aniliberty`, содержит около 5 тысяч аниме-раздач и работает через публичный JSON API без авторизации. Магнет-ссылки возвращаются прямо в ответе API.
+Aniliberty, slug `aniliberty`, содержит около 5 тысяч аниме-раздач. Парсер читает официальный JSON API без авторизации. Магнет-ссылки приходят в ответе API. Page-range кластер, только задача `parse`.
 
 ## Конфигурация
 
 ```yaml
 Aniliberty:
   host: https://aniliberty.top
+  alias: ""
   useproxy: false
   reqMinute: 8
   parseDelay: 7000
   log: true
 ```
 
-## Расписание cron
+- `host` задаёт базовый URL API.
+- `alias` подменяет хост запросов.
+- `useproxy` применяет глобальный прокси.
+
+Не добавляйте логины или cookie. Предпочитайте JSON API, а не HTML-страницы сайта.
+
+## Действия парсера
+
+| Путь | Назначение |
+| --- | --- |
+| `/cron/aniliberty/Parse` | Обойти диапазон страниц API |
+
+<ParamField path="query.parseFrom" type="number" default="0">
+  Начальная страница диапазона.
+</ParamField>
+
+<ParamField path="query.parseTo" type="number" default="0">
+  Конечная страница. 0 совпадает с `parseFrom`.
+</ParamField>
+
+## Расписание
+
+Стандартный `Data/crontab` использует:
 
 ```crontab
 6,21,36,51 * * * *  /opt/jacred/Data/run-job.sh aniliberty-parse http://127.0.0.1:9117/cron/aniliberty/parse 900
@@ -28,6 +56,9 @@ Aniliberty:
 ## Диагностика
 
 ```bash
-curl "http://localhost:9117/cron/aniliberty/parse"
+curl http://127.0.0.1:9117/cron/aniliberty/parse
+curl http://127.0.0.1:9117/health/background-jobs
 tail -f /opt/jacred/Data/log/aniliberty.log
 ```
+
+Если запросы не проходят, проверьте `host`, `alias` и [настройку прокси](/configuration/proxy). Если endpoint возвращает `401` или `403`, проверьте [матрицу доступа](/operations/access-matrix).

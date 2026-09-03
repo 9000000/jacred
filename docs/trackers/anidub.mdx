@@ -2,24 +2,53 @@
 title: "Anidub: анонимный аниме-трекер"
 sidebarTitle: "Anidub"
 icon: "/images/trackers/anidub.ico"
-description: "Anidub (tr.anidub.com) работает без авторизации. ~4k раздач. Page-range кластер, только задача parse."
-keywords: ["JacRed", "Anidub", "трекер", "парсинг"]
+description: "Настройте Anidub без авторизации, задайте диапазон страниц parseFrom/parseTo и проверьте лог парсера."
+keywords:
+  - JacRed
+  - Anidub
+  - трекер
+  - парсинг
+  - cron
 ---
 
-Anidub, slug `anidub`, содержит около 4 тысяч раздач и работает без авторизации. Использует page-range кластер (только `parse`).
+Anidub, slug `anidub`, содержит около 4 тысяч раздач. Работает без авторизации. Относится к page-range кластеру: только задача `parse`, страницы нумеруются с 1.
 
 ## Конфигурация
 
 ```yaml
 Anidub:
   host: https://tr.anidub.com
+  alias: ""
   useproxy: false
   reqMinute: 8
   parseDelay: 7000
   log: true
 ```
 
-## Расписание cron
+- `host` задаёт основной адрес.
+- `alias` заменяет адрес запросов, если нужно зеркало.
+- `useproxy` применяет глобальный прокси.
+- `parseDelay` задаёт паузу между страницами в миллисекундах.
+
+Anidub не требует учётных данных. Не добавляйте логины или cookie в этот блок. Магнет-ссылки берутся из HTML списка.
+
+## Действия парсера
+
+| Путь | Назначение |
+| --- | --- |
+| `/cron/anidub/Parse` | Разобрать страницы. `parseFrom`/`parseTo` ≤ 0 означают страницу 1 |
+
+<ParamField path="query.parseFrom" type="number" default="0">
+  Начальная страница. Значение 0 заменяется на 1.
+</ParamField>
+
+<ParamField path="query.parseTo" type="number" default="0">
+  Конечная страница. Значение 0 совпадает с `parseFrom`.
+</ParamField>
+
+## Расписание
+
+Стандартный `Data/crontab` использует:
 
 ```crontab
 4,19,34,49 * * * *  /opt/jacred/Data/run-job.sh anidub-parse http://127.0.0.1:9117/cron/anidub/parse 900
@@ -28,6 +57,9 @@ Anidub:
 ## Диагностика
 
 ```bash
-curl "http://localhost:9117/cron/anidub/parse"
+curl http://127.0.0.1:9117/cron/anidub/parse
+curl http://127.0.0.1:9117/health/background-jobs
 tail -f /opt/jacred/Data/log/anidub.log
 ```
+
+Если запросы не проходят, проверьте `host`, `alias` и [настройку прокси](/configuration/proxy). Если endpoint возвращает `401` или `403`, проверьте [матрицу доступа](/operations/access-matrix).

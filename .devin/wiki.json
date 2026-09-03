@@ -1,0 +1,309 @@
+{
+  "repo_notes": [
+    {
+      "author": "JacRed maintainers",
+      "content": "Public DeepWiki for jacred-fdb/jacred. This is not Devin Enterprise: no playbooks, secrets files, or ACU effort levels. wiki.json pages are an explicit 30-page cap (public DeepWiki maximum). Generate exactly these pages.\n\nROLES: Canonical operator docs are Russian Mintlify at https://docs.jacred.stream (source: docs/ with docs.json). DeepWiki is the English code-grounded twin: explain where topics live in the repo and link the matching docs.jacred.stream URLs. Do not paste install scripts, docker-compose dumps, crontab, or API tables — those belong on Mintlify.\n\nSOURCE OF TRUTH: application code, Configuration/AppOptions.cs, Configuration/Schema/ConfigSchema.cs, Data/crontab, Data/init.yaml, Data/example.yaml, web/public/openapi.yaml. Not DeepWiki, not generated wiki text, not docs/ MDX as architecture.\n\nThree default layers: (1) C# field initializers in AppOptions.cs when a key is absent; (2) packaged Data/init.yaml (empty secrets, opensync false, syncsport/syncspidr false); (3) Data/example.yaml (illustrative, including sample syncapi). Runtime config is CWD init.yaml or init.conf, not Data/init.yaml.\n\nFACTS: default port 9117; listenip is any; 25 tracker slugs; apikey protects search APIs; devkey protects /dev, /cron, /jsondb, /api/v1.0/config from internet and reverse proxy; Anibelka is anonymous-only; Rutracker uses FlareSolverr Warmup (Anistar does not); RuDub and Mazepa use BencodeTo.MagnetNoTrackers; Docker image has no in-container cron — host or sidecar must call /cron/*; FileDB lives in Data/fdb with masterDb.bz; Vue SPA is web/ published to wwwroot/; OpenAPI canonical file is web/public/openapi.yaml copied manually to docs/openapi/openapi.yaml.\n\nLAYOUT: single JacRed.csproj. Controllers/ HTTP; Application/ search and maintenance; Infrastructure/ FileDB, Trackers, Security, network; Configuration/ load and schema; Models/; web/ Vue UI; Data/ templates crontab and examples; tests/JacRed.Tests; scripts/ dry-run and build; .github/workflows/ build.yml release.yml. Compose/Docker at repo root. Mintlify root is docs/.\n\nIGNORE as architecture: temp/, bin/, obj/, wwwroot (generated), every SVG/ico dump. Never emit real tokens, cookies, passwords, Alloha tokens, or private hosts.\n\nWhen a Mintlify nav group is added in docs/docs.json, fold it into an existing wiki page or replace a leaf. Do not add a 31st page."
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview",
+      "purpose": "English introduction to JacRed: ASP.NET Core 10 self-hosted torrent aggregator on port 9117 with FileDB, Jackett/Torznab/Prowlarr APIs, and 25 tracker parsers. How Controllers, Application, Infrastructure, and web/ cooperate. Point readers to https://docs.jacred.stream for operator docs and to child wiki pages for code maps. Do not duplicate the Russian landing page.",
+      "page_notes": [
+        {
+          "content": "User-facing guide: https://docs.jacred.stream"
+        }
+      ]
+    },
+    {
+      "title": "Getting Started",
+      "purpose": "Map clone-and-run paths: jacred.sh, docker-compose, make publish, Data/example.yaml, Data/init.yaml. Default port 9117 and GET /health. Link Mintlify; do not paste full install scripts.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/quickstart and https://docs.jacred.stream/installation"
+        }
+      ]
+    },
+    {
+      "title": "Configuration",
+      "purpose": "How Configuration/ loads init.yaml / init.conf from CWD, merges AppOptions, hot-reloads ~10s. Cover AppOptions fields, ConfigSchema, /settings editor. Distinguish AppOptions C# defaults vs Data/init.yaml vs Data/example.yaml.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/configuration/overview https://docs.jacred.stream/configuration/trackers https://docs.jacred.stream/configuration/search"
+        }
+      ]
+    },
+    {
+      "title": "Security and Access",
+      "purpose": "JacRedEndpointRegistry policies: Public, ApiKeyWhenConfigured, ConfigApi, DevAdmin. apikey vs devkey headers. Reverse-proxy X-Forwarded headers force devkey. Do not publish secrets.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/authentication https://docs.jacred.stream/operations/access-matrix"
+        }
+      ]
+    },
+    {
+      "title": "Architecture",
+      "purpose": "Single-project layer diagram: Controllers, Application search, Infrastructure FileDB/trackers/security, Configuration, Models, web Vue SPA. Repository map. Operator overview stays on Mintlify.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guide: https://docs.jacred.stream/concepts/architecture"
+        }
+      ]
+    },
+    {
+      "title": "FileDB and FastDb",
+      "purpose": "Infrastructure FileDB shards under Data/fdb, masterDb.bz, FastDb in-memory index, fdbPathLevels, maxreadfile. How parsers write and search reads. No schema dump.",
+      "parent": "Architecture",
+      "page_notes": [
+        {
+          "content": "User-facing guide: https://docs.jacred.stream/concepts/filedb"
+        }
+      ]
+    },
+    {
+      "title": "Search Pipeline",
+      "purpose": "Application search: title/ID normalize, Alloha KP/IMDb/TMDB resolve, mergeV1, Jackett vs Torznab vs Native vs Prowlarr adapters over the same FileDB index.",
+      "parent": "Architecture",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/concepts/search https://docs.jacred.stream/configuration/search https://docs.jacred.stream/configuration/alloha"
+        }
+      ]
+    },
+    {
+      "title": "Sync",
+      "purpose": "Remote FileDB sync via syncapi, synctrackers, opensync, timeSync, checkpoints. Controllers and Infrastructure sync types. Starter Data/init.yaml has opensync false and empty syncapi.",
+      "parent": "Architecture",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/concepts/sync https://docs.jacred.stream/api-reference/sync"
+        }
+      ]
+    },
+    {
+      "title": "Tracks",
+      "purpose": "Optional tracks module: tsuri TorrServer /ffp, tracksconcurrency, tracksinterval, ffprobe metadata written into FileDB. Map controllers and workers without dumping timeouts.",
+      "parent": "Architecture",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/concepts/tracks https://docs.jacred.stream/configuration/tracks"
+        }
+      ]
+    },
+    {
+      "title": "Background Jobs",
+      "purpose": "In-process workers vs external cron hitting /cron/{slug}. /health/background-jobs, /jsondb/save, maintenance Check. Docker has no in-container cron.",
+      "parent": "Architecture",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/concepts/background-jobs https://docs.jacred.stream/deployment/cron"
+        }
+      ]
+    },
+    {
+      "title": "Web UI",
+      "purpose": "web/ Vue 3 SPA: /, /stats, /settings. OpenAPI types via npm run gen:api. Built into wwwroot. Cloudflare Workers deployment is a separate origin proxy.",
+      "parent": "Architecture",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/concepts/web-ui https://docs.jacred.stream/deployment/cloudflare-workers"
+        }
+      ]
+    },
+    {
+      "title": "Trackers Overview",
+      "purpose": "Catalog of 25 slugs under Infrastructure/Trackers. Sync clusters, auth, magnet policy. Link child cluster pages. Do not create one wiki page per tracker.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guide: https://docs.jacred.stream/trackers/overview"
+        }
+      ]
+    },
+    {
+      "title": "Trio Cluster",
+      "purpose": "Code map for rutracker, kinozal, rutor, nnmclub, megapeer, toloka, torrentby: parse + UpdateTasksParse + ParseAllTask, Data/temp checkpoints. Rutracker FlareSolverr.",
+      "parent": "Trackers Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/trackers/rutracker https://docs.jacred.stream/trackers/kinozal https://docs.jacred.stream/trackers/rutor"
+        }
+      ]
+    },
+    {
+      "title": "Rutor-style and ParseLatest",
+      "purpose": "anibelka (anon only), korsars, ultradox (search Referer). Trio plus ParseLatest. Magnet and auth gotchas from the tracker skill.",
+      "parent": "Trackers Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/trackers/anibelka https://docs.jacred.stream/trackers/korsars https://docs.jacred.stream/trackers/ultradox"
+        }
+      ]
+    },
+    {
+      "title": "Page-range Trackers",
+      "purpose": "mazepa, lostfilm, selezen, baibako, animelayer, anidub, aniliberty, rudub. parseFrom/parseTo or dedicated mazepa crawl. RuDub/Mazepa MagnetNoTrackers. Baibako parser has a known TODO.",
+      "parent": "Trackers Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/trackers/mazepa https://docs.jacred.stream/trackers/rudub https://docs.jacred.stream/trackers/baibako"
+        }
+      ]
+    },
+    {
+      "title": "Daily Parse Trackers",
+      "purpose": "anistar (host/alias, not FlareSolverr), anifilm, leproduction, viruseproject. limit_page daily parse. Map Controllers/Cron and Infrastructure/Trackers.",
+      "parent": "Trackers Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/trackers/anistar https://docs.jacred.stream/trackers/leproduction https://docs.jacred.stream/trackers/viruseproject"
+        }
+      ]
+    },
+    {
+      "title": "API Trackers",
+      "purpose": "bitru, knaben, subsplease: official JSON APIs, hourly latest plus checkpointed backfill. Prefer site JSON over HTML scrape.",
+      "parent": "Trackers Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/trackers/bitru https://docs.jacred.stream/trackers/knaben https://docs.jacred.stream/trackers/subsplease"
+        }
+      ]
+    },
+    {
+      "title": "Deployment",
+      "purpose": "Repo artifacts: Dockerfile, GHCR ghcr.io/jacred-fdb/jacred, jacred.sh systemd, win-x64 zip JacRed.exe, reverse proxy, Cloudflare Workers UI. Link Mintlify; do not paste compose files.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/deployment/docker https://docs.jacred.stream/deployment/linux https://docs.jacred.stream/deployment/windows https://docs.jacred.stream/deployment/reverse-proxy"
+        }
+      ]
+    },
+    {
+      "title": "Cron and Scheduling",
+      "purpose": "Data/crontab and Data/run-job.sh as source of truth. Stagger minutes, max_time for long crawls. Host-side cron for Docker. Map Controllers/Cron.",
+      "parent": "Deployment",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/deployment/cron https://docs.jacred.stream/api-reference/cron"
+        }
+      ]
+    },
+    {
+      "title": "Operations",
+      "purpose": "Maintenance Check/Status, JacRed maintain CLI, troubleshooting (health, journalctl, FileDB). Mintlify holds operator procedures.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/operations/maintenance https://docs.jacred.stream/operations/troubleshooting https://docs.jacred.stream/operations/access-matrix"
+        }
+      ]
+    },
+    {
+      "title": "API Overview",
+      "purpose": "Where routes are declared: Controllers with [Route]. Jackett /api/v2.0, Native /api/v1.0/torrents, Torznab /torznab/api, Prowlarr /api/v1. Hand-written API MDX plus generated OpenAPI on Mintlify are canonical.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guide: https://docs.jacred.stream/api-reference/overview"
+        }
+      ]
+    },
+    {
+      "title": "Search APIs",
+      "purpose": "Map Jackett, Torznab, Prowlarr, Native controllers to Mintlify pages. Do not duplicate parameter lists.",
+      "parent": "API Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/api-reference/jackett https://docs.jacred.stream/api-reference/torznab https://docs.jacred.stream/api-reference/prowlarr https://docs.jacred.stream/api-reference/native"
+        }
+      ]
+    },
+    {
+      "title": "Management APIs",
+      "purpose": "Config, stats, sync, cron, health, /dev FileDB tools. DevAdmin warnings. Never document live keys.",
+      "parent": "API Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/api-reference/config https://docs.jacred.stream/api-reference/stats https://docs.jacred.stream/api-reference/cron https://docs.jacred.stream/api-reference/dev"
+        }
+      ]
+    },
+    {
+      "title": "OpenAPI and Swagger",
+      "purpose": "Canonical web/public/openapi.yaml, Mintlify copy docs/openapi/openapi.yaml, npm run gen:api for web types, /swagger and /openapi.yaml at runtime. Manual copy policy.",
+      "parent": "API Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/api-reference/overview https://docs.jacred.stream/development/docs-workflow"
+        }
+      ]
+    },
+    {
+      "title": "Development and Testing",
+      "purpose": "make publish, tests/JacRed.Tests, web Playwright, scripts/dry_run_{slug}_parser.py, Node 22. Map CI build.yml. Do not treat CI YAML as runtime config.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/development/building https://docs.jacred.stream/development/adding-trackers"
+        }
+      ]
+    },
+    {
+      "title": "Tracker Parser Patterns",
+      "purpose": "How to add a slug: Parser + SyncService + Cron controller + DI + ConfigSchema + crontab + OpenAPI TrackerSlug + docs. Clusters from .cursor/skills/jacred-tracker-parser. Unique FDB URLs. No half-wired trackers.",
+      "parent": "Development and Testing",
+      "page_notes": [
+        {
+          "content": "User-facing guide: https://docs.jacred.stream/development/adding-trackers Skill: .cursor/skills/jacred-tracker-parser/SKILL.md"
+        }
+      ]
+    },
+    {
+      "title": "FlareSolverr and Network",
+      "purpose": "Infrastructure network: FlareSolverr for Rutracker, proxy/globalproxy, Worker alias. Not used by Anistar. Docker compose sidecar URL http://flaresolverr:8191/v1.",
+      "parent": "Architecture",
+      "page_notes": [
+        {
+          "content": "User-facing guides: https://docs.jacred.stream/configuration/flaresolverr https://docs.jacred.stream/configuration/proxy"
+        }
+      ]
+    },
+    {
+      "title": "Clients and Integrations",
+      "purpose": "How Lampa (Jackett JSON), Lampac JacRed module, Sonarr/Radarr Torznab, Prowlarr, AIOStreams consume APIs. Server-side URLs only; do not copy Lampac module source.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guide: https://docs.jacred.stream/clients/overview"
+        }
+      ]
+    },
+    {
+      "title": "Docs Sites Mintlify DeepWiki",
+      "purpose": "Two surfaces: docs/ Mintlify (docs.json, MDX, content path /docs) and .devin/wiki.json public DeepWiki (30-page cap). Agents: docs/AGENTS.md, .cursor/rules/mintlify-docs.mdc, .cursor/agents/mintlify-docsops.md, .agents/skills/mintlify*. DeepWiki is not a source of truth and must not copy MDX.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "User-facing guide: https://docs.jacred.stream/development/docs-workflow Public wiki: https://deepwiki.com/jacred-fdb/jacred"
+        }
+      ]
+    },
+    {
+      "title": "Repository CI and Publish",
+      "purpose": "JacRed.csproj, scripts/build.sh, make publish. Workflows: build.yml, release.yml, reusable-docker-build.yml. GHCR image ghcr.io/jacred-fdb/jacred. Release zips jacred-linux-* and jacred-win-x64. Do not treat CI YAML as runtime config.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "CI lives in .github/workflows/. Docker image: ghcr.io/jacred-fdb/jacred. Releases: https://github.com/jacred-fdb/jacred/releases"
+        }
+      ]
+    }
+  ]
+}

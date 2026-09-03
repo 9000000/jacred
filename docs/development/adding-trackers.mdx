@@ -1,0 +1,68 @@
+---
+title: "Добавление трекера в JacRed"
+sidebarTitle: "Добавление трекера"
+description: "Подключите новый торрент-трекер end-to-end: Parser, SyncService, cron, конфиг, OpenAPI, fixtures и страница документации."
+keywords:
+  - JacRed
+  - трекер
+  - Parser
+  - SyncService
+  - OpenAPI
+  - crontab
+---
+
+Новый трекер считается готовым только после полной проводки: код, DI, схема конфига, crontab, OpenAPI, иконка, тесты и страница в Mintlify. Не оставляйте полуподключённый slug.
+
+Подробный playbook для агента лежит в [`.cursor/skills/jacred-tracker-parser/SKILL.md`](https://github.com/jacred-fdb/jacred/blob/main/.cursor/skills/jacred-tracker-parser/SKILL.md). Эта страница — операторский конспект.
+
+## Кластеры синхронизации
+
+Скопируйте ближайший существующий slug, а не изобретайте новый цикл задач.
+
+| Кластер | Ориентир | Форма cron |
+| --- | --- | --- |
+| Trio + ParseLatest | rutor, korsars, anibelka, ultradox, rutracker | Частый `parse` и суточные задачи карты |
+| Page-range / `limit_page` | baibako, rudub, anidub, anistar, leproduction | `parseFrom`/`parseTo` или `limit_page` |
+| API latest + backfill | knaben, bitru, subsplease | Свежие раздачи и checkpointed crawl |
+| Special | lostfilm, mazepa | Отдельные эндпоинты |
+
+## Набор файлов
+
+| Часть | Путь |
+| --- | --- |
+| Parser / Sync / Categories | `Infrastructure/Trackers/{Name}/` |
+| Cron | `Controllers/Cron/{Name}Controller.cs` → `/cron/{slug}/…` |
+| Иконка | `web/public/img/ico/{slug}.ico` (favicon этого сайта) |
+| Fixtures | `tests/JacRed.Tests/Fixtures/{Name}/` |
+| Dry-run | `scripts/dry_run_{slug}_parser.py` |
+| Документация | `docs/trackers/{slug}.mdx` |
+
+## Проводка
+
+<Steps>
+  <Step title="Исследуйте сайт">
+    Зафиксируйте кодировку, auth, JSON API или HTML, пагинацию и путь скачивания. Проверьте Jackett-определение, но сверяйте его с живым сайтом.
+  </Step>
+  <Step title="Выберите политику">
+    При passkey в announce используйте `BencodeTo.MagnetNoTrackers`. Successor-сайты получают **новый** slug: не переназначайте предшественника.
+  </Step>
+  <Step title="Реализуйте Parser и SyncService">
+    Подключите DI, `AppOptions`, `ConfigSchema`, FileDB URL parsing, блоки в `Data/init.yaml` и `Data/example.yaml` без секретов.
+  </Step>
+  <Step title="Добавьте cron и OpenAPI">
+    Запись в `Data/crontab` через `run-job.sh`, slug в `TrackerSlug` канонического `web/public/openapi.yaml`, затем `cd web && npm run gen:api`. Скопируйте OpenAPI в `docs/openapi/openapi.yaml` вручную.
+  </Step>
+  <Step title="Документируйте и проверьте">
+    Страница трекера, строки в [обзоре трекеров](/trackers/overview), [конфигурации](/configuration/trackers) и [Cron API](/api-reference/cron). Запустите dry-run и `dotnet test --filter FullyQualifiedName~{Name}`.
+  </Step>
+</Steps>
+
+## Критические правила
+
+- Runtime-конфиг — `init.yaml` в **CWD**, не `Data/init.yaml`.
+- Anibelka только анонимно. Rutracker идёт через FlareSolverr, Anistar — нет.
+- RuDub и Mazepa отдают магниты без трекеров (`MagnetNoTrackers`).
+- Не коммитьте живые cookie и пароли.
+- Иконку берите с того же сайта, не копируйте соседний `.ico`.
+
+Цикл проверки документации описан в разделе [Docs workflow](/development/docs-workflow).

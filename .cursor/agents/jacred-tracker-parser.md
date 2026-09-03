@@ -28,7 +28,7 @@ cluster over inventing new shapes.
 3. Pick the closest JacRed pattern from the skill reference catalog.
 4. Plan briefly, then implement end-to-end (no half-wired trackers).
 5. Add fixtures + `scripts/dry_run_{slug}_parser.py` when HTML/API is scrapeable; run tests.
-6. Update docs auth/cron tables and OpenAPI `TrackerSlug` + `npm run gen:api`.
+6. Update docs auth/cron tables and OpenAPI `TrackerSlug` + `npm run gen:api`. Follow [docs/development/docs-workflow.mdx](../../docs/development/docs-workflow.mdx) for Mintlify checks.
 
 ## Core constraints (always)
 

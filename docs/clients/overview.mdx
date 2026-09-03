@@ -1,0 +1,120 @@
+---
+title: "Клиенты JacRed"
+sidebarTitle: "Обзор"
+description: "Подключите Lampa, Lampac, Sonarr, Radarr, Prowlarr или AIOStreams к поисковым API JacRed на порту 9117."
+keywords:
+  - JacRed
+  - Lampa
+  - Lampac
+  - Sonarr
+  - Radarr
+  - Prowlarr
+  - AIOStreams
+  - Jackett
+  - Torznab
+---
+
+JacRed отдаёт один FileDB-индекс в нескольких форматах. Выберите API под клиент. Базовый URL: `http://YOUR_HOST:9117`. Если задан `apikey`, передайте его в параметре или заголовке.
+
+<Tabs>
+  <Tab title="Lampa">
+    Lampa использует Jackett JSON.
+
+    ```text
+    http://YOUR_HOST:9117/api/v2.0/indexers/all/results
+    ```
+
+    Поле API-ключа в Lampa должно совпадать с `apikey` из `init.yaml`. Если ключ пуст, оставьте поле пустым.
+
+    Проверка:
+
+    ```bash
+    curl -s "http://127.0.0.1:9117/api/v2.0/indexers/all/results?query=матрица"
+    ```
+
+    Подробности — в разделе [Jackett API](/api-reference/jackett).
+  </Tab>
+  <Tab title="Lampac">
+    Модуль JacRed в Lampac ходит на `/api/v1.0` и `/api/v2.0` того же инстанса или внешнего хоста.
+
+    - Включите модуль JacRed в Lampac (`SkipModules` не должен содержать `JacRed`).
+    - Укажите адрес этого JacRed как host агрегатора.
+    - Для LampaWeb включите plugin `jacred`.
+
+    Проверка с сервера JacRed:
+
+    ```bash
+    curl -s http://127.0.0.1:9117/api/v1.0/conf
+    curl -s "http://127.0.0.1:9117/api/v1.0/torrents?query=матрица"
+    ```
+
+    Документация модуля на стороне Lampac описывает `SkipModules` и `typesearch`. Этот сайт документирует сервер JacRed.
+  </Tab>
+  <Tab title="Sonarr / Radarr">
+    Добавьте Generic Torznab indexer.
+
+    | Поле | Значение |
+    | --- | --- |
+    | URL | `http://YOUR_HOST:9117/torznab/api` |
+    | API Key | значение `apikey` |
+
+    Нужен включённый блок:
+
+    ```yaml
+    torznab:
+      enable: true
+    ```
+
+    Если `torznab.enable: false`, эндпоинт вернёт `404`. См. [Torznab API](/api-reference/torznab).
+  </Tab>
+  <Tab title="Prowlarr">
+    JacRed публикует один агрегированный indexer с `id=1`.
+
+    | Поле | Значение |
+    | --- | --- |
+    | Тип | Generic Torznab |
+    | URL | `http://YOUR_HOST:9117/api/v1/indexer/1/newznab` |
+    | API Key | значение `apikey` |
+
+    Search Feed JSON: `GET /api/v1/search`. Подробности — в разделе [Prowlarr API](/api-reference/prowlarr).
+  </Tab>
+  <Tab title="AIOStreams">
+    AIOStreams обычно фильтрует сезон и эпизод сам. Для этого в JacRed:
+
+    ```yaml
+    search:
+      skipSeasonEpisodeFilter: true
+      stripSeasonEpisode: true
+      skipCatFilter: true
+    ```
+
+    `stripSeasonEpisode` добавляет нечёткий запрос без суффикса `S01` / `S01E01`. `skipSeasonEpisodeFilter` отключает серверный фильтр сезона. См. [конфигурацию поиска](/configuration/search).
+  </Tab>
+</Tabs>
+
+## Native JSON
+
+Клиенты, которым нужны языки дорожек и ffprobe, используют Native API:
+
+```bash
+curl -s "http://127.0.0.1:9117/api/v1.0/torrents?query=матрица"
+```
+
+См. [Native API](/api-reference/native).
+
+## Дальше
+
+<Columns cols={2}>
+  <Card title="Быстрый старт" icon="rocket" href="/quickstart">
+    Docker Compose и первый поисковый запрос.
+  </Card>
+  <Card title="Аутентификация" icon="key" href="/authentication">
+    `apikey`, `devkey` и заголовки.
+  </Card>
+  <Card title="Обзор API" icon="code" href="/api-reference/overview">
+    Все поисковые и управляющие эндпоинты.
+  </Card>
+  <Card title="Reverse proxy" icon="shield" href="/deployment/reverse-proxy">
+    HTTPS перед портом 9117.
+  </Card>
+</Columns>
