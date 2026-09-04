@@ -1,12 +1,22 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiClient, apiRequest, buildUrl } from '@/lib/api/client'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  apiClient,
+  apiRequest,
+  buildUrl,
+  resolveJacRedBaseUrl,
+} from '@/lib/api/client'
 
 vi.mock('@/lib/storage', () => ({
   getApiKey: () => 'api-secret',
   getDevKey: () => 'dev-secret',
 }))
 
+beforeEach(() => {
+  vi.stubEnv('VITE_API_BASE_URL', '')
+})
+
 afterEach(() => {
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
@@ -21,6 +31,21 @@ describe('buildUrl', () => {
     expect(url).toContain('year=1999')
     expect(url).toContain('Category%5B%5D=2000')
     expect(url).toContain('Category%5B%5D=5070')
+  })
+})
+
+describe('resolveJacRedBaseUrl', () => {
+  it('prefers explicit baseUrl over env', () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://env.example')
+    expect(resolveJacRedBaseUrl('https://explicit.example/path')).toBe(
+      'https://explicit.example/path',
+    )
+  })
+
+  it('uses env then empty same-origin', () => {
+    expect(resolveJacRedBaseUrl()).toBe('')
+    vi.stubEnv('VITE_API_BASE_URL', 'https://env.example/api')
+    expect(resolveJacRedBaseUrl()).toBe('https://env.example')
   })
 })
 
@@ -39,6 +64,23 @@ describe('apiRequest', () => {
     const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
     expect(headers.get('X-Api-Key')).toBe('api-secret')
     expect(headers.get('X-Dev-Key')).toBe('dev-secret')
+  })
+
+  it('uses VITE_API_BASE_URL for requests', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com')
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ ok: true }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+
+    await apiRequest('/health')
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      'https://api.example.com/health',
+    )
   })
 
   it('throws a typed error for non-success responses', async () => {

@@ -35,6 +35,16 @@ dotnet publish …
 
 Also invoked from `Dockerfile`, `scripts/build.sh` / `make publish`, and CI. Runtime: ASP.NET serves API + SPA from `wwwroot/` on one port.
 
+## GitHub Pages (optional)
+
+Static `dist/` on GitHub Pages (`gh.jacred.stream`). The Pages workflow bakes `VITE_API_BASE_URL=https://jacred.stream` so the SPA calls the JacRed API cross-origin (CORS). SPA deep links need `404.html` (included in `npm run build:pages`).
+
+See [GitHub Pages](../docs/deployment/github-pages.mdx).
+
+```bash
+VITE_API_BASE_URL=https://jacred.stream npm run build:pages
+```
+
 ## Cloudflare Workers (optional)
 
 Serve `dist/` on Cloudflare with a thin Worker that proxies API paths to a JacRed backend. The Vue app still uses same-origin `/api/...` calls — no CORS changes.
@@ -81,6 +91,7 @@ npm run format               # eslint src --fix
 npm run test                 # vitest run
 npm run test:watch           # vitest
 npm run preview              # vite preview
+npm run build:pages          # build + 404.html + CNAME for GitHub Pages
 npm run preview:cf           # build + wrangler dev (needs .dev.vars)
 npm run deploy:cf            # build + wrangler deploy
 npm run generate-pwa-assets  # rebuild icons from public/img/jacred.png

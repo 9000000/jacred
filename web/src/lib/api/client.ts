@@ -1,6 +1,24 @@
 import { getApiKey, getDevKey } from '@/lib/storage'
 import type { paths } from '@/lib/api/types'
 
+/**
+ * Resolve JacRed API base URL:
+ * explicit option → VITE_API_BASE_URL (Pages bake) → same origin (`''`).
+ */
+export function resolveJacRedBaseUrl(explicit?: string): string {
+  if (explicit !== undefined) return explicit.trim()
+  const fromEnv = String(import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (fromEnv) {
+    try {
+      const url = new URL(fromEnv)
+      if (url.protocol === 'http:' || url.protocol === 'https:') return url.origin
+    } catch {
+      /* ignore invalid build default */
+    }
+  }
+  return ''
+}
+
 export class ApiError extends Error {
   readonly status: number
   readonly body: unknown
@@ -95,12 +113,12 @@ export async function apiRequest<T = unknown>(
   options: ApiClientOptions = {},
 ): Promise<T> {
   const {
-    baseUrl = '',
     timeoutMs = DEFAULT_TIMEOUT_MS,
     withApiKey = true,
     withDevKey = false,
     signal: optionSignal,
   } = options
+  const baseUrl = resolveJacRedBaseUrl(options.baseUrl)
 
   const headers = new Headers(init.headers)
   if (!headers.has('Accept')) headers.set('Accept', 'application/json')

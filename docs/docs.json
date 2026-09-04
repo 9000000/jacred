@@ -265,7 +265,8 @@
               "deployment/windows",
               "deployment/cron",
               "deployment/reverse-proxy",
-              "deployment/cloudflare-workers"
+              "deployment/cloudflare-workers",
+              "deployment/github-pages"
             ]
           },
           {

@@ -291,8 +291,7 @@ function onClientFilter(key: 'refine' | 'exclude', value: string) {
                   <span
                     class="jr-toolbar-label jr-toolbar-label--secondary"
                     aria-hidden="true"
-                    >{{ t('search.filters.filters') }}</span
-                  >
+                    >{{ t('search.filters.filters') }}</span>
                   <Badge
                     v-if="activeCount"
                     variant="secondary"
