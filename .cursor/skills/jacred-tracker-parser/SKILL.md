@@ -111,5 +111,6 @@ Report: slug, auth, sync cluster, magnet policy, quality gate, cron endpoints, t
 
 - Subagent: [`.cursor/agents/jacred-tracker-parser.md`](../../agents/jacred-tracker-parser.md)
 - Catalog: [reference.md](reference.md)
+- Lampa / PidTor / NUM card vs query: [lampa-search](../lampa-search/SKILL.md)
 - Rutracker CF: `Infrastructure/Trackers/Rutracker/README.md`
 - Ops docs: `docs/trackers/overview.mdx`, `docs/configuration/trackers.mdx`, `docs/api-reference/cron.mdx`, `docs/development/adding-trackers.mdx`, `docs/development/docs-workflow.mdx`

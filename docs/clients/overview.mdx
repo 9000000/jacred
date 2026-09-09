@@ -18,7 +18,7 @@ JacRed отдаёт один FileDB-индекс в нескольких фор�
 
 <Tabs>
   <Tab title="Lampa">
-    Lampa использует Jackett JSON.
+    Lampa использует Jackett JSON. Карточка (Torrents) шлёт `title`, `title_original`, `year` и `is_serial` — это card-поиск, не один параметр `query`.
 
     ```text
     http://YOUR_HOST:9117/api/v2.0/indexers/all/results
@@ -26,7 +26,18 @@ JacRed отдаёт один FileDB-индекс в нескольких фор�
 
     Поле API-ключа в Lampa должно совпадать с `apikey` из `init.yaml`. Если ключ пуст, оставьте поле пустым.
 
-    Проверка:
+    Проверка карточки (как Lampa Jackett):
+
+    ```bash
+    curl -sG "http://127.0.0.1:9117/api/v2.0/indexers/all/results" \
+      --data-urlencode "Query=The Matrix" \
+      --data-urlencode "title=Матрица" \
+      --data-urlencode "title_original=The Matrix" \
+      --data-urlencode "year=1999" \
+      --data-urlencode "is_serial=1"
+    ```
+
+    Текстовый поиск:
 
     ```bash
     curl -s "http://127.0.0.1:9117/api/v2.0/indexers/all/results?query=матрица"
