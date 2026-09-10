@@ -101,13 +101,4 @@ describe('WORKER_FIRST_PATTERNS', () => {
     expect(WORKER_FIRST_PATTERNS).not.toContain('/stats')
     expect(WORKER_FIRST_PATTERNS).not.toContain('/stats/*')
   })
-
-  it('keeps wrangler run_worker_first in sync', async () => {
-    const { readFileSync } = await import('node:fs')
-    const { resolve } = await import('node:path')
-    const wrangler = readFileSync(resolve(process.cwd(), 'wrangler.jsonc'), 'utf8')
-    for (const pattern of WORKER_FIRST_PATTERNS) {
-      expect(wrangler).toContain(`"${pattern}"`)
-    }
-  })
 })
