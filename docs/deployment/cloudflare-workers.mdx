@@ -21,7 +21,7 @@ flowchart LR
   Worker -->|API-маршруты| Origin[JacRed origin]
 ```
 
-Страницы `/`, `/stats` и `/settings` обслуживаются как SPA. Worker первым обрабатывает `/api/*`, JSON-маршруты `/stats/*`, health, sync, Torznab, cron, dev и jsondb.
+Страницы `/`, `/stats` и `/settings` обслуживаются как SPA. Worker первым обрабатывает `/api/*`, JSON-маршруты `/stats/*`, `/health` и `/health/*` (включая `/health/background-jobs`), sync, Torznab, cron, dev и jsondb. Точный `/health` **не** покрывает `/health/background-jobs` — без glob `/health/*` Workers Assets отдадут `index.html`.
 
 ## Локальная проверка
 
@@ -86,5 +86,5 @@ Worker:
 - оставляет `/openapi.yaml` и `/img/*` в Workers Assets.
 
 <Check>
-  После deploy откройте `/health` на домене Worker. Вы должны получить JSON со значением `status: "OK"`.
+  После deploy откройте `/health` и `/health/background-jobs` на домене Worker. Первый должен вернуть JSON `{ "status": "OK" }`, второй — JSON `{ "jobs": [...] }`, не HTML SPA.
 </Check>

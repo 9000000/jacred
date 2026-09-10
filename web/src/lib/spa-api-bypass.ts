@@ -15,6 +15,7 @@ export const WORKER_FIRST_PATTERNS = [
   '/stats/meta',
   '/stats/tracks',
   '/health',
+  '/health/*',
   '/version',
   '/lastupdatedb',
   '/opensearch.xml',

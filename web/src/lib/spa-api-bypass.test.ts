@@ -9,6 +9,7 @@ import {
 describe('isApiPathname', () => {
   it('treats system JSON endpoints as API', () => {
     expect(isApiPathname('/health')).toBe(true)
+    expect(isApiPathname('/health/background-jobs')).toBe(true)
     expect(isApiPathname('/version')).toBe(true)
     expect(isApiPathname('/lastupdatedb')).toBe(true)
   })
@@ -49,6 +50,7 @@ describe('matchApiUrlPattern', () => {
   it('matches the same paths as isApiPathname', () => {
     for (const pathname of [
       '/health',
+      '/health/background-jobs',
       '/version',
       '/',
       '/stats',
@@ -78,6 +80,7 @@ describe('NAVIGATE_FALLBACK_DENYLIST', () => {
   it('denies system and API navigations', () => {
     expect(denied('/version')).toBe(true)
     expect(denied('/health')).toBe(true)
+    expect(denied('/health/background-jobs')).toBe(true)
     expect(denied('/api/v2.0/indexers')).toBe(true)
     expect(denied('/sync/conf')).toBe(true)
   })
@@ -90,11 +93,21 @@ describe('WORKER_FIRST_PATTERNS', () => {
     expect(WORKER_FIRST_PATTERNS).toContain('/stats/tracks')
     expect(WORKER_FIRST_PATTERNS).toContain('/version')
     expect(WORKER_FIRST_PATTERNS).toContain('/health')
+    expect(WORKER_FIRST_PATTERNS).toContain('/health/*')
     expect(WORKER_FIRST_PATTERNS).toContain('/api/*')
   })
 
   it('does not claim the SPA /stats shell', () => {
     expect(WORKER_FIRST_PATTERNS).not.toContain('/stats')
     expect(WORKER_FIRST_PATTERNS).not.toContain('/stats/*')
+  })
+
+  it('keeps wrangler run_worker_first in sync', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const wrangler = readFileSync(resolve(process.cwd(), 'wrangler.jsonc'), 'utf8')
+    for (const pattern of WORKER_FIRST_PATTERNS) {
+      expect(wrangler).toContain(`"${pattern}"`)
+    }
   })
 })
