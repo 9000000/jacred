@@ -2,7 +2,7 @@
 title: "Трекеры JacRed: полный каталог из 25 источников"
 sidebarTitle: "Обзор"
 description: "JacRed агрегирует 25 торрент-трекеров. Обзор по кластерам синхронизации, авторизации, кодировкам и объёмам баз. Ссылки на страницы конфигурации для каждого трекера."
-keywords: ["трекеры JacRed", "synctrackers", "disable_trackers", "Rutracker", "Kinozal", "Torznab indexers"]
+keywords: ["трекеры JacRed", "synctrackers", "disable_trackers", "Rutracker", "Kinozal", "Torznab indexers", "пейджер", "UpdateTasksParse"]
 ---
 
 JacRed 3.9.3 включает 25 встроенных slug трекеров. Если `synctrackers` не задан, API каталога возвращает встроенный список без элементов из `disable_trackers`. Если `synctrackers` задан, каталог строится только из него. Ниже — сводка по кластерам синхронизации.
@@ -10,6 +10,10 @@ JacRed 3.9.3 включает 25 встроенных slug трекеров. Е�
 ## Trio-кластер
 
 Полный цикл задач: `parse` (частый) + `UpdateTasksParse` (раз в сутки) + `ParseAllTask` (раз в сутки утром; после рестарта продолжает `ResumeParseAll`).
+
+`UpdateTasksParse` читает **живой пейджер** листинга. Числа из `<script>` не считаются последней страницей — иначе карта растёт за реальный хвост. Если пейджер сжался, слоты за последней страницей **удаляются**. Пустой HTML — сбой fetch, не «ноль страниц»: карта не обнуляется.
+
+Это относится к rutor, rutracker, kinozal, megapeer, torrentby, toloka, anibelka, korsars и ultradox. Anistar и Leproduction берут последнюю страницу из пейджера раздела, когда `limit_page` ≤ 0.
 
 | Slug | Хост | Авторизация | Объём | Особенности |
 | --- | --- | --- | --- | --- |

@@ -41,7 +41,7 @@ Rutor не требует учётных данных. Не добавляйте
 | `/cron/rutor/ParseAllTask` | Продолжить фоновый полный обход карты |
 | `/cron/rutor/ParseLatest?pages=5` | Разобрать первые страницы каждой категории |
 
-`ParseAllTask` хранит состояние цикла в `Data/temp/rutor_parseAllCycle.json`. После рестарта его поднимает `ResumeParseAll`; утренний kick продолжает тот же цикл, пока pending > 0, и начинает новый только когда pending = 0.
+`ParseAllTask` хранит состояние цикла в `Data/temp/rutor_parseAllCycle.json`. После рестарта его поднимает `ResumeParseAll`; утренний kick продолжает тот же цикл, пока pending > 0, и начинает новый только когда pending = 0. `UpdateTasksParse` читает верхний пейджер `/browse/N/` и удаляет слоты за последней страницей. Пустой ответ карту не обнуляет.
 
 ## Расписание
 

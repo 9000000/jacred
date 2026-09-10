@@ -8,6 +8,8 @@ keywords:
   - troubleshooting
   - FileDB
   - cron
+  - ParseAll
+  - пейджер
 ---
 
 Начните с проверки процесса, health endpoint и логов:
@@ -59,6 +61,17 @@ journalctl -u jacred -n 100 --no-pager
     ```
 
     `idle` при pending = 0 — цикл закончен; новый круг даёт утренний `ParseAllTask`, не Resume. `work` — задача уже идёт.
+  </Accordion>
+
+  <Accordion title="ParseAll ходит на пустые страницы за хвостом листинга">
+    Карта в `Data/temp/{slug}_taskParse.json` выросла дальше живого пейджера. `UpdateTasksParse` читает пейджер раздела и удаляет слоты за последней страницей. Пустой HTML при этом **не** обнуляет карту.
+
+    ```bash
+    curl http://127.0.0.1:9117/cron/{slug}/UpdateTasksParse
+    grep pruned /opt/jacred/Data/log/{slug}.log
+    ```
+
+    Активный обход смотрите на `/stats` или в `GET /health/background-jobs`. Подробнее: [обзор трекеров](/trackers/overview).
   </Accordion>
 
   <Accordion title="API возвращает 401 или 403">

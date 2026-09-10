@@ -36,11 +36,13 @@ Leproduction:
 
 | Путь | Назначение |
 | --- | --- |
-| `/cron/leproduction/Parse` | Обойти категории. `limit_page` ≤ 0 читает последнюю страницу пагинации |
+| `/cron/leproduction/Parse` | Обойти категории. `limit_page` ≤ 0 читает последнюю страницу из `span.navigation` **этого** раздела |
 
 <ParamField path="query.limit_page" default="3" type="number">
   Максимальное число страниц на категорию за запуск. В crontab задано 3.
 </ParamField>
+
+Последняя страница берётся из `span.navigation` до «Дальше» для `/{section}/page/N/`. Числа из `<script>` и чужой раздел не считаются.
 
 ## Расписание
 

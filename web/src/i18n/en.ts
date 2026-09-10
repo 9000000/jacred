@@ -244,6 +244,11 @@ export default {
       waiting: 'Waiting',
       skipped: 'Skipped',
     },
+    jobs: {
+      title: 'Parser background jobs',
+      empty:
+        'No active ParseAll or UpdateTasks. After a restart the list is empty until a job starts again.',
+    },
   },
   settings: {
     showPassword: 'Show password',

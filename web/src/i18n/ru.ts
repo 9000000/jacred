@@ -248,6 +248,11 @@ export default {
       waiting: 'Ожидает',
       skipped: 'Пропущено',
     },
+    jobs: {
+      title: 'Фоновые задачи парсеров',
+      empty:
+        'Нет активных ParseAll или UpdateTasks. После рестарта список пуст, пока задача снова не стартует.',
+    },
   },
   settings: {
     showPassword: 'Показать пароль',

@@ -98,6 +98,12 @@ dotnet test tests/JacRed.Tests/JacRed.Tests.csproj --filter FullyQualifiedName~{
 
 Report: slug, auth, sync cluster, magnet policy, quality gate, cron endpoints, test counts.
 
+## Pagination (trio maps)
+
+- Last page comes from the **live listing pager of that section**, not a global `/page/N/` scan and not numbers inside `<script>`.
+- `UpdateTasksParse` must **prune** map slots past the live tail when the pager shrinks.
+- Empty HTML is a failed fetch, not “zero pages”: do not wipe the map.
+
 ## Anti-patterns
 
 - Half-wired tracker (missing OpenAPI / synctrackers / crontab / docs)
@@ -106,6 +112,8 @@ Report: slug, auth, sync cluster, magnet policy, quality gate, cron endpoints, t
 - Colliding FDB URLs on multi-episode pages
 - Committing live cookies/passwords
 - Assuming `Data/init.yaml` is what the running process loads
+- Treating script-injected page numbers as the listing tail
+- Pruning the task map when the listing fetch returned empty HTML
 
 ## Related
 

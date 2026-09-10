@@ -177,6 +177,14 @@ export const apiClient = {
     )
   },
 
+  getBackgroundJobs(options?: ApiClientOptions) {
+    return apiRequest<GetJson<'/health/background-jobs'>>(
+      '/health/background-jobs',
+      { method: 'GET' },
+      { ...options, withApiKey: false, withDevKey: false },
+    )
+  },
+
   getConf(options?: ApiClientOptions) {
     return apiRequest<GetJson<'/api/v1.0/conf'>>(
       '/api/v1.0/conf',

@@ -114,6 +114,25 @@ describe('apiRequest', () => {
   })
 })
 
+describe('apiClient.getBackgroundJobs', () => {
+  it('calls the public health jobs endpoint without auth headers', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ jobs: [] }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+
+    await apiClient.getBackgroundJobs()
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/health/background-jobs')
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.get('X-Api-Key')).toBeNull()
+    expect(headers.get('X-Dev-Key')).toBeNull()
+  })
+})
+
 describe('apiClient.getConf', () => {
   it('passes stored apikey as query and X-Api-Key header', async () => {
     const fetchMock = vi
