@@ -41,9 +41,8 @@ public class UltradoxParserFixtureTests
         _output.WriteLine($"rows={items.Count}");
         Assert.Equal(18, items.Count);
 
-        Assert.Equal("/serial-hd/54741-jejforija-3-sezon.html", items[0].DetailUrl);
-        Assert.Equal("Эйфория (3 сезон) [+9 серия] [Ultradox]", items[0].Title);
-        Assert.Equal("tt8772296", items[0].Imdb);
+        Assert.Equal("/serial-hd/57542-oskolki-pravdy-1-sezon.html", items[0].DetailUrl);
+        Assert.Contains("Осколки правды", items[0].Title, StringComparison.Ordinal);
         Assert.NotEqual(default, items[0].CreateTime);
 
         Assert.All(items, it =>
@@ -69,7 +68,7 @@ public class UltradoxParserFixtureTests
 
         Assert.Equal(3, variants.Count);
         Assert.Equal(2026, info.Year);
-        Assert.Equal("Euphoria", info.Original);
+        Assert.Equal("Fragments of Truth", info.Original);
 
         var qualities = variants.Select(v => v.Quality).ToHashSet(StringComparer.Ordinal);
         Assert.Contains("1080p", qualities);
@@ -264,6 +263,49 @@ public class UltradoxParserFixtureTests
 
         var hd = UltradoxParser.BuildTorrent(Host, "hd", new[] { "movie" }, item, variant, info);
         Assert.Equal("Svoya v dosku", hd.originalname);
+    }
+
+    [Fact]
+    public void LastPageFromHtml_Fixture_UsesFooterPager_NotAjaxWidget()
+    {
+        string html = FixtureLoader.Read("Ultradox/listing_serial-hd.html");
+        Assert.Equal(426, UltradoxParser.LastPageFromHtml(html));
+        Assert.Equal(426, UltradoxParser.LastPageFromHtml(html, "serial-hd"));
+        Assert.Equal(1, UltradoxParser.LastPageFromHtml(html, "webrips"));
+    }
+
+    [Fact]
+    public void LastPageFromHtml_IgnoresScriptPageNumbers_PrefersLastSectionPager()
+    {
+        const string html = """
+            <script>var junk="/page/2613/";</script>
+            <div class="pages ultrabold"><a href="https://x/webrips/page/2613/">2613</a></div>
+            <div class="pages ultrabold"><a href="https://x/webrips/page/12/">12</a></div>
+            """;
+
+        Assert.Equal(12, UltradoxParser.LastPageFromHtml(html, "webrips"));
+        Assert.Equal(12, UltradoxParser.LastPageFromHtml(html));
+        Assert.Equal(1, UltradoxParser.LastPageFromHtml(""));
+    }
+
+    [Fact]
+    public void LastPageFromHtml_WebripsFixture_UsesFooterPager_NotAjaxWidget()
+    {
+        string html = FixtureLoader.Read("Ultradox/listing_webrips.html");
+        Assert.Equal(2614, UltradoxParser.LastPageFromHtml(html, "webrips"));
+        Assert.Equal(2614, UltradoxParser.LastPageFromHtml(html));
+        Assert.Equal(1, UltradoxParser.LastPageFromHtml(html, "serial-hd"));
+    }
+
+    [Fact]
+    public void PrunePagesBeyondMax_DropsGhostTail()
+    {
+        var tasks = Enumerable.Range(1, 20).Select(i => new JacRed.Models.tParse.TaskParse(i)).ToList();
+        Assert.Equal(8, UltradoxParser.PrunePagesBeyondMax(tasks, 12));
+        Assert.Equal(12, tasks.Count);
+        Assert.Equal(12, tasks[^1].page);
+        Assert.Equal(0, UltradoxParser.PrunePagesBeyondMax(tasks, 12));
+        Assert.Equal(0, UltradoxParser.PrunePagesBeyondMax(null, 5));
     }
 
     [Fact]

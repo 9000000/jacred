@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using JacRed.Infrastructure.Trackers.Toloka;
 using JacRed.Models.Details;
+using JacRed.Models.tParse;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -61,8 +63,8 @@ public class TolokaParserFixtureTests
         TolokaDetails moana = Assert.Single(torrents, t => t.url.EndsWith("/" + MoanaTopic, StringComparison.Ordinal));
         Assert.Equal("715016", moana.downloadId);
         Assert.Equal("21.39 GB", moana.sizeName);
-        Assert.Equal(29, moana.sid);
-        Assert.Equal(12, moana.pir);
+        Assert.Equal(36, moana.sid);
+        Assert.Equal(5, moana.pir);
         Assert.Contains("Moana", moana.title, StringComparison.Ordinal);
         Assert.Equal(Host + "/" + MoanaTopic, moana.url);
     }
@@ -105,5 +107,24 @@ public class TolokaParserFixtureTests
     {
         Assert.Empty(TolokaParser.ParseTorrentsFromPage("", "96"));
         Assert.Empty(TolokaParser.ParseTorrentsFromPage("<html lang=\"uk\"></html>", "96"));
+    }
+
+    [Fact]
+    public void LastPageFromHtml_BrowseF96_Is293()
+    {
+        string html = FixtureLoader.Read("Toloka/browse_f96.html");
+        Assert.Equal(293, TolokaParser.LastPageFromHtml(html));
+        Assert.Equal(0, TolokaParser.LastPageFromHtml(""));
+        Assert.Equal(0, TolokaParser.LastPageFromHtml("<html>no pager</html>"));
+    }
+
+    [Fact]
+    public void PrunePagesBeyondPageCount_DropsExclusiveTail()
+    {
+        var pages = new List<TaskParse> { new(0), new(8), new(9), new(10) };
+        Assert.Equal(2, TolokaParser.PrunePagesBeyondPageCount(pages, 9));
+        Assert.Equal(new[] { 0, 8 }, pages.Select(p => p.page).ToArray());
+        Assert.Equal(0, TolokaParser.PrunePagesBeyondPageCount(pages, 9));
+        Assert.Equal(0, TolokaParser.PrunePagesBeyondPageCount(null, 9));
     }
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using JacRed.Infrastructure.Persistence;
@@ -83,23 +82,21 @@ namespace JacRed.Infrastructure.Trackers.Rutor
                     if (html == null)
                         continue;
 
-                    // Максимальное количиство страниц
-                    int.TryParse(Regex.Match(html, "<a href=\"/browse/([0-9]+)/[0-9]+/[0-9]+/[0-9]+\"><b>[0-9]+&nbsp;-&nbsp;[0-9]+</b></a></p>").Groups[1].Value, out int maxpages);
+                    int maxpages = RutorParser.LastPageFromHtml(html);
 
-                    // Загружаем список страниц в список задач
+                    if (!taskParse.ContainsKey(cat))
+                        taskParse.Add(cat, new List<TaskParse>());
+
+                    var val = taskParse[cat];
                     for (int page = 0; page <= maxpages; page++)
                     {
-                        try
-                        {
-                            if (!taskParse.ContainsKey(cat))
-                                taskParse.Add(cat, new List<TaskParse>());
-
-                            var val = taskParse[cat];
-                            if (val.FirstOrDefault(i => i.page == page) == null)
-                                val.Add(new TaskParse(page));
-                        }
-                        catch { }
+                        if (val.FirstOrDefault(i => i.page == page) == null)
+                            val.Add(new TaskParse(page));
                     }
+
+                    int pruned = RutorParser.PrunePagesBeyondMax(val, maxpages);
+                    if (pruned > 0)
+                        ParserLog.Write(TrackerName, $"UpdateTasksParse cat={cat}: maxPage={maxpages}, pruned={pruned}, total={val.Count}");
                 }
 
                 PersistTaskParse();

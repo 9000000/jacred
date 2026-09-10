@@ -1,5 +1,7 @@
+using System.Linq;
 using System.Text.RegularExpressions;
 using JacRed.Infrastructure.Trackers.TorrentBy;
+using JacRed.Models.tParse;
 using Xunit;
 
 namespace JacRed.Tests.TorrentBy;
@@ -26,16 +28,16 @@ public class TorrentByPaginationTests
     }
 
     [Theory]
-    [InlineData("browse_anime.html", 1)]
-    [InlineData("browse_tv.html", 1)]
-    public void ParsePager_AnimeAndTvFixtures_EllipsisJumpIs1(string fixture, int jump)
+    [InlineData("browse_anime.html")]
+    [InlineData("browse_tv.html")]
+    public void ParsePager_AnimeAndTvFixtures_MissingPager_ReturnsPageZero(string fixture)
     {
         string html = FixtureLoader.Read($"TorrentBy/{fixture}");
         var pager = TorrentByPagination.ParsePager(html);
 
-        Assert.True(pager.HasTrailingEllipsis);
-        Assert.Equal(jump, pager.EllipsisJumpPage);
-        Assert.Equal(jump, pager.MaxPageIndex);
+        Assert.Equal(0, pager.MaxPageIndex);
+        Assert.False(pager.HasTrailingEllipsis);
+        Assert.Null(pager.EllipsisJumpPage);
     }
 
     [Fact]
@@ -64,5 +66,24 @@ public class TorrentByPaginationTests
         Assert.Equal(0, pager.MaxPageIndex);
         Assert.False(pager.HasTrailingEllipsis);
         Assert.Null(pager.EllipsisJumpPage);
+    }
+
+    [Fact]
+    public void PrunePagesBeyondMax_DropsGhostTail()
+    {
+        var tasks = Enumerable.Range(0, 20).Select(i => new TaskParse(i)).ToList();
+        Assert.Equal(8, TorrentByPagination.PrunePagesBeyondMax(tasks, 11));
+        Assert.Equal(12, tasks.Count);
+        Assert.Equal(11, tasks[^1].page);
+        Assert.Equal(0, TorrentByPagination.PrunePagesBeyondMax(tasks, 11));
+        Assert.Equal(0, TorrentByPagination.PrunePagesBeyondMax(null, 5));
+    }
+
+    [Fact]
+    public void PrunePagesBeyondMax_LastZeroKeepsOnlyPageZero()
+    {
+        var tasks = Enumerable.Range(0, 5).Select(i => new TaskParse(i)).ToList();
+        Assert.Equal(4, TorrentByPagination.PrunePagesBeyondMax(tasks, 0));
+        Assert.Equal(new[] { 0 }, tasks.Select(t => t.page).ToArray());
     }
 }

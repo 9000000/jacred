@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JacRed.Infrastructure.Trackers.Rutracker;
 using JacRed.Models.Details;
+using JacRed.Models.tParse;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -111,5 +112,24 @@ public class RutrackerParserFixtureTests
                 $"parsed={torrents.Count,3} withYear={withYear,3} withOriginal={withOriginal,3}");
             Assert.True(torrents.Count >= 8, $"dry-run cat {cat}: low yield {torrents.Count}");
         }
+    }
+
+    [Fact]
+    public void LastPageFromHtml_Forum1950_Is152()
+    {
+        string html = FixtureLoader.Read("Rutracker/forum_1950.html");
+        Assert.Equal(152, RutrackerParser.LastPageFromHtml(html));
+        Assert.Equal(0, RutrackerParser.LastPageFromHtml(""));
+        Assert.Equal(0, RutrackerParser.LastPageFromHtml("<html>no pager</html>"));
+    }
+
+    [Fact]
+    public void PrunePagesBeyondPageCount_DropsExclusiveTail()
+    {
+        var pages = new List<TaskParse> { new(0), new(8), new(9), new(10) };
+        Assert.Equal(2, RutrackerParser.PrunePagesBeyondPageCount(pages, 9));
+        Assert.Equal(new[] { 0, 8 }, pages.Select(p => p.page).ToArray());
+        Assert.Equal(0, RutrackerParser.PrunePagesBeyondPageCount(pages, 9));
+        Assert.Equal(0, RutrackerParser.PrunePagesBeyondPageCount(null, 9));
     }
 }

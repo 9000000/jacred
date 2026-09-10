@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
 using JacRed.Infrastructure.Trackers.Anibelka;
+using JacRed.Models.tParse;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -45,9 +47,9 @@ public class AnibelkaParserFixtureTests
             Assert.StartsWith("[", it.Title);
         });
 
-        Assert.Equal("1849", items[0].TopicId);
+        Assert.Equal("2326", items[0].TopicId);
         Assert.Equal(
-            "[rus] Фермерская жизнь в ином мире / Isekai Nonbiri Nouka [2TV][2023-2026, повседневность, фэнтези]",
+            "[rus] Операция: Семейка Ёдзакура / Yozakura-san Chi no Daisakusen [2TV+ONA][2024-2026, приключения, комедия, романтика]",
             items[0].Title);
     }
 
@@ -119,6 +121,25 @@ public class AnibelkaParserFixtureTests
         string html = FixtureLoader.Read("Anibelka/forum_f33.html");
         Assert.Equal(40, AnibelkaParser.LastPageFromHtml(html));
         Assert.Equal(0, AnibelkaParser.LastPageFromHtml("<html>no pagination</html>"));
+    }
+
+    [Fact]
+    public void LastPageFromHtml_IgnoresScriptStartNumbers()
+    {
+        string html = FixtureLoader.Read("Anibelka/forum_f33.html")
+            + "<script>var junk='?start=99999'; location='?start=88888';</script>";
+        Assert.Equal(40, AnibelkaParser.LastPageFromHtml(html));
+    }
+
+    [Fact]
+    public void PrunePagesBeyondMax_DropsGhostTail()
+    {
+        var tasks = Enumerable.Range(0, 20).Select(i => new TaskParse(i)).ToList();
+        Assert.Equal(8, AnibelkaParser.PrunePagesBeyondMax(tasks, 11));
+        Assert.Equal(12, tasks.Count);
+        Assert.Equal(11, tasks[^1].page);
+        Assert.Equal(0, AnibelkaParser.PrunePagesBeyondMax(tasks, 11));
+        Assert.Equal(0, AnibelkaParser.PrunePagesBeyondMax(null, 5));
     }
 
     [Fact]

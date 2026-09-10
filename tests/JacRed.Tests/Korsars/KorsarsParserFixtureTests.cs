@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using JacRed.Infrastructure.Trackers.Korsars;
+using JacRed.Models.tParse;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -88,12 +89,22 @@ public class KorsarsParserFixtureTests
     }
 
     [Fact]
-    public void LastPageFromHtml_MovieFixture()
+    public void LastPageFromHtml_MovieFixture_Is14()
     {
         string html = FixtureLoader.Read("Korsars/listing_movie.html");
-        int last = KorsarsParser.LastPageFromHtml(html);
-        _output.WriteLine($"lastPage={last}");
-        Assert.True(last >= 1, $"expected last page >= 1, got {last}");
+        Assert.Equal(14, KorsarsParser.LastPageFromHtml(html));
+        Assert.Equal(0, KorsarsParser.LastPageFromHtml("<html>no pagination</html>"));
+    }
+
+    [Fact]
+    public void PrunePagesBeyondMax_DropsGhostTail()
+    {
+        var tasks = Enumerable.Range(0, 20).Select(i => new TaskParse(i)).ToList();
+        Assert.Equal(8, KorsarsParser.PrunePagesBeyondMax(tasks, 11));
+        Assert.Equal(12, tasks.Count);
+        Assert.Equal(11, tasks[^1].page);
+        Assert.Equal(0, KorsarsParser.PrunePagesBeyondMax(tasks, 11));
+        Assert.Equal(0, KorsarsParser.PrunePagesBeyondMax(null, 5));
     }
 
     [Fact]

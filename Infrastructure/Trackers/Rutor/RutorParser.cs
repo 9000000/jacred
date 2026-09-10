@@ -1,16 +1,55 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
 using JacRed.Infrastructure.Parsing;
 using JacRed.Models.Details;
+using JacRed.Models.tParse;
 
 namespace JacRed.Infrastructure.Trackers.Rutor
 {
     public static class RutorParser
     {
         const string TrackerName = "rutor";
+
+        static readonly Regex LastBrowseRe = new(
+            @"<a href=""/browse/([0-9]+)/[0-9]+/[0-9]+/[0-9]+""><b>[0-9]+&nbsp;-&nbsp;[0-9]+</b></a></p>",
+            RegexOptions.Compiled);
+
+        /// <summary>
+        /// Last 0-based <c>/browse/N/</c> index from the top pager (range link immediately before <c>&lt;/p&gt;</c>).
+        /// </summary>
+        public static int LastPageFromHtml(string html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+                return 0;
+
+            var m = LastBrowseRe.Match(html);
+            if (!m.Success
+                || !int.TryParse(m.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int n)
+                || n < 0)
+            {
+                return 0;
+            }
+
+            return n;
+        }
+
+        /// <summary>Drop map slots past the live 0-based last index (inclusive <c>page &lt;= maxPage</c>).</summary>
+        public static int PrunePagesBeyondMax(List<TaskParse> tasks, int maxPage)
+        {
+            if (tasks == null || tasks.Count == 0)
+                return 0;
+
+            if (maxPage < 0)
+                maxPage = 0;
+
+            int before = tasks.Count;
+            tasks.RemoveAll(t => t != null && t.page > maxPage);
+            return before - tasks.Count;
+        }
 
         public static List<TorrentBaseDetails> ParseTorrentsFromPage(string html, string cat)
         {

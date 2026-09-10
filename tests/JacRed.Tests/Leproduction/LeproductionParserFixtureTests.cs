@@ -95,8 +95,8 @@ public class LeproductionParserFixtureTests
         Assert.Contains("Ван Пис", first.name, StringComparison.Ordinal);
         Assert.Equal("One Piece", first.originalname);
         Assert.Equal(2026, first.relased);
-        Assert.Equal("8274", LeproductionParser.ExtractTorrentId(first.url));
-        Assert.Contains("10.2", first.sizeName, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("8371", LeproductionParser.ExtractTorrentId(first.url));
+        Assert.Contains("71.04", first.sizeName, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -104,8 +104,30 @@ public class LeproductionParserFixtureTests
     {
         string html = @"<a href=""/film/page/2/"">2</a><a href=""/film/page/12/"">12</a><a href=""/film/page/5/"">5</a>";
         Assert.Equal(12, LeproductionParser.DetectLastPage(html));
+        Assert.Equal(12, LeproductionParser.DetectLastPage(html, "film"));
         Assert.Equal(1, LeproductionParser.DetectLastPage(""));
         Assert.Equal(1, LeproductionParser.DetectLastPage(null));
+    }
+
+    [Fact]
+    public void DetectLastPage_SerialFixture_Is3()
+    {
+        string html = FixtureLoader.Read("Leproduction/browse_serial.html");
+        Assert.Equal(3, LeproductionParser.DetectLastPage(html));
+        Assert.Equal(3, LeproductionParser.DetectLastPage(html, "serial"));
+        Assert.Equal(1, LeproductionParser.DetectLastPage(html, "film"));
+    }
+
+    [Fact]
+    public void DetectLastPage_IgnoresScriptPageNumbers()
+    {
+        const string html = """
+            <script>var junk="/page/2613/";</script>
+            <span class="navigation"><a href="https://www.le-production.online/serial/page/23/">23</a></span>
+            <span class="pnext"><a href="/serial/page/2/">Дальше</a></span>
+            """;
+        Assert.Equal(23, LeproductionParser.DetectLastPage(html, "serial"));
+        Assert.Equal(23, LeproductionParser.DetectLastPage(html));
     }
 
     [Fact]
