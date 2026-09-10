@@ -71,7 +71,7 @@ JacRed использует четыре класса доступа. Роуте
 
 | Политика | Кто получает доступ | Пример путей |
 | --- | --- | --- |
-| `Public` | Все, без ключей | `/`, `/health`, `/version`, `/opensearch.xml`, `/openapi.yaml`, `/swagger`, `/sync/*` |
+| `Public` | Все, без ключей | `/`, `/stats`, `/jobs`, `/settings`, `/health`, `/version`, `/opensearch.xml`, `/openapi.yaml`, `/swagger`, `/sync/*` |
 | `ApiKeyWhenConfigured` | Все, если `apikey` пуст; иначе — с ключом | `/api/v1.0/torrents`, `/api/v2.0/indexers/*`, `/torznab/api`, `/api/v1/search`, `/stats/*` |
 | `ConfigApi` | LAN или `devkey` | `/api/v1.0/config`, `/api/v1.0/config/*` |
 | `DevAdmin` | LAN или `devkey` | `/dev/*`, `/cron/*`, `/jsondb/save`, `/cron/maintenance/Check` |

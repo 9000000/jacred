@@ -52,6 +52,8 @@ namespace JacRed.Infrastructure.Security
             return path.Equals("/", StringComparison.OrdinalIgnoreCase)
                 || path.Equals("/stats", StringComparison.OrdinalIgnoreCase)
                 || path.Equals("/stats/", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/jobs", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/jobs/", StringComparison.OrdinalIgnoreCase)
                 || path.Equals("/settings", StringComparison.OrdinalIgnoreCase)
                 || path.Equals("/settings/", StringComparison.OrdinalIgnoreCase)
                 || path.Equals("/health", StringComparison.OrdinalIgnoreCase)

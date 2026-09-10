@@ -114,6 +114,18 @@ export default defineConfig(({ mode }) => {
                 },
               ],
             },
+            {
+              name: 'Фоновые задачи',
+              short_name: 'Задачи',
+              url: '/jobs',
+              icons: [
+                {
+                  src: 'img/icon-192.png',
+                  sizes: '192x192',
+                  type: 'image/png',
+                },
+              ],
+            },
           ],
           share_target: {
             action: '/',

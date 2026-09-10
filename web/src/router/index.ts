@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import('@/pages/StatsPage.vue'),
     },
     {
+      path: '/jobs',
+      name: 'jobs',
+      component: () => import('@/pages/JobsPage.vue'),
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/pages/SettingsPage.vue'),
@@ -23,7 +28,7 @@ const router = createRouter({
     if (savedPosition) return savedPosition
     // Same Search route with only query updates (new search) — keep scroll.
     if (to.name === 'search' && from.name === 'search') return false
-    // KeepAlive Search: preserve scroll when returning from Stats/Settings.
+    // KeepAlive Search: preserve scroll when returning from Stats/Jobs/Settings.
     if (to.name === 'search' && from.name && from.name !== 'search') {
       return false
     }

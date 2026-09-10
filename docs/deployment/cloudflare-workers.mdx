@@ -21,7 +21,7 @@ flowchart LR
   Worker -->|API-маршруты| Origin[JacRed origin]
 ```
 
-Страницы `/`, `/stats` и `/settings` обслуживаются как SPA. Worker первым обрабатывает `/api/*`, JSON-маршруты `/stats/*`, `/health` и `/health/*` (включая `/health/background-jobs`), sync, Torznab, cron, dev и jsondb. Точный `/health` **не** покрывает `/health/background-jobs` — без glob `/health/*` Workers Assets отдадут `index.html`.
+Страницы `/`, `/stats`, `/jobs` и `/settings` обслуживаются как SPA. Worker первым обрабатывает `/api/*`, JSON-маршруты `/stats/*`, `/health` и `/health/*` (включая `/health/background-jobs`), sync, Torznab, cron, dev и jsondb. Точный `/health` **не** покрывает `/health/background-jobs` — без glob `/health/*` Workers Assets отдадут `index.html`.
 
 ## Локальная проверка
 

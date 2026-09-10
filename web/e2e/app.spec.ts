@@ -151,6 +151,30 @@ test('toggles list and cards without losing the visible title', async ({
   await expect(page.getByText('Example release')).toBeVisible()
 })
 
+test('navigates jobs page', async ({ page }) => {
+  await page.route('**/health/background-jobs**', (route) =>
+    route.fulfill({
+      json: {
+        jobs: [
+          {
+            id: 'rutor:ParseAllTask',
+            tracker: 'rutor',
+            job: 'ParseAllTask',
+            summary: '10/20 pages · category 1 · page 2',
+            percent: 50,
+            elapsedSeconds: 90,
+          },
+        ],
+      },
+    }),
+  )
+  await page.goto('/jobs')
+  await expect(
+    page.getByRole('heading', { name: /фоновые задачи|background jobs/i }),
+  ).toBeVisible()
+  await expect(page.getByText(/rutor/i).first()).toBeVisible()
+})
+
 test('navigates stats and switches locale/theme', async ({ page }) => {
   await page.goto('/stats')
   await expect(

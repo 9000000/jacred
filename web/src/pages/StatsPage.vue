@@ -29,11 +29,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import BackgroundJobsCard from '@/components/stats/BackgroundJobsCard.vue'
 import StatsCard from '@/components/stats/StatsCard.vue'
 import StatsSummary from '@/components/stats/StatsSummary.vue'
 import StatsTable from '@/components/stats/StatsTable.vue'
-import { useBackgroundJobs } from '@/composables/useBackgroundJobs'
 import { useStats } from '@/composables/useStats'
 import { segmentItem, segmentTrackChrome } from '@/lib/segment-classes'
 import { type StatsSort } from '@/lib/stats'
@@ -79,8 +77,6 @@ const {
   nextPage,
   load,
 } = useStats()
-
-const { jobs, isLoading: jobsLoading } = useBackgroundJobs()
 
 function bindGridEl(el: Element | ComponentPublicInstance | null) {
   gridEl.value = el instanceof HTMLElement ? el : null
@@ -224,11 +220,6 @@ function bindGridEl(el: Element | ComponentPublicInstance | null) {
     >
       {{ errorMessage }}
     </p>
-
-    <BackgroundJobsCard
-      :jobs="jobs"
-      :is-loading="jobsLoading"
-    />
 
     <div
       v-if="isLoading"

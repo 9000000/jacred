@@ -37,7 +37,7 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    // SPA shells `/`, `/stats`, `/settings` stay on assets.
+    // SPA shells `/`, `/stats`, `/jobs`, `/settings` stay on assets.
     // Keep in sync with src/lib/spa-api-bypass.ts → WORKER_FIRST_PATTERNS.
     "run_worker_first": [
       "/api/*",

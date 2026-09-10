@@ -4,7 +4,7 @@
  * - wrangler.jsonc → assets.run_worker_first
  * - Controllers/* Route attributes / JacRedAccessCatalog
  *
- * SPA shells (assets / HomeController): `/`, `/stats`, `/settings` only.
+ * SPA shells (assets / HomeController): `/`, `/stats`, `/jobs`, `/settings` only.
  * JSON under `/stats/*` (torrents|meta|tracks) is API — not the SPA page.
  */
 

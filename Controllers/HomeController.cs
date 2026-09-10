@@ -6,9 +6,10 @@ namespace JacRed.Controllers
 {
     public class HomeController : Controller
     {
-        /// <summary>SPA shell for /, /stats, /settings (Vue app in wwwroot/index.html).</summary>
+        /// <summary>SPA shell for /, /stats, /jobs, /settings (Vue app in wwwroot/index.html).</summary>
         [Route("/")]
         [Route("/stats")]
+        [Route("/jobs")]
         [Route("/settings")]
         public ActionResult Spa()
         {

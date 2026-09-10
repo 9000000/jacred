@@ -71,7 +71,7 @@ npm run deploy:cf
 ```
 
 Proxied paths are listed in [`src/lib/spa-api-bypass.ts`](src/lib/spa-api-bypass.ts) (`WORKER_FIRST_PATTERNS`) and mirrored in `wrangler.jsonc` → `assets.run_worker_first`.  
-Important: SPA page is exactly `/stats`; JSON is `/stats/meta`, `/stats/torrents`, `/stats/tracks`.  
+Important: SPA pages are `/`, `/stats`, `/jobs`, `/settings`. JSON under `/stats` is `/stats/meta`, `/stats/torrents`, `/stats/tracks`.  
 Static assets (`/openapi.yaml`, `/img/*`) stay on Workers Assets.
 
 The Worker forwards `User-Agent`, `Referer`, `Origin`, API keys, and visitor IP (`CF-Connecting-IP` / `X-Forwarded-For` / `X-Real-IP`), and sets `X-JacRed-Client: jacred-web` + `Via`.

@@ -41,17 +41,14 @@ const rows = computed(() =>
 <template>
   <section
     class="jr-elevated rounded-xl border p-4"
-    :aria-label="t('stats.jobs.title')"
+    :aria-label="t('jobs.title')"
     :aria-busy="isLoading"
   >
-    <h2 class="mb-3 text-sm font-semibold text-muted-foreground">
-      {{ t('stats.jobs.title') }}
-    </h2>
     <p
       v-if="!rows.length"
-      class="text-sm text-muted-foreground"
+      class="px-1 py-8 text-center text-sm text-muted-foreground"
     >
-      {{ t('stats.jobs.empty') }}
+      {{ t('jobs.empty') }}
     </p>
     <ul
       v-else

@@ -13,6 +13,7 @@ namespace JacRed.Infrastructure.Security
             // Public — Vue SPA shells & health
             new("/", JacRedAccessPolicy.Public, "HomeController", "SPA index.html"),
             new("/stats", JacRedAccessPolicy.Public, "HomeController", "SPA route → index.html"),
+            new("/jobs", JacRedAccessPolicy.Public, "HomeController", "SPA route → index.html"),
             new("/settings", JacRedAccessPolicy.Public, "HomeController", "SPA route → index.html"),
             new("/opensearch.xml", JacRedAccessPolicy.Public, "HomeController"),
             new("/health", JacRedAccessPolicy.Public, "HealthController"),

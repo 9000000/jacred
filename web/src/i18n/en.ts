@@ -37,6 +37,7 @@ export default {
   nav: {
     search: 'Search',
     stats: 'Stats',
+    jobs: 'Jobs',
     settings: 'Settings',
     mobile: 'Mobile navigation',
   },
@@ -244,11 +245,15 @@ export default {
       waiting: 'Waiting',
       skipped: 'Skipped',
     },
-    jobs: {
-      title: 'Parser background jobs',
-      empty:
-        'No active ParseAll or UpdateTasks. After a restart the list is empty until a job starts again.',
-    },
+  },
+  jobs: {
+    title: 'Background jobs',
+    subtitle:
+      'ParseAll and UpdateTasks in this process. After a restart the list is empty until a job starts again.',
+    refresh: 'Refresh',
+    empty:
+      'No active ParseAll or UpdateTasks. After a restart the list is empty until a job starts again.',
+    loadFailed: 'Could not load background jobs',
   },
   settings: {
     showPassword: 'Show password',

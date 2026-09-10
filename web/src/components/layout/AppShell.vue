@@ -9,6 +9,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import {
+  Activity,
   BarChart3,
   Check,
   Ellipsis,
@@ -92,6 +93,7 @@ const nav = computed(() => {
   return [
     { to: '/', label: t('nav.search'), icon: Search, name: 'search' },
     { to: '/stats', label: t('nav.stats'), icon: BarChart3, name: 'stats' },
+    { to: '/jobs', label: t('nav.jobs'), icon: Activity, name: 'jobs' },
     {
       to: '/settings',
       label: t('nav.settings'),
@@ -500,7 +502,7 @@ onUnmounted(() => {
         :class="
           cn(
             'mx-auto w-full flex-1 py-5 outline-none pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:pl-[max(1.5rem,env(safe-area-inset-left))] sm:pr-[max(1.5rem,env(safe-area-inset-right))]',
-            route.name === 'stats' ? 'max-w-7xl' : 'max-w-6xl',
+            route.name === 'stats' || route.name === 'jobs' ? 'max-w-7xl' : 'max-w-6xl',
           )
         "
       >

@@ -19,6 +19,7 @@ describe('isApiPathname', () => {
     expect(isApiPathname('/stats')).toBe(false)
     expect(isApiPathname('/stats/')).toBe(false)
     expect(isApiPathname('/settings')).toBe(false)
+    expect(isApiPathname('/jobs')).toBe(false)
   })
 
   it('treats /stats/<action> as API (not the SPA page)', () => {

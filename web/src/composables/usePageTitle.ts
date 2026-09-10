@@ -18,9 +18,11 @@ export function usePageTitle() {
     const key =
       route.name === 'stats'
         ? 'nav.stats'
-        : route.name === 'settings'
-          ? 'nav.settings'
-          : 'nav.search'
+        : route.name === 'jobs'
+          ? 'nav.jobs'
+          : route.name === 'settings'
+            ? 'nav.settings'
+            : 'nav.search'
     document.title = `${t(key)} — ${t('app.name')}`
   })
 }

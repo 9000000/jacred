@@ -50,6 +50,7 @@ JacRed запускается одной командой через Docker Comp
 
     - `/` — поиск торрентов
     - `/stats` — статистика по трекерам
+    - `/jobs` — фоновые ParseAll / UpdateTasks
     - `/settings` — редактор конфигурации
   </Step>
   <Step title="Подключите Lampa или Sonarr">
@@ -81,10 +82,10 @@ JacRed запускается одной командой через Docker Comp
     ```bash
     # Текстовый поиск
     curl -s "http://localhost:9117/api/v2.0/indexers/all/results?query=матрица"
-    
+
     # Поиск по IMDb ID
     curl -s "http://localhost:9117/api/v2.0/indexers/all/results?query=tt0133093"
-    
+
     # Поиск по Кинопоиску
     curl -s "http://localhost:9117/api/v2.0/indexers/all/results?query=kp301"
     ```

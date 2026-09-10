@@ -1287,6 +1287,20 @@ paths:
               schema:
                 type: string
 
+  /jobs:
+    get:
+      tags: [Web]
+      summary: Background jobs PWA
+      operationId: webJobs
+      security: []
+      responses:
+        "200":
+          description: HTML
+          content:
+            text/html:
+              schema:
+                type: string
+
   /settings:
     get:
       tags: [Web]
