@@ -11,20 +11,27 @@ Rutracker — крупнейший трекер в базе JacRed (~1.5 мил�
 ## Требования
 
 - FlareSolverr для обхода Cloudflare challenge
-- На VPS с датацентровым IP: WARP + FlareSolverr
+- cffetch (`ghcr.io/jacred-fdb/cffetch`, `:8192`) — быстрые GET после solve; без него остаётся браузер
+- На VPS с датацентровым IP: WARP + FlareSolverr, тот же SOCKS у cffetch
 
 ## Конфигурация
 
 ```yaml
 flaresolverr:
   enable: true
-  url: http://flaresolverr:8191/v1   # в docker-compose
+  url: http://host.docker.internal:8191/v1   # JacRed на bridge, FS host network
   maxTimeoutMs: 300000
   sessionIdleMinutes: 120
   browserTimeoutRetries: 1
   recycleAfterTimeouts: 3
   guardedHours: 6
   recheckMinutes: 30
+
+cffetch:
+  enable: true
+  url: http://host.docker.internal:8192/fetch
+  impersonate: chrome136
+  proxy: socks5://127.0.0.1:20001
 
 Rutracker:
   host: https://rutracker.org
@@ -62,7 +69,7 @@ JacRed → FlareSolverr → Chromium → rutracker.org (CF challenge ~11s)
                       → кеш сессии (~0.5s при активном Chromium)
 ```
 
-`cf_clearance` хранится в браузерной сессии FlareSolverr (`jacred`). JacRed переиспользует сессию между запросами.
+`cf_clearance` хранится в браузерной сессии FlareSolverr (`jacred-rutracker_org`). JacRed переиспользует сессию между запросами к этому хосту. Kinozal и другие CF-трекеры получают свои сессии.
 
 ## Режим без FlareSolverr
 

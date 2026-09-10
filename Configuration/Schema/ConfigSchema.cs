@@ -138,7 +138,7 @@ namespace JacRed.Configuration.Schema
                         Field("proxy.list", "stringList", "Proxy list", "ip:port или socks5://…"),
                         Field("globalproxy", "json", "Global proxy", "JSON-массив ProxySettings")
                     }),
-                    Group("flaresolverr", "FlareSolverr", "Cloudflare bypass через безголовый браузер (Rutracker, Kinozal)", new[]
+                    Group("flaresolverr", "FlareSolverr", "Cloudflare bypass: отдельная сессия Chromium на хост (Rutracker, Kinozal)", new[]
                     {
                         Field("flaresolverr.enable", "bool", "Включить", "Ходить на CF-хосты через браузер"),
                         Field("flaresolverr.url", "string", "URL", "http://127.0.0.1:8191/v1 или http://flaresolverr:8191/v1"),
@@ -148,6 +148,16 @@ namespace JacRed.Configuration.Schema
                         Field("flaresolverr.recycleAfterTimeouts", "int", "Recycle после N timeout", "Destroy сессии после N подряд browser timeout (дефолт 3)", min: 1),
                         Field("flaresolverr.guardedHours", "int", "Guarded hours", "Сколько помнить CF на хосте", min: 1),
                         Field("flaresolverr.recheckMinutes", "int", "Recheck (мин)", "Как часто пробовать обычный GET", min: 1)
+                    }),
+                    Group("cffetch", "cffetch", "Быстрый путь после CF: ghcr.io/jacred-fdb/cffetch на :8192, тот же SOCKS что у FlareSolverr", new[]
+                    {
+                        Field("cffetch.enable", "bool", "Включить", "После solve ходить без page.goto"),
+                        Field("cffetch.url", "string", "URL", "http://127.0.0.1:8192/fetch"),
+                        Field("cffetch.impersonate", "string", "Impersonate", "chrome136 — не старше Chromium FlareSolverr"),
+                        Field("cffetch.timeoutSeconds", "int", "Таймаут (с)", "Таймаут помощника", min: 5),
+                        Field("cffetch.maxConcurrent", "int", "Одновременно", "Без лимита будет 429 трекера", min: 1),
+                        Field("cffetch.clearanceMinutes", "int", "Cookie (мин)", "Потом отказ уводит на браузер", min: 0),
+                        Field("cffetch.proxy", "string", "SOCKS", "socks5://127.0.0.1:20001 как PROXY_URL у FlareSolverr")
                     }),
                     TrackerGroups()
                 }

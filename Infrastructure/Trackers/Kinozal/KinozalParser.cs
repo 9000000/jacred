@@ -5,12 +5,48 @@ using System.Text.RegularExpressions;
 using System.Web;
 using JacRed.Infrastructure.Parsing;
 using JacRed.Models.Details;
+using JacRed.Models.tParse;
 
 namespace JacRed.Infrastructure.Trackers.Kinozal
 {
     public static class KinozalParser
     {
         const string TrackerName = "kinozal";
+
+        // Chromium/FlareSolverr re-serializes class='first bg' / class=bg as class="first bg" / class="bg".
+        const string AttrQ = "[\"']?";
+        static readonly Regex RowSplit = new Regex(
+            $"<tr class={AttrQ}(?:first )?bg{AttrQ}>",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // `/details.php` only — `userdetails.php?id=` contains the substring `details.php?id=`.
+        static readonly Regex TorrentListingHref = new Regex(
+            @"href=[""']/details\.php\?id=\d+",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly Regex NamTorrentHref = new Regex(
+            $@"<td class={AttrQ}nam{AttrQ}>\s*<a href=[""']/details\.php\?id=(\d+)[""']",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly Regex DetailsIdInUrl = new Regex(
+            @"/details\.php\?id=(\d+)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly Regex HtmlTitle = new Regex(
+            @"<title>([^<]+)</title>",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        /// <summary>Digit immediately before <c>rel="next"</c> — 1-based last listing page.</summary>
+        static readonly Regex PagerDigitBeforeNext = new Regex(
+            @">([0-9]+)</a></li><li><a rel=""next""",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly Regex BrowseSelect = new Regex(
+            @"<select\s+name=[""']?(c|d)[""']?[^>]*>(.*?)</select>",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+        static readonly Regex BrowseOption = new Regex(
+            @"<option([^>]*)>",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly Regex BrowseOptionValue = new Regex(
+            @"value=[""']?(\d+)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly Regex ArgYear = new Regex(
+            @"(?:^|[?&])d=(\d{4})(?:&|$)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>
         /// Parse browse-list date column (header «Залит»).
@@ -59,7 +95,7 @@ namespace JacRed.Infrastructure.Trackers.Kinozal
             if (!KinozalCategories.Map.TryGetValue(cat, out var meta))
                 return torrents;
 
-            foreach (string row in Regex.Split(tParse.ReplaceBadNames(html), "<tr class=(?:'first bg'|bg)>").Skip(1))
+            foreach (string row in RowSplit.Split(tParse.ReplaceBadNames(html)).Skip(1))
             {
                 #region Локальный метод - Match
                 string Match(string pattern, int index = 1)
@@ -74,7 +110,7 @@ namespace JacRed.Infrastructure.Trackers.Kinozal
                     continue;
 
                 #region Дата создания
-                string listingTime = Match("<td class='sl_p'>[0-9]+</td>\\s*<td class='s'>([^<]+)</td>");
+                string listingTime = Match($"<td class={AttrQ}sl_p{AttrQ}>[0-9]+</td>\\s*<td class={AttrQ}s{AttrQ}>([^<]+)</td>");
                 DateTime createTime = ParseListingUpdateTime(listingTime);
 
                 if (createTime == default)
@@ -82,16 +118,18 @@ namespace JacRed.Infrastructure.Trackers.Kinozal
                 #endregion
 
                 #region Данные раздачи
-                string url = Match("href=\"/(details.php\\?id=[0-9]+)\"");
-                string title = Match("class=\"r[0-9]+\">([^<]+)</a>");
-                string _sid = Match("<td class='sl_s'>([0-9]+)</td>");
-                string _pir = Match("<td class='sl_p'>([0-9]+)</td>");
-                string sizeName = Match("<td class='s'>([0-9\\.,]+ (МБ|ГБ|ТБ))</td>");
-
-                if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(_sid) || string.IsNullOrWhiteSpace(_pir) || string.IsNullOrWhiteSpace(sizeName))
+                if (!TryGetDetailsIdFromRow(row, out int detailsId))
                     continue;
 
-                url = $"{AppInit.conf.Kinozal.host}/{url}";
+                string title = Match($"class={AttrQ}r[0-9]+{AttrQ}>([^<]+)</a>");
+                string _sid = Match($"<td class={AttrQ}sl_s{AttrQ}>([0-9]+)</td>");
+                string _pir = Match($"<td class={AttrQ}sl_p{AttrQ}>([0-9]+)</td>");
+                string sizeName = Match($"<td class={AttrQ}s{AttrQ}>([0-9\\.,]+ (МБ|ГБ|ТБ))</td>");
+
+                if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(_sid) || string.IsNullOrWhiteSpace(_pir) || string.IsNullOrWhiteSpace(sizeName))
+                    continue;
+
+                string url = DetailsUrl(AppInit.conf.Kinozal.host, detailsId);
                 #endregion
 
                 #region Парсим раздачи
@@ -330,10 +368,246 @@ namespace JacRed.Infrastructure.Trackers.Kinozal
         }
 
         /// <summary>
-        /// Empty listing → done. Rows that still need a magnet → not done until every row is resolved.
+        /// Torrent id from a details URL. Returns false for <c>userdetails.php</c> profile links.
         /// </summary>
-        public static bool ShouldMarkPageDone(int parsedCount, int resolvedCount)
+        public static bool TryGetDetailsId(string url, out int id)
         {
+            id = 0;
+            if (string.IsNullOrEmpty(url))
+                return false;
+
+            if (url.IndexOf("userdetails", StringComparison.OrdinalIgnoreCase) >= 0)
+                return false;
+
+            var match = DetailsIdInUrl.Match(url);
+            return match.Success && int.TryParse(match.Groups[1].Value, out id) && id > 0;
+        }
+
+        public static string DetailsUrl(string host, int id)
+        {
+            string baseHost = string.IsNullOrWhiteSpace(host) ? "https://kinozal.guru" : host.TrimEnd('/');
+            return $"{baseHost}/details.php?id={id}";
+        }
+
+        static bool TryGetDetailsIdFromRow(string row, out int id)
+        {
+            id = 0;
+            var nam = NamTorrentHref.Match(row);
+            if (nam.Success && int.TryParse(nam.Groups[1].Value, out id) && id > 0)
+                return true;
+
+            var href = TorrentListingHref.Match(row);
+            return href.Success && TryGetDetailsId(href.Value, out id);
+        }
+
+        public static int CountTorrentListingLinks(string html)
+        {
+            if (string.IsNullOrEmpty(html))
+                return 0;
+
+            return TorrentListingHref.Matches(html).Count;
+        }
+
+        public static bool HasTorrentListingLinks(string html) =>
+            CountTorrentListingLinks(html) > 0;
+
+        static bool HasKinozalTitle(string html)
+        {
+            if (string.IsNullOrEmpty(html))
+                return false;
+
+            var title = HtmlTitle.Match(html);
+            if (title.Success && title.Groups[1].Value.Contains("Кинозал", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return html.Contains("Кинозал.GURU", StringComparison.Ordinal)
+                || html.Contains("Кинозал.ТВ", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Real browse table (header present). Does not require torrent rows — empty categories are valid.
+        /// Does not treat <c>userdetails.php?id=</c> as a listing.
+        /// </summary>
+        public static bool IsValidBrowsePage(string html) =>
+            !string.IsNullOrWhiteSpace(html)
+            && html.Contains("t_peer", StringComparison.Ordinal)
+            && HasKinozalTitle(html);
+
+        /// <summary>
+        /// Year filter / past last listing: logged-in chrome, no table,
+        /// «Нет активных раздач». Mark ParseAll done; do not recycle.
+        /// «уточните параметры поиска» also appears on listings over 5000 hits — do not use it alone.
+        /// </summary>
+        public static bool IsEmptySearchResult(string html)
+        {
+            if (IsTransientBrowseFailure(html) || IsLoginWall(html))
+                return false;
+
+            if (html.Contains("t_peer", StringComparison.Ordinal))
+                return false;
+
+            if (!IsLoggedIn(html) || !HasKinozalTitle(html))
+                return false;
+
+            return html.Contains("Нет активных раздач", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Selected option of browse <c>select name=c|d</c>. No form → false (not a leftover tab).
+        /// </summary>
+        public static bool TryGetSelectedBrowseFilter(string html, string name, out string value)
+        {
+            value = null;
+            if (string.IsNullOrEmpty(html) || string.IsNullOrEmpty(name))
+                return false;
+
+            foreach (Match select in BrowseSelect.Matches(html))
+            {
+                if (!string.Equals(select.Groups[1].Value, name, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                foreach (Match option in BrowseOption.Matches(select.Groups[2].Value))
+                {
+                    string attrs = option.Groups[1].Value;
+                    if (attrs.IndexOf("selected", StringComparison.OrdinalIgnoreCase) < 0)
+                        continue;
+
+                    var val = BrowseOptionValue.Match(attrs);
+                    if (!val.Success)
+                        return false;
+
+                    value = val.Groups[1].Value;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool TryGetRequestedYear(string arg, out string year)
+        {
+            year = null;
+            if (string.IsNullOrEmpty(arg))
+                return false;
+
+            var match = ArgYear.Match(arg);
+            if (!match.Success)
+                return false;
+
+            year = match.Groups[1].Value;
+            return true;
+        }
+
+        /// <summary>
+        /// FlareSolverr leftover tab: listing/empty HTML for another category or year.
+        /// No form fields → not a mismatch (transient/stale). Selected year 0 (все года) is not a mismatch.
+        /// Hourly parse (<paramref name="arg"/> null) checks category only.
+        /// </summary>
+        public static bool BrowseFiltersMismatch(string html, string cat, string arg)
+        {
+            if (string.IsNullOrWhiteSpace(html) || string.IsNullOrWhiteSpace(cat))
+                return false;
+
+            if (TryGetSelectedBrowseFilter(html, "c", out string selectedCat)
+                && !string.Equals(selectedCat, cat, StringComparison.Ordinal))
+                return true;
+
+            if (TryGetRequestedYear(arg, out string year)
+                && TryGetSelectedBrowseFilter(html, "d", out string selectedYear)
+                && selectedYear != "0"
+                && !string.Equals(selectedYear, year, StringComparison.Ordinal))
+                return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Digit before <c>rel="next"</c> is 1-based last listing page. URL <c>page</c> is 0-based.
+        /// No pager → one page (index 0). Loop <c>for (page = 0; page &lt; count; page++)</c>.
+        /// </summary>
+        public static int YearTaskPageCount(int pagerDigitBeforeNext)
+        {
+            if (pagerDigitBeforeNext <= 0)
+                return 1;
+
+            return pagerDigitBeforeNext;
+        }
+
+        public static int YearTaskPageCount(string html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+                return 1;
+
+            var match = PagerDigitBeforeNext.Match(html);
+            if (!match.Success || !int.TryParse(match.Groups[1].Value, out int digit))
+                return 1;
+
+            return YearTaskPageCount(digit);
+        }
+
+        /// <summary>
+        /// Drop URL pages at or past the last listing page (old inclusive <c>page &lt;= digit</c> tails).
+        /// </summary>
+        public static int PrunePagesBeyondYearCount(List<TaskParse> tasks, int pageCount)
+        {
+            if (tasks == null || tasks.Count == 0)
+                return 0;
+
+            if (pageCount < 1)
+                pageCount = 1;
+
+            int before = tasks.Count;
+            tasks.RemoveAll(t => t != null && t.page >= pageCount);
+            return before - tasks.Count;
+        }
+
+        /// <summary>
+        /// Length / t_peer / title for stale logs. No cookies, no HTML body.
+        /// </summary>
+        public static string FormatBrowseDiag(string html)
+        {
+            if (string.IsNullOrEmpty(html))
+                return "len=0";
+
+            var title = HtmlTitle.Match(html);
+            string t = title.Success ? title.Groups[1].Value.Trim() : "";
+            if (t.Length > 80)
+                t = t.Substring(0, 80);
+
+            return $"len={html.Length} t_peer={html.Contains("t_peer", StringComparison.Ordinal)} title={t}";
+        }
+
+        /// <summary>
+        /// UpdateTasksParse year-page delay. Cap so 25 cats × ~37 years still finish inside the 2h wall clock.
+        /// </summary>
+        internal static int UpdateTasksParseDelayMs(int parseDelay) =>
+            Math.Clamp(parseDelay, 0, 2000);
+
+        /// <summary>
+        /// Logged-in Kinozal chrome without a <c>t_peer</c> table — typical ~15 KB FlareSolverr empty tab.
+        /// Retry; do not TakeLogin and do not mark ParseAllTask done.
+        /// Empty search («Нет активных раздач») is not stale — see <see cref="IsEmptySearchResult"/>.
+        /// </summary>
+        public static bool IsStaleListingHtml(string html)
+        {
+            if (IsTransientBrowseFailure(html) || IsLoginWall(html) || IsEmptySearchResult(html))
+                return false;
+
+            if (html.Contains("t_peer", StringComparison.Ordinal))
+                return false;
+
+            return IsLoggedIn(html);
+        }
+
+        /// <summary>
+        /// Empty listing (no torrent hrefs) → done. Parser miss (hrefs but 0 rows) → not done.
+        /// Rows that still need a magnet → not done until every row is resolved.
+        /// </summary>
+        public static bool ShouldMarkPageDone(int parsedCount, int resolvedCount, int listingHrefCount)
+        {
+            if (listingHrefCount > 0 && parsedCount <= 0)
+                return false;
+
             if (parsedCount <= 0)
                 return true;
 
