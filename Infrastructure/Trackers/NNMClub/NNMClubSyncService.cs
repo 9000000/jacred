@@ -15,9 +15,11 @@ using IO = System.IO;
 
 namespace JacRed.Infrastructure.Trackers.NNMClub
 {
-    public class NNMClubSyncService
+    public class NNMClubSyncService : IParseAllStarter
     {
         const string TrackerName = "nnmclub";
+        string IParseAllStarter.TrackerName => TrackerName;
+        Task<string> IParseAllStarter.ParseAllTaskAsync() => ParseAllTaskAsync();
         const string TaskParsePath = "Data/temp/nnmclub_taskParse.json";
         static string CyclePath => ParseAllCycleStore.CyclePathForTracker(TrackerName);
 
@@ -137,17 +139,19 @@ namespace JacRed.Infrastructure.Trackers.NNMClub
                     foreach (var item in pending)
                     {
                         ct.ThrowIfCancellationRequested();
-                        await Task.Delay(AppInit.conf.NNMClub.parseDelay, ct);
+                        await TrackerSyncHelpers.YieldToHourlyParseAndThrottleAsync(
+                            _parseLock, TrackerName, AppInit.conf.NNMClub.parseDelay, ct);
 
                         var status = await parsePage(item.cat, item.val.page, ct);
+                        TrackerSyncHelpers.NoteRequest(TrackerName);
                         if (NNMClubPortalPagination.ShouldSettleTask(status))
                         {
                             ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                            ParseAllCycleStore.PersistAfterPage(CyclePath, cycle, TaskParsePath, taskParse, persistCycle: true);
                         }
 
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);
+                        ParseAllCycleStore.PersistAfterPageIfNeeded(CyclePath, cycle, TaskParsePath, taskParse, persistCycle: true, done, pending.Length);
                     }
                 }
                 finally
@@ -176,9 +180,11 @@ namespace JacRed.Infrastructure.Trackers.NNMClub
 
                         foreach (var val in pagesToParse)
                         {
-                            await Task.Delay(AppInit.conf.NNMClub.parseDelay);
+                            await TrackerSyncHelpers.YieldToHourlyParseAndThrottleAsync(
+                                _parseLock, TrackerName, AppInit.conf.NNMClub.parseDelay);
 
                             var status = await parsePage(task.Key, val.page);
+                            TrackerSyncHelpers.NoteRequest(TrackerName);
                             if (NNMClubPortalPagination.ShouldSettleTask(status))
                             {
                                 ParseAllCycleStore.MarkDoneInCycle(val, cycle);

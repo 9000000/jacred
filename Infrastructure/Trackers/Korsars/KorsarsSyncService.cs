@@ -24,9 +24,11 @@ namespace JacRed.Infrastructure.Trackers.Korsars
     /// Tasks: UpdateTasksParse / ParseAllTask / ParseLatest (Rutor/Anibelka trio).
     /// Requests use rqHost/alias; FDB urls stay on host.
     /// </summary>
-    public class KorsarsSyncService
+    public class KorsarsSyncService : IParseAllStarter
     {
         const string TrackerName = KorsarsParser.TrackerName;
+        string IParseAllStarter.TrackerName => TrackerName;
+        Task<string> IParseAllStarter.ParseAllTaskAsync() => ParseAllTaskAsync();
         const string TaskParsePath = "Data/temp/korsars_taskParse.json";
         static string CyclePath => ParseAllCycleStore.CyclePathForTracker(TrackerName);
         const string CookieCacheKey = "cron:KorsarsController:Cookie";
@@ -367,15 +369,14 @@ namespace JacRed.Infrastructure.Trackers.Korsars
                     foreach (var item in pending)
                     {
                         ct.ThrowIfCancellationRequested();
-                        if (AppInit.conf.Korsars.parseDelay > 0)
-                            await Task.Delay(AppInit.conf.Korsars.parseDelay, ct);
+                        await TrackerSyncHelpers.YieldToHourlyParseAndThrottleAsync(
+                            _parseLock, TrackerName, AppInit.conf.Korsars.parseDelay, ct);
 
                         try
                         {
                             await ParseCategoryPageAsync(rqHost, canonHost, item.cat, item.val.page, ct);
                             // Empty listings still count as done (Go markTaskToday).
                             ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                            ParseAllCycleStore.PersistAfterPage(CyclePath, cycle, TaskParsePath, taskParse, persistCycle: true);
                         }
                         catch (OperationCanceledException) when (ct.IsCancellationRequested)
                         {
@@ -386,8 +387,10 @@ namespace JacRed.Infrastructure.Trackers.Korsars
                             ParserLog.Write(TrackerName, $"ParseAllTask f={item.cat} page={item.val.page} error: {ex.Message}");
                         }
 
+                        TrackerSyncHelpers.NoteRequest(TrackerName);
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);
+                        ParseAllCycleStore.PersistAfterPageIfNeeded(CyclePath, cycle, TaskParsePath, taskParse, persistCycle: true, done, pending.Length);
                     }
                 }
                 finally
@@ -432,8 +435,8 @@ namespace JacRed.Infrastructure.Trackers.Korsars
                         foreach (var val in pagesToParse)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            if (AppInit.conf.Korsars.parseDelay > 0)
-                                await Task.Delay(AppInit.conf.Korsars.parseDelay, cancellationToken);
+                            await TrackerSyncHelpers.YieldToHourlyParseAndThrottleAsync(
+                                _parseLock, TrackerName, AppInit.conf.Korsars.parseDelay, cancellationToken);
 
                             try
                             {
@@ -449,6 +452,8 @@ namespace JacRed.Infrastructure.Trackers.Korsars
                             {
                                 ParserLog.Write(TrackerName, $"ParseLatest f={task.Key} page={val.page} error: {ex.Message}");
                             }
+
+                            TrackerSyncHelpers.NoteRequest(TrackerName);
                         }
                     }
 

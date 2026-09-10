@@ -14,6 +14,7 @@ Rutracker sits behind Cloudflare (`403` / `cf-mitigated` / “Just a moment…�
 flaresolverr:
   enable: true
   url: http://127.0.0.1:8191/v1   # JacRed на bridge + FS host network: http://host.docker.internal:8191/v1
+  crawlUrl: http://127.0.0.1:8193/v1  # ParseAll lane; empty = same as url
   maxTimeoutMs: 300000            # 5 min per FS request.get (challenge + retries)
   sessionIdleMinutes: 120         # keep Chromium session across cron gaps
   browserTimeoutRetries: 1        # same-session retry before counting a soft fail
@@ -25,6 +26,7 @@ Rutracker:
   host: https://rutracker.org
   alias: ""          # optional Worker URL if flaresolverr.enable=false
   topicFetchAttempts: 5          # retry topic GET until magnet/details (per run)
+  reqMinute: 30                  # 60 revokes cf_clearance
 ```
 
 ### VPS playbook (WARP + FlareSolverr)
@@ -97,7 +99,7 @@ Category counts (from `RutrackerCategories`): **211** forums, **65** `QuickParse
 
 Primary freshness is **`Parse` page 0 of QuickParse**, not `ParseAllTask`.
 
-Repo [`Data/crontab`](../../../Data/crontab) follows this cadence (ParseAll twice daily so a 6h wall can continue same day):
+Repo [`Data/crontab`](../../../Data/crontab): morning ParseAll starts a **new** cycle only when pending is 0. Incomplete cycles continue after SIGTERM via startup resume and `*/15` `/cron/maintenance/ResumeParseAll`. No wall-clock: hang is a 45m stall watchdog. Hourly parse + listing sid/pir are freshness.
 
 ```cron
 # Keep FlareSolverr session warm (cf_clearance in Chromium)
@@ -112,13 +114,15 @@ Repo [`Data/crontab`](../../../Data/crontab) follows this cadence (ParseAll twic
 # Rebuild page-task map once (211 GETs) — not every few hours
 20 3 * * *    /opt/jacred/Data/run-job.sh rutracker-UpdateTasksParse http://127.0.0.1:9117/cron/rutracker/UpdateTasksParse 60
 
-# Deep crawl: morning start + ~6h later continue (pages with updateTime != today)
-40 4,11 * * * /opt/jacred/Data/run-job.sh rutracker-ParseAllTask http://127.0.0.1:9117/cron/rutracker/ParseAllTask 60
+# Deep crawl: new cycle at 04:40 if the last one finished; else continue. Restarts: ResumeParseAll.
+40 4 * * *    /opt/jacred/Data/run-job.sh rutracker-ParseAllTask http://127.0.0.1:9117/cron/rutracker/ParseAllTask 60
+*/15 * * * *  /opt/jacred/Data/run-job.sh parseall-resume http://127.0.0.1:9117/cron/maintenance/ResumeParseAll 60
 ```
 
 ### Avoid
 
-- Hourly `UpdateTasksParse` / `ParseAllTask` — over-requests; while a crawl runs cron only gets `work`. Prefer 2×/day ParseAll (start + continue).  
+- Hourly `UpdateTasksParse` / `ParseAllTask` — over-requests; while a crawl runs cron only gets `work`.
+- Calling ResumeParseAll when pending is 0 — that is idle by design; morning ParseAll is what rotates a finished cycle.  
 - Scheduling `ParseLatest?pages=5` for “light” refresh — with a full `taskParse` it is **heavier** than hourly `parse` (~211×N forum pages).
 - Skipping warmup when FlareSolverr is cold — first CF solve under CPU contention often times out.
 - Destroying the FlareSolverr session on every chromedriver hang — prefer soft fail + topic retries; recycle only after `recycleAfterTimeouts`.
@@ -129,7 +133,8 @@ Repo [`Data/crontab`](../../../Data/crontab) follows this cadence (ParseAll twic
 | ------ | -------- |
 | Fresher (~30 min) | `*/30 * * * *` → `parse` |
 | Quieter | `0 */2 * * *` → `parse` |
-| Slower deep crawl / gentler FS | raise `Rutracker.reqMinute` (longer `parseDelay`) |
+| Slower deep crawl / gentler FS | lower `Rutracker.reqMinute` (longer `parseDelay`). Do not set 60 — CF revokes clearance |
+| Longer ParseAll | runs until pending=0 or shutdown; stall watchdog 45m. Resume after restart: `/cron/maintenance/ResumeParseAll` |
 | Stickier topics | raise `Rutracker.topicFetchAttempts` |
 | Longer FS request window | raise `flaresolverr.maxTimeoutMs` (chromedriver still ~120s internally) |
 
@@ -143,8 +148,8 @@ Assumptions: 65 QuickParse, 211 forums, ~**40** pages/cat average for full crawl
 | ----------- | ------------ |
 | `parse` hourly | **1 560 / day** (65 × 24) |
 | `UpdateTasksParse` daily | **211 / day** |
-| `ParseAllTask` 2×/day (up to 6h each) | forum GETs depend on unfinished pages; floor often **~1–2k / day** amortized when warm |
-| **Forum floor** | **~2–4 000 / day** (parse + Update + partial ParseAll) |
+| `ParseAllTask` 1×/day (until done) | listing GETs via cffetch for pending pages; a full ~16k map is one run when the fast path holds |
+| **Forum floor** | **~2–4 000 / day** amortized when ParseAll is still catching up; a finishing day is ~16k listing GETs through cffetch |
 
 ### Totals including topic/magnet GETs (warm DB)
 

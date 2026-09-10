@@ -142,6 +142,7 @@ namespace JacRed.Configuration.Schema
                     {
                         Field("flaresolverr.enable", "bool", "Включить", "Ходить на CF-хосты через браузер"),
                         Field("flaresolverr.url", "string", "URL", "http://127.0.0.1:8191/v1 или http://flaresolverr:8191/v1"),
+                        Field("flaresolverr.crawlUrl", "string", "Crawl URL", "Второй FlareSolverr для ParseAll/UpdateTasks. Пусто — тот же url"),
                         Field("flaresolverr.maxTimeoutMs", "int", "Таймаут (мс)", "Первая страница / challenge+retry (~5 мин)", min: 1000),
                         Field("flaresolverr.sessionIdleMinutes", "int", "Idle сессии (мин)", "Закрыть Chromium после простоя (дефолт 120; keep-alive cron чаще)", min: 0),
                         Field("flaresolverr.browserTimeoutRetries", "int", "Retry на timeout", "Same-session retry до recycle (дефолт 1)", min: 0),

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using JacRed.Infrastructure.Trackers;
@@ -190,6 +191,129 @@ public class TrackerSyncHelpersBackgroundTests
     }
 
     [Fact]
+    public async Task SeparateWorkFlags_ParseAllBlocksUpdateTasks()
+    {
+        var parseAllFlag = new TrackerWorkFlag();
+        var updateFlag = new TrackerWorkFlag();
+        using var started = new ManualResetEventSlim(false);
+        using var release = new ManualResetEventSlim(false);
+
+        var parseAll = TrackerSyncHelpers.RunParseAllTaskInBackground(
+            "test-backfill-mutex",
+            parseAllFlag,
+            checkDisabled: false,
+            async ct =>
+            {
+                started.Set();
+                while (!release.IsSet)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    await Task.Delay(20, ct);
+                }
+            },
+            maxDuration: TimeSpan.FromSeconds(30));
+
+        Assert.Equal(TrackerSyncHelpers.OkResult, parseAll);
+        Assert.True(started.Wait(TimeSpan.FromSeconds(5)));
+
+        var update = TrackerSyncHelpers.RunUpdateTasksParseInBackground(
+            "test-backfill-mutex",
+            updateFlag,
+            checkDisabled: false,
+            _ => Task.CompletedTask,
+            maxDuration: TimeSpan.FromSeconds(30));
+
+        Assert.Equal(TrackerSyncHelpers.WorkResult, update);
+        Assert.False(updateFlag.IsBusy);
+        Assert.True(parseAllFlag.IsBusy);
+
+        release.Set();
+        Assert.True(await WaitForFlagFreeAsync(parseAllFlag, TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public async Task RunParseLatest_ReturnsWork_WhenParseAllActive()
+    {
+        var flag = new TrackerWorkFlag();
+        var latest = new TrackerLatestParseLock();
+        using var started = new ManualResetEventSlim(false);
+        using var release = new ManualResetEventSlim(false);
+
+        var parseAll = TrackerSyncHelpers.RunParseAllTaskInBackground(
+            "test-latest-vs-parseall",
+            flag,
+            checkDisabled: false,
+            async ct =>
+            {
+                started.Set();
+                while (!release.IsSet)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    await Task.Delay(20, ct);
+                }
+            },
+            maxDuration: TimeSpan.FromSeconds(30));
+
+        Assert.Equal(TrackerSyncHelpers.OkResult, parseAll);
+        Assert.True(started.Wait(TimeSpan.FromSeconds(5)));
+
+        var latestResult = await TrackerSyncHelpers.RunParseLatestAsync(
+            "test-latest-vs-parseall",
+            latest,
+            checkDisabled: false,
+            () => Task.FromResult("ok"));
+
+        Assert.Equal(TrackerSyncHelpers.WorkResult, latestResult);
+
+        release.Set();
+        Assert.True(await WaitForFlagFreeAsync(flag, TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public async Task WaitWhileHourlyParseBusy_UnblocksWhenParseEnds()
+    {
+        var parseLock = new TrackerParseLock();
+        Assert.True(parseLock.TryStart());
+        Assert.True(parseLock.IsBusy);
+
+        var waiting = TrackerSyncHelpers.WaitWhileHourlyParseBusy(parseLock);
+        await Task.Delay(80);
+        Assert.False(waiting.IsCompleted);
+
+        parseLock.End();
+        Assert.False(parseLock.IsBusy);
+        await waiting.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
+    public async Task ThrottleAsync_SleepsOnlyRemainderSinceNoteRequest()
+    {
+        const string tracker = "test-throttle-remainder";
+        var first = Stopwatch.StartNew();
+        await TrackerSyncHelpers.ThrottleAsync(tracker, 200);
+        first.Stop();
+        Assert.True(first.ElapsedMilliseconds < 80, $"first throttle took {first.ElapsedMilliseconds}ms");
+
+        TrackerSyncHelpers.NoteRequest(tracker);
+
+        var second = Stopwatch.StartNew();
+        await TrackerSyncHelpers.ThrottleAsync(tracker, 150);
+        second.Stop();
+        Assert.True(second.ElapsedMilliseconds >= 80, $"remainder throttle took {second.ElapsedMilliseconds}ms");
+    }
+
+    [Fact]
+    public void ShouldPersistCheckpoint_Every25AndLastPage()
+    {
+        Assert.False(TrackerSyncHelpers.ShouldPersistCheckpoint(0, 100));
+        Assert.False(TrackerSyncHelpers.ShouldPersistCheckpoint(24, 100));
+        Assert.True(TrackerSyncHelpers.ShouldPersistCheckpoint(25, 100));
+        Assert.True(TrackerSyncHelpers.ShouldPersistCheckpoint(50, 100));
+        Assert.True(TrackerSyncHelpers.ShouldPersistCheckpoint(100, 100));
+        Assert.True(TrackerSyncHelpers.ShouldPersistCheckpoint(7, 7));
+    }
+
+    [Fact]
     public void Percent_AndFormatSummary_HandleEmptyProgress()
     {
         Assert.Null(TrackerSyncHelpers.Percent(0, 0));
@@ -200,6 +324,42 @@ public class TrackerSyncHelpersBackgroundTests
             JobLabel = "UpdateTasksParse",
             StartedAtUtc = DateTime.UtcNow
         }));
+    }
+
+    [Fact]
+    public void FormatBackgroundCancelMessage_UsesJobProgress()
+    {
+        var info = new TrackerBackgroundJobInfo
+        {
+            Key = "solo-cancel:ParseAllTask",
+            Tracker = "solo-cancel",
+            JobLabel = "ParseAllTask",
+            StartedAtUtc = DateTime.UtcNow
+        };
+        info.PagesCompleted = 40;
+        info.PagesTotal = 100;
+
+        var msg = TrackerSyncHelpers.FormatBackgroundCancelMessage("solo-cancel", "ParseAllTask", info, "shutdown");
+        Assert.Contains("cancelled (shutdown)", msg);
+        Assert.Contains("pending left=60/100", msg);
+    }
+
+    [Fact]
+    public void IsStalled_WhenLastActivityOlderThanTimeout()
+    {
+        var info = new TrackerBackgroundJobInfo
+        {
+            Key = "stall:ParseAllTask",
+            Tracker = "stall",
+            JobLabel = "ParseAllTask",
+            StartedAtUtc = DateTime.UtcNow
+        };
+        info.LastActivityUtcTicks = DateTime.UtcNow.AddMinutes(-50).Ticks;
+        Assert.True(TrackerSyncHelpers.IsStalled(info, DateTime.UtcNow, TimeSpan.FromMinutes(45)));
+        info.LastActivityUtcTicks = DateTime.UtcNow.Ticks;
+        Assert.False(TrackerSyncHelpers.IsStalled(info, DateTime.UtcNow, TimeSpan.FromMinutes(45)));
+        info.LastActivityUtcTicks = 0;
+        Assert.False(TrackerSyncHelpers.IsStalled(info, DateTime.UtcNow, TimeSpan.FromMinutes(45)));
     }
 
     static async Task<bool> WaitForFlagFreeAsync(TrackerWorkFlag flag, TimeSpan timeout)

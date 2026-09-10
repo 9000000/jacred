@@ -31,7 +31,8 @@ crontab -l
 | --- | --- | --- |
 | `parse` | `GET /cron/{slug}/parse` | Парсинг новых страниц (частый) |
 | `UpdateTasksParse` | `GET /cron/{slug}/UpdateTasksParse` | Обновление очереди (раз в сутки) |
-| `ParseAllTask` | `GET /cron/{slug}/ParseAllTask` | Полный перебор базы (1-2 раза в сутки) |
+| `ParseAllTask` | `GET /cron/{slug}/ParseAllTask` | Полный перебор базы (раз в сутки утром) |
+| `parseall-resume` | `GET /cron/maintenance/ResumeParseAll` | Продолжить незавершённый цикл после рестарта |
 | `jsondb-save` | `GET /jsondb/save` | Сброс FileDB на диск |
 | `cloudflare-warmup` | `GET /cron/cloudflare/Warmup` | Прогрев FlareSolverr-сессии |
 
@@ -54,6 +55,9 @@ crontab -l
 
 # Сохранение FileDB каждые 5 минут
 */5 * * * *  /opt/jacred/Data/run-job.sh jsondb-save http://127.0.0.1:9117/jsondb/save 60
+
+# Продолжить ParseAll после рестарта (idle, если pending=0)
+*/15 * * * *  /opt/jacred/Data/run-job.sh parseall-resume http://127.0.0.1:9117/cron/maintenance/ResumeParseAll 60
 ```
 
 ## run-job.sh

@@ -18,9 +18,11 @@ namespace JacRed.Infrastructure.Trackers.Anibelka
     /// <summary>
     /// Anibelka sync — anonymous only. Never login: passkeys must not enter magnets.
     /// </summary>
-    public class AnibelkaSyncService
+    public class AnibelkaSyncService : IParseAllStarter
     {
         const string TrackerName = AnibelkaParser.TrackerName;
+        string IParseAllStarter.TrackerName => TrackerName;
+        Task<string> IParseAllStarter.ParseAllTaskAsync() => ParseAllTaskAsync();
         const string TaskParsePath = "Data/temp/anibelka_taskParse.json";
         static string CyclePath => ParseAllCycleStore.CyclePathForTracker(TrackerName);
 
@@ -212,15 +214,14 @@ namespace JacRed.Infrastructure.Trackers.Anibelka
                     foreach (var item in pending)
                     {
                         ct.ThrowIfCancellationRequested();
-                        if (AppInit.conf.Anibelka.parseDelay > 0)
-                            await Task.Delay(AppInit.conf.Anibelka.parseDelay, ct);
+                        await TrackerSyncHelpers.YieldToHourlyParseAndThrottleAsync(
+                            _parseLock, TrackerName, AppInit.conf.Anibelka.parseDelay, ct);
 
                         try
                         {
                             await ParseSectionPageAsync(host, item.cat, item.val.page, ct);
                             // Empty listings still count as done (Go markPageToday).
                             ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                            ParseAllCycleStore.PersistAfterPage(CyclePath, cycle, TaskParsePath, taskParse, persistCycle: true);
                         }
                         catch (OperationCanceledException) when (ct.IsCancellationRequested)
                         {
@@ -231,8 +232,10 @@ namespace JacRed.Infrastructure.Trackers.Anibelka
                             ParserLog.Write(TrackerName, $"ParseAllTask f={item.cat} page={item.val.page} error: {ex.Message}");
                         }
 
+                        TrackerSyncHelpers.NoteRequest(TrackerName);
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);
+                        ParseAllCycleStore.PersistAfterPageIfNeeded(CyclePath, cycle, TaskParsePath, taskParse, persistCycle: true, done, pending.Length);
                     }
                 }
                 finally
@@ -273,8 +276,8 @@ namespace JacRed.Infrastructure.Trackers.Anibelka
                         foreach (var val in pagesToParse)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            if (AppInit.conf.Anibelka.parseDelay > 0)
-                                await Task.Delay(AppInit.conf.Anibelka.parseDelay, cancellationToken);
+                            await TrackerSyncHelpers.YieldToHourlyParseAndThrottleAsync(
+                                _parseLock, TrackerName, AppInit.conf.Anibelka.parseDelay, cancellationToken);
 
                             try
                             {
@@ -290,6 +293,8 @@ namespace JacRed.Infrastructure.Trackers.Anibelka
                             {
                                 ParserLog.Write(TrackerName, $"ParseLatest f={task.Key} page={val.page} error: {ex.Message}");
                             }
+
+                            TrackerSyncHelpers.NoteRequest(TrackerName);
                         }
                     }
 
@@ -366,10 +371,11 @@ namespace JacRed.Infrastructure.Trackers.Anibelka
             foreach (var item in items)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                string topicUrl = AnibelkaParser.TopicUrl(host, item.TopicId);
                 if (AppInit.conf.Anibelka.parseDelay > 0)
                     await Task.Delay(AppInit.conf.Anibelka.parseDelay, cancellationToken);
 
-                string topicUrl = AnibelkaParser.TopicUrl(host, item.TopicId);
                 string topicHtml = await HttpClient.Get(
                     topicUrl,
                     encoding: Encoding.UTF8,

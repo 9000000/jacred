@@ -20,6 +20,7 @@ Rutracker — крупнейший трекер в базе JacRed (~1.5 мил�
 flaresolverr:
   enable: true
   url: http://host.docker.internal:8191/v1   # JacRed на bridge, FS host network
+  crawlUrl: http://host.docker.internal:8193/v1  # ParseAll / UpdateTasks; пусто — тот же url
   maxTimeoutMs: 300000
   sessionIdleMinutes: 120
   browserTimeoutRetries: 1
@@ -37,8 +38,7 @@ Rutracker:
   host: https://rutracker.org
   alias: ""              # Worker URL если flaresolverr.enable=false
   useproxy: false
-  reqMinute: 8
-  parseDelay: 7000
+  reqMinute: 30          # 60 отзывает cf_clearance; 8 слишком медленно для 16k страниц
   topicFetchAttempts: 5  # повторов на получение магнета
   log: true
 ```
@@ -58,9 +58,14 @@ Rutracker:
 # Обновление очереди
 20 3 * * *  /opt/jacred/Data/run-job.sh rutracker-UpdateTasksParse http://127.0.0.1:9117/cron/rutracker/UpdateTasksParse 60
 
-# Полный перебор (2 раза в сутки)
-40 4,11 * * *  /opt/jacred/Data/run-job.sh rutracker-ParseAllTask http://127.0.0.1:9117/cron/rutracker/ParseAllTask 60
+# Полный перебор — утром новый цикл, если предыдущий закончен
+40 4 * * *  /opt/jacred/Data/run-job.sh rutracker-ParseAllTask http://127.0.0.1:9117/cron/rutracker/ParseAllTask 60
+
+# После рестарта / зависания — продолжить pending (не начинает новый круг)
+*/15 * * * *  /opt/jacred/Data/run-job.sh parseall-resume http://127.0.0.1:9117/cron/maintenance/ResumeParseAll 60
 ```
+
+Hourly `parse` — источник свежести. `ParseAllTask` обходит карту форумов (~13–16k страниц): одна GET листинга на страницу, `sid`/`pir` мержатся в FileDB. Topic GET (магнит) только если title сменился. Пустой magnet с форума не затирает сохранённый. Цикл живёт в `Data/temp/rutracker_parseAllCycle.json`. Стены по часам нет: обход идёт до pending=0, shutdown или 45 мин без прогресса. После обслуживания: `curl /cron/maintenance/ParseAllStatus` и `ResumeParseAll` (ещё срабатывает сам через ~45 с после старта процесса).
 
 ## Принцип работы с Cloudflare
 
@@ -69,7 +74,7 @@ JacRed → FlareSolverr → Chromium → rutracker.org (CF challenge ~11s)
                       → кеш сессии (~0.5s при активном Chromium)
 ```
 
-`cf_clearance` хранится в браузерной сессии FlareSolverr (`jacred-rutracker_org`). JacRed переиспользует сессию между запросами к этому хосту. Kinozal и другие CF-трекеры получают свои сессии.
+`cf_clearance` хранится в браузерной сессии FlareSolverr (`jacred-rutracker_org`). Hourly parse ходит на `flaresolverr.url`. ParseAll / UpdateTasks / ParseLatest — на `crawlUrl` (второй экземпляр), иначе живой браузер съедает архивный обход. Несколько сессий в одном FlareSolverr почти не ускоряют.
 
 ## Режим без FlareSolverr
 
@@ -99,4 +104,10 @@ curl "http://localhost:9117/cron/rutracker/parse"
 
 # Проверить фоновые задачи
 curl "http://localhost:9117/health/background-jobs"
+
+# Статус циклов ParseAll (pending / running)
+curl "http://localhost:9117/cron/maintenance/ParseAllStatus"
+
+# Продолжить незавершённый цикл после рестарта
+curl "http://localhost:9117/cron/maintenance/ResumeParseAll"
 ```

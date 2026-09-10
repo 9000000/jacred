@@ -17,9 +17,11 @@ using IO = System.IO;
 
 namespace JacRed.Infrastructure.Trackers.Toloka
 {
-    public class TolokaSyncService
+    public class TolokaSyncService : IParseAllStarter
     {
         const string TrackerName = "toloka";
+        string IParseAllStarter.TrackerName => TrackerName;
+        Task<string> IParseAllStarter.ParseAllTaskAsync() => ParseAllTaskAsync();
         const string TaskParsePath = "Data/temp/toloka_taskParse.json";
         static string CyclePath => ParseAllCycleStore.CyclePathForTracker(TrackerName);
 
@@ -231,17 +233,19 @@ namespace JacRed.Infrastructure.Trackers.Toloka
                     foreach (var item in pending)
                     {
                         ct.ThrowIfCancellationRequested();
-                        await Task.Delay(AppInit.conf.Toloka.parseDelay, ct);
+                        await TrackerSyncHelpers.YieldToHourlyParseAndThrottleAsync(
+                            _parseLock, TrackerName, AppInit.conf.Toloka.parseDelay, ct);
 
                         bool res = await parsePage(item.cat, item.val.page, ct);
+                        TrackerSyncHelpers.NoteRequest(TrackerName);
                         if (res)
                         {
                             ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                            ParseAllCycleStore.PersistAfterPage(CyclePath, cycle, TaskParsePath, taskParse, persistCycle: true);
                         }
 
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);
+                        ParseAllCycleStore.PersistAfterPageIfNeeded(CyclePath, cycle, TaskParsePath, taskParse, persistCycle: true, done, pending.Length);
                     }
                 }
                 finally
@@ -270,9 +274,11 @@ namespace JacRed.Infrastructure.Trackers.Toloka
 
                         foreach (var val in pagesToParse)
                         {
-                            await Task.Delay(AppInit.conf.Toloka.parseDelay);
+                            await TrackerSyncHelpers.YieldToHourlyParseAndThrottleAsync(
+                                _parseLock, TrackerName, AppInit.conf.Toloka.parseDelay);
 
                             bool res = await parsePage(task.Key, val.page);
+                            TrackerSyncHelpers.NoteRequest(TrackerName);
                             if (res)
                             {
                                 ParseAllCycleStore.MarkDoneInCycle(val, cycle);

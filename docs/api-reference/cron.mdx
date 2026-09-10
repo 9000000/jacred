@@ -16,7 +16,9 @@ Cron API — HTTP-интерфейс для ручного или заплани
 | Полный перебор | `GET /cron/{slug}/ParseAllTask` | Полный обход всей базы трекера |
 | Warmup CF | `GET /cron/cloudflare/Warmup` | Прогревает FlareSolverr-сессию |
 | Сохранить FileDB | `GET /jsondb/save` | Сбрасывает FileDB на диск |
-| Проверка | `GET /cron/maintenance/Check` | Диагностика системы |
+| Проверка | `GET /cron/maintenance/Check` | Диагностика FileDB |
+| Resume ParseAll | `GET /cron/maintenance/ResumeParseAll` | Продолжить незавершённые циклы после рестарта |
+| ParseAll status | `GET /cron/maintenance/ParseAllStatus` | pending / running по trio |
 
 ## Примеры вызовов
 
@@ -93,6 +95,20 @@ curl "http://localhost:9117/cron/maintenance/Status"
 ```
 
 `Status` возвращает `{ running, mode, startedAt, lastReport }` с полным отчётом последнего запуска.
+
+## Продолжение ParseAll после рестарта
+
+```text
+GET /cron/maintenance/ResumeParseAll
+GET /cron/maintenance/ParseAllStatus
+```
+
+`ResumeParseAll` поднимает незавершённые циклы trio-трекеров (`pending > 0`). Если pending = 0, ответ `idle` — новый круг начинает утренний `ParseAllTask`. Если задача уже идёт, ответ `work`. После старта процесса worker вызывает resume сам через ~45 с; cron `*/15` — запасной путь.
+
+```bash
+curl "http://localhost:9117/cron/maintenance/ParseAllStatus"
+curl "http://localhost:9117/cron/maintenance/ResumeParseAll"
+```
 
 ## Сохранение FileDB
 
