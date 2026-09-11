@@ -96,6 +96,26 @@ public class TolokaParserFixtureTests
     }
 
     [Fact]
+    public void ParseTorrentsFromPage_Cat140HdDocs_YieldsDocTypes()
+    {
+        string html =
+            "<html lang=\"uk\"><table><tr></tr>\n" +
+            "<tr>\n" +
+            "  <td><a href=\"t700099\" class=\"topictitle\">Ваяна / Moana (2026) WEB-DL</a></td>\n" +
+            "  <td><span class=\"seedmed\"><b>29</b></span><span class=\"leechmed\"><b>12</b></span></td>\n" +
+            "  <td><a href=\"download.php?id=715016\">21.39&nbsp;GB</a></td>\n" +
+            "  <td><span class=\"postdetails\">2026-09-08 16:58</span></td>\n" +
+            "</tr>\n" +
+            "</table></html>";
+
+        var torrents = TolokaParser.ParseTorrentsFromPage(html, "140");
+        TolokaDetails t = Assert.Single(torrents);
+        Assert.Equal(new[] { "docuserial", "documovie" }, t.types);
+        Assert.Equal("Ваяна", t.name);
+        Assert.Equal("715016", t.downloadId);
+    }
+
+    [Fact]
     public void ParseTorrentsFromPage_UnknownCategory_ReturnsEmpty()
     {
         string html = FixtureLoader.Read("Toloka/browse_f96.html");

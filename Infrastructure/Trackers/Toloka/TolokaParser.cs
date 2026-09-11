@@ -147,7 +147,7 @@ namespace JacRed.Infrastructure.Trackers.Toloka
 
         static (string name, string originalname, int relased) ParseTitleNames(string cat, string title)
         {
-            if (cat is "16" or "96" or "19" or "139" or "12" or "131" or "84" or "42")
+            if (cat is "16" or "96" or "19" or "139" or "12" or "131" or "84" or "42" or "140")
                 return ParseMovieTitle(title);
 
             if (cat is "32" or "173" or "174" or "44" or "230" or "226" or "227" or "228" or "229" or "127" or "124" or "125" or "132")
@@ -302,6 +302,7 @@ namespace JacRed.Infrastructure.Trackers.Toloka
                 case "230":
                 case "12":
                 case "131":
+                case "140":
                     return new string[] { "docuserial", "documovie" };
                 case "127":
                     return new string[] { "anime" };
