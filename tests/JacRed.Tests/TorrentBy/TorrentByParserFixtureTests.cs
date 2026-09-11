@@ -71,6 +71,15 @@ public class TorrentByParserFixtureTests
     }
 
     [Fact]
+    public void EmptyListingPage_IsSuccessWithoutRows()
+    {
+        string html = FixtureLoader.Read("TorrentBy/browse_series_empty.html");
+        Assert.True(TorrentByParser.IsListingPage(html));
+        Assert.False(TorrentByParser.HasListingRows(html));
+        Assert.Empty(TorrentByParser.ParseTorrentsFromHtml(html, "series"));
+    }
+
+    [Fact]
     public void DryRun_AllFixtures_ReportParseRates()
     {
         foreach (object[] row in FixtureCases())

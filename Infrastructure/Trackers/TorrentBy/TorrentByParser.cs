@@ -20,13 +20,25 @@ namespace JacRed.Infrastructure.Trackers.TorrentBy
         public static async Task<bool> ParsePageAsync(string cat, int page, CancellationToken cancellationToken = default)
         {
             string html = await HttpClient.Get($"{AppInit.conf.TorrentBy.rqHost()}/{cat}/?page={page}", useproxy: AppInit.conf.TorrentBy.useproxy, cancellationToken: cancellationToken);
-            if (html == null)
+            if (!IsListingPage(html))
                 return false;
 
             var torrents = ParseTorrentsFromHtml(html, cat);
             FileDB.AddOrUpdate(torrents);
-            return torrents.Count > 0;
+            // Empty listing (pager past last row) is a fetched page — not a failed GET.
+            return true;
         }
+
+        /// <summary>Real listing chrome. Tiny WAF/error bodies are not listings.</summary>
+        internal static bool IsListingPage(string html) =>
+            !string.IsNullOrEmpty(html)
+            && (html.IndexOf("ttable_headinner", StringComparison.OrdinalIgnoreCase) >= 0
+                || html.IndexOf("Страницы:", StringComparison.Ordinal) >= 0);
+
+        /// <summary>At least one torrent row. torrent.by pager can continue past an empty table.</summary>
+        internal static bool HasListingRows(string html) =>
+            !string.IsNullOrEmpty(html)
+            && html.IndexOf("ttable_col", StringComparison.OrdinalIgnoreCase) >= 0;
 
         public static List<TorrentBaseDetails> ParseTorrentsFromHtml(string html, string cat)
         {

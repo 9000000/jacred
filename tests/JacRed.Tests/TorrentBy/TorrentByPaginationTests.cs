@@ -1,5 +1,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using JacRed.Infrastructure.Trackers.TorrentBy;
 using JacRed.Models.tParse;
 using Xunit;
@@ -85,5 +87,25 @@ public class TorrentByPaginationTests
         var tasks = Enumerable.Range(0, 5).Select(i => new TaskParse(i)).ToList();
         Assert.Equal(4, TorrentByPagination.PrunePagesBeyondMax(tasks, 0));
         Assert.Equal(new[] { 0 }, tasks.Select(t => t.page).ToArray());
+    }
+
+    [Fact]
+    public async Task ShrinkToLastNonEmptyAsync_EmptyPagerTail_StopsAtLastRow()
+    {
+        int last = await TorrentByPagination.ShrinkToLastNonEmptyAsync(
+            148,
+            (page, _) => Task.FromResult<bool?>(page <= 53),
+            CancellationToken.None);
+        Assert.Equal(53, last);
+    }
+
+    [Fact]
+    public async Task ShrinkToLastNonEmptyAsync_FailedProbe_KeepsClaimedLast()
+    {
+        int last = await TorrentByPagination.ShrinkToLastNonEmptyAsync(
+            148,
+            (_, _) => Task.FromResult<bool?>(null),
+            CancellationToken.None);
+        Assert.Equal(148, last);
     }
 }

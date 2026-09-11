@@ -85,7 +85,7 @@ namespace JacRed.Infrastructure.Trackers.TorrentBy
                 {
                     ct.ThrowIfCancellationRequested();
 
-                    var (last, ok) = await DiscoverLastPageAsync(host, cat, ct);
+                    var (last, claimed, ok) = await DiscoverLastPageAsync(host, cat, ct);
                     if (!ok)
                     {
                         ParserLog.Write(TrackerName, $"UpdateTasksParse cat={cat}: empty response");
@@ -105,14 +105,15 @@ namespace JacRed.Infrastructure.Trackers.TorrentBy
                     int pruned = TorrentByPagination.PrunePagesBeyondMax(val, last);
                     taskParse[cat] = val.OrderBy(x => x.page).ToList();
                     ParserLog.Write(TrackerName, $"UpdateTasksParse cat={cat}: maxPage={last}, total={taskParse[cat].Count}"
-                        + (pruned > 0 ? $", pruned={pruned}" : ""));
+                        + (pruned > 0 ? $", pruned={pruned}" : "")
+                        + (claimed > last ? $", pagerWas={claimed}" : ""));
                 }
 
                 PersistTaskParse();
             }));
         }
 
-        static async Task<(int last, bool ok)> DiscoverLastPageAsync(string host, string cat, CancellationToken ct)
+        static async Task<(int last, int claimed, bool ok)> DiscoverLastPageAsync(string host, string cat, CancellationToken ct)
         {
             int last = 0;
             bool ok = false;
@@ -142,7 +143,21 @@ namespace JacRed.Infrastructure.Trackers.TorrentBy
                 page = jump;
             }
 
-            return (last, ok);
+            int claimed = last;
+            if (ok && last > 0)
+            {
+                // ponytail: binary search empty tail (~8 GETs). Pager chips lie past last row.
+                last = await TorrentByPagination.ShrinkToLastNonEmptyAsync(last, async (p, token) =>
+                {
+                    string url = p <= 0 ? $"{host}/{cat}/" : $"{host}/{cat}/?page={p}";
+                    string html = await HttpClient.Get(url, timeoutSeconds: 10, useproxy: AppInit.conf.TorrentBy.useproxy, cancellationToken: token);
+                    if (!TorrentByParser.IsListingPage(html))
+                        return null;
+                    return TorrentByParser.HasListingRows(html);
+                }, ct);
+            }
+
+            return (last, claimed, ok);
         }
 
         public Task<string> ParseAllTaskAsync(CancellationToken cancellationToken = default)

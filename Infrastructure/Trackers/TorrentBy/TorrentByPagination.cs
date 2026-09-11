@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using JacRed.Models.tParse;
 
 namespace JacRed.Infrastructure.Trackers.TorrentBy
@@ -133,6 +135,35 @@ namespace JacRed.Infrastructure.Trackers.TorrentBy
             int before = tasks.Count;
             tasks.RemoveAll(t => t != null && t.page > maxPage);
             return before - tasks.Count;
+        }
+
+        /// <summary>
+        /// Pager chips can run past empty pages. Probe: true=rows, false=empty listing, null=failed fetch
+        /// (keep <paramref name="claimedLast"/> — do not prune on a bad GET).
+        /// </summary>
+        public static async Task<int> ShrinkToLastNonEmptyAsync(
+            int claimedLast,
+            Func<int, CancellationToken, Task<bool?>> pageHasRows,
+            CancellationToken cancellationToken)
+        {
+            if (claimedLast <= 0 || pageHasRows == null)
+                return claimedLast < 0 ? 0 : claimedLast;
+
+            int lo = 0, hi = claimedLast;
+            while (lo < hi)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int mid = lo + (hi - lo + 1) / 2;
+                bool? has = await pageHasRows(mid, cancellationToken).ConfigureAwait(false);
+                if (has == null)
+                    return claimedLast;
+                if (has.Value)
+                    lo = mid;
+                else
+                    hi = mid - 1;
+            }
+
+            return lo;
         }
     }
 }
