@@ -62,9 +62,9 @@
 curl -s https://raw.githubusercontent.com/jacred-fdb/jacred/main/jacred.sh | bash
 ```
 
-Скрипт ставит приложение в **`/opt/jacred`**, создаёт systemd-сервис `jacred` и по желанию скачивает готовую базу.
+Скрипт ставит приложение в **`/opt/jacred`**, создаёт systemd-сервис `jacred` и оставляет FileDB пустой.
 
-Полезные опции: `--no-download-db`, `--pre-release`, `--update`, `--remove` (подробности — [установка](docs/installation.mdx)).
+Полезные опции: `--download-db`, `--pre-release`, `--update`, `--remove` (подробности — [установка](docs/installation.mdx)).
 
 После установки:
 
@@ -73,7 +73,7 @@ curl -s https://raw.githubusercontent.com/jacred-fdb/jacred/main/jacred.sh | bas
 - Перезапуск: `systemctl restart jacred`
 - Полный crontab для парсинга: `crontab /opt/jacred/Data/crontab`
 
-> По умолчанию синхронизация отключена: скрипт скачивает базу, парсинг — по cron. Чтобы подтягивать базу с внешнего сервера, укажите `syncapi` в конфиге ([конфигурация](docs/configuration/overview.mdx)).
+> По умолчанию синхронизация отключена, FileDB пустая, парсинг — по cron. Чтобы подтягивать базу с внешнего сервера, укажите `syncapi` в конфиге ([конфигурация](docs/configuration/overview.mdx)). Снимок при установке — опция `--download-db`.
 
 Docker: [документация по развёртыванию](docs/deployment/docker.mdx).
 

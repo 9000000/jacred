@@ -17,7 +17,7 @@ readonly CRON_JACRED_MARKER="run-job.sh"
 readonly SAVE_URL="http://127.0.0.1:9117/jsondb/save"
 
 CRON_USER="${SUDO_USER:-root}"
-DOWNLOAD_DB=1   # 1 = download DB by default (use --no-download-db to skip)
+DOWNLOAD_DB=0   # 0 = skip DB by default (use --download-db to fetch a snapshot)
 REMOVE=0
 UPDATE=0
 PRE_RELEASE=0
@@ -40,7 +40,8 @@ Usage: $SCRIPT_NAME [OPTIONS]
 Install, update, or remove JacRed. Run as any user; sudo will be used when needed.
 
 Options:
-  --no-download-db    Do not download or unpack the initial database (install only)
+  --download-db       Download and unpack the initial database snapshot (install only)
+  --no-download-db    Skip the database snapshot (default; kept for compatibility)
   --pre-release       Install or update from latest pre-release (e.g. 2.0.0-dev1)
   --update            Update app from latest release (saves DB, replaces files, restarts)
   --remove            Fully remove JacRed (service, cron, app directory)
@@ -48,7 +49,7 @@ Options:
 
 Examples:
   $SCRIPT_NAME
-  $SCRIPT_NAME --no-download-db
+  $SCRIPT_NAME --download-db
   $SCRIPT_NAME --update
   $SCRIPT_NAME --pre-release
   $SCRIPT_NAME --update --pre-release
@@ -111,6 +112,10 @@ parse_args() {
       -h|--help)
         usage
         exit 0
+        ;;
+      --download-db)
+        DOWNLOAD_DB=1
+        shift
         ;;
       --no-download-db)
         DOWNLOAD_DB=0
@@ -301,7 +306,7 @@ install_cron() {
 
 install_database() {
   if [[ "$DOWNLOAD_DB" -ne 1 ]]; then
-    log_info "Skipping database download (--no-download-db)"
+    log_info "Skipping database download (use --download-db to fetch a snapshot)"
     return 0
   fi
   log_info "Downloading database..."
