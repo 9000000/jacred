@@ -80,7 +80,10 @@ namespace JacRed.Infrastructure.Trackers.Rutor
 
                     string html = await HttpClient.Get($"{AppInit.conf.Rutor.rqHost()}/browse/0/{cat}/0/0", useproxy: AppInit.conf.Rutor.useproxy, cancellationToken: ct);
                     if (html == null)
+                    {
+                        ParserLog.Write(TrackerName, $"UpdateTasksParse cat={cat}: empty response");
                         continue;
+                    }
 
                     int maxpages = RutorParser.LastPageFromHtml(html);
 
@@ -95,8 +98,7 @@ namespace JacRed.Infrastructure.Trackers.Rutor
                     }
 
                     int pruned = RutorParser.PrunePagesBeyondMax(val, maxpages);
-                    if (pruned > 0)
-                        ParserLog.Write(TrackerName, $"UpdateTasksParse cat={cat}: maxPage={maxpages}, pruned={pruned}, total={val.Count}");
+                    ParserLog.Write(TrackerName, $"UpdateTasksParse cat={cat}: maxPage={maxpages}, pruned={pruned}, total={val.Count}");
                 }
 
                 PersistTaskParse();
