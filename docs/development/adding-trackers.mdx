@@ -21,7 +21,7 @@ keywords:
 
 | Кластер | Ориентир | Форма cron |
 | --- | --- | --- |
-| Trio + ParseLatest | rutor, korsars, anibelka, ultradox, rutracker | Частый `parse` и суточные задачи карты |
+| Trio + ParseLatest | rutor, korsars, anibelka, ultradox, rutracker | Частый `parse`, суточный `UpdateTasksParse`, `ParseAllTask` по `Data/crontab` |
 | Page-range / `limit_page` | baibako, rudub, anidub, anistar, leproduction | `parseFrom`/`parseTo` или `limit_page` |
 | API latest + backfill | knaben, bitru, subsplease | Свежие раздачи и checkpointed crawl |
 | Special | lostfilm, mazepa | Отдельные эндпоинты |
@@ -53,7 +53,7 @@ keywords:
     Запись в `Data/crontab` через `run-job.sh`, slug в `TrackerSlug` канонического `web/public/openapi.yaml`, затем `cd web && npm run gen:api`. Скопируйте OpenAPI в `docs/openapi/openapi.yaml` вручную.
   </Step>
   <Step title="Документируйте и проверьте">
-    Страница трекера, строки в [обзоре трекеров](/trackers/overview), [конфигурации](/configuration/trackers) и [Cron API](/api-reference/cron). Запустите dry-run и `dotnet test --filter FullyQualifiedName~{Name}`.
+    Страница трекера, строки в [обзоре трекеров](/trackers/overview), [конфигурации](/configuration/trackers), таблицах [Cron](/deployment/cron) и [Cron API](/api-reference/cron). Запустите dry-run и `dotnet test --filter FullyQualifiedName~{Name}`.
   </Step>
 </Steps>
 
