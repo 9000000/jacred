@@ -20,6 +20,7 @@ namespace JacRed.Infrastructure.Trackers
     public sealed class TrackerParseLock
     {
         bool _workParse;
+        DateTime _startedAtUtc;
         readonly object _lock = new object();
 
         public bool TryStart()
@@ -30,6 +31,7 @@ namespace JacRed.Infrastructure.Trackers
                     return false;
 
                 _workParse = true;
+                _startedAtUtc = DateTime.UtcNow;
                 return true;
             }
         }
@@ -39,6 +41,7 @@ namespace JacRed.Infrastructure.Trackers
             lock (_lock)
             {
                 _workParse = false;
+                _startedAtUtc = default;
             }
         }
 
@@ -48,6 +51,21 @@ namespace JacRed.Infrastructure.Trackers
             {
                 lock (_lock)
                     return _workParse;
+            }
+        }
+
+        /// <summary>
+        /// Сколько лок уже удерживается, или null если свободен.
+        /// Нужен, чтобы отличать «занят живой задачей» (контеншн — отпустится сам)
+        /// от «занят зависшей задачей» (нужен рестарт процесса): снаружи оба
+        /// случая выглядят одинаково — мгновенный <c>work</c> на любой запрос.
+        /// </summary>
+        public TimeSpan? HeldFor
+        {
+            get
+            {
+                lock (_lock)
+                    return _workParse ? DateTime.UtcNow - _startedAtUtc : (TimeSpan?)null;
             }
         }
     }
@@ -375,7 +393,11 @@ namespace JacRed.Infrastructure.Trackers
 
             if (!parseLock.TryStart())
             {
-                LogParseSkipped(trackerName, WorkResult);
+                var held = parseLock.HeldFor;
+                LogParseSkipped(trackerName,
+                    held.HasValue
+                        ? $"{WorkResult}, lock held for {held.Value.TotalSeconds:F0}s"
+                        : WorkResult);
                 return WorkResult;
             }
 
