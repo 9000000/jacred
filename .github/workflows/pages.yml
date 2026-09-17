@@ -21,6 +21,7 @@ concurrency:
 jobs:
   build:
     name: Build web for Pages
+    if: github.repository == 'jacred-fdb/jacred'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,6 +52,7 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
+    if: github.repository == 'jacred-fdb/jacred'
     needs: build
     runs-on: ubuntu-latest
     environment:
