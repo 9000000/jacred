@@ -156,7 +156,7 @@ jobs:
     needs:
       - extract-version
       - build
-    if: needs.extract-version.outputs.is_release == 'true'
+    if: github.repository == 'jacred-fdb/jacred' && needs.extract-version.outputs.is_release == 'true'
     uses: ./.github/workflows/reusable-upload-release-assets.yml
     with:
       tag: ${{ needs.extract-version.outputs.release_tag }}

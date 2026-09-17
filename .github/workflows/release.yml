@@ -24,6 +24,7 @@ permissions:
 jobs:
   create-release:
     name: Create tag and release
+    if: github.repository == 'jacred-fdb/jacred'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
