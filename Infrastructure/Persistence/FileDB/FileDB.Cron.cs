@@ -46,6 +46,22 @@ namespace JacRed.Infrastructure.Persistence
             {
                 await Task.Delay(TimeSpan.FromMinutes(10), cancellationToken);
 
+                #region персистенция индекса
+                // masterDb читается только при старте процесса из Data/masterDb*.bz.
+                // Без периодического сохранения индекс существует лишь в памяти, и
+                // любой рестарт делает все файлы Data/fdb/* невидимыми (keys=0).
+                try
+                {
+                    if (SaveChangesIfDirty())
+                        JacRedLog.Information(JacRedLogCategories.Fdb,
+                            $"masterDb persisted ({masterDb.Count} keys) / {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                }
+                catch (Exception ex)
+                {
+                    JacRedLog.Error(JacRedLogCategories.Fdb, $"masterDb persist error: {ex.Message}");
+                }
+                #endregion
+
                 if (!AppInit.conf.evercache.enable || 0 >= AppInit.conf.evercache.validHour)
                     continue;
 

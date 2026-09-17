@@ -24,6 +24,16 @@ namespace JacRed.Infrastructure.Persistence
 
         static ConcurrentDictionary<string, WriteTaskModel> openWriteTask = new ConcurrentDictionary<string, WriteTaskModel>();
 
+        /// <summary>
+        /// Есть ли несохранённые изменения в <see cref="masterDb"/>.
+        /// masterDb — единственный источник ключей для чтения fdb-шардов, и он
+        /// читается только в static-конструкторе из Data/masterDb*.bz. Если не
+        /// персистить его на пути парсинга, индекс живёт лишь в памяти: после
+        /// рестарта процесса masterDb пуст, и все файлы Data/fdb/* становятся
+        /// невидимыми (поиск пуст, fastdb rebuild даёт keys=0).
+        /// </summary>
+        static volatile bool masterDbDirty;
+
         static FileDB()
         {
             if (File.Exists("Data/masterDb.bz"))
@@ -139,7 +149,8 @@ namespace JacRed.Infrastructure.Persistence
         {
             if (string.IsNullOrEmpty(key))
                 return;
-            masterDb.TryRemove(key, out _);
+            if (masterDb.TryRemove(key, out _))
+                masterDbDirty = true;
         }
 
         #region AddOrUpdateMasterDb
@@ -151,11 +162,15 @@ namespace JacRed.Infrastructure.Persistence
             if (masterDb.TryGetValue(key, out MasterDbShard info))
             {
                 if (torrent.updateTime > info.updateTime)
+                {
                     masterDb[key] = md;
+                    masterDbDirty = true;
+                }
             }
             else
             {
-                masterDb.TryAdd(key, md);
+                if (masterDb.TryAdd(key, md))
+                    masterDbDirty = true;
             }
         }
         #endregion
@@ -278,6 +293,7 @@ namespace JacRed.Infrastructure.Persistence
             try
             {
                 JsonStream.Write("Data/masterDb.bz", masterDb);
+                masterDbDirty = false;
 
                 if (!File.Exists($"Data/masterDb_{DateTime.Today:dd-MM-yyyy}.bz"))
                     File.Copy("Data/masterDb.bz", $"Data/masterDb_{DateTime.Today:dd-MM-yyyy}.bz");
@@ -286,6 +302,20 @@ namespace JacRed.Infrastructure.Persistence
                     File.Delete($"Data/masterDb_{DateTime.Today.AddDays(-3):dd-MM-yyyy}.bz");
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Персистит masterDb только если были изменения. Вызывается из фонового
+        /// cron-цикла, чтобы индекс не оставался исключительно в памяти между
+        /// рестартами. Возвращает true, если что-то было записано.
+        /// </summary>
+        internal static bool SaveChangesIfDirty()
+        {
+            if (!masterDbDirty)
+                return false;
+
+            SaveChangesToFile();
+            return true;
         }
         #endregion
 
