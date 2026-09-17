@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using JacRed.Infrastructure.Persistence;
 using JacRed.Infrastructure.Utils;
 using JacRed.Models.Details;
-using JacRed.Models;
 
 namespace JacRed.Application.Dev
 {
@@ -60,7 +59,7 @@ namespace JacRed.Application.Dev
                         }
                         torrent.Value.size = getSizeInfo(torrent.Value.sizeName);
                         torrent.Value.updateTime = DateTime.UtcNow;
-                        FileDB.masterDb[item.Key] = new MasterDbShard() { updateTime = torrent.Value.updateTime, fileTime = torrent.Value.updateTime.ToFileTimeUtc() };
+                        FileDB.SetShard(item.Key, torrent.Value.updateTime);
                     }
                     foreach (var k in keysToRemove)
                         fdb.Database.Remove(k);
@@ -120,7 +119,7 @@ namespace JacRed.Application.Dev
                         torrent.Value.languages = null;
 
                         torrent.Value.updateTime = DateTime.UtcNow;
-                        FileDB.masterDb[item.Key] = new MasterDbShard() { updateTime = torrent.Value.updateTime, fileTime = torrent.Value.updateTime.ToFileTimeUtc() };
+                        FileDB.SetShard(item.Key, torrent.Value.updateTime);
                     }
                     foreach (var k in keysToRemove)
                         fdb.Database.Remove(k);

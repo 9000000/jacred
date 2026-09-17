@@ -34,6 +34,9 @@ namespace JacRed.Infrastructure.Persistence
         /// </summary>
         static volatile bool masterDbDirty;
 
+        /// <summary>Единственное место, где выставляется флаг изменений индекса.</summary>
+        static void MarkDirty() => masterDbDirty = true;
+
         static FileDB()
         {
             if (File.Exists("Data/masterDb.bz"))
@@ -150,28 +153,37 @@ namespace JacRed.Infrastructure.Persistence
             if (string.IsNullOrEmpty(key))
                 return;
             if (masterDb.TryRemove(key, out _))
-                masterDbDirty = true;
+                MarkDirty();
         }
 
         #region AddOrUpdateMasterDb
+        /// <summary>
+        /// Единственная точка записи в <see cref="masterDb"/>: держит поле и флаг
+        /// изменений согласованными. masterDb публичный (в него пишут и из
+        /// Application/Dev/*), поэтому ручное присваивание легко забывает флаг —
+        /// а без флага персист не сработает и данные не переживут рестарт.
+        /// </summary>
+        public static void SetShard(string key, DateTime updateTime)
+        {
+            if (string.IsNullOrEmpty(key))
+                return;
+
+            masterDb[key] = new MasterDbShard
+            {
+                updateTime = updateTime,
+                fileTime = updateTime.ToFileTimeUtc()
+            };
+            MarkDirty();
+        }
+
         static void AddOrUpdateMasterDb(TorrentDetails torrent)
         {
             string key = keyDb(torrent.name, torrent.originalname);
-            var md = new MasterDbShard() { updateTime = torrent.updateTime, fileTime = torrent.updateTime.ToFileTimeUtc() };
 
-            if (masterDb.TryGetValue(key, out MasterDbShard info))
-            {
-                if (torrent.updateTime > info.updateTime)
-                {
-                    masterDb[key] = md;
-                    masterDbDirty = true;
-                }
-            }
-            else
-            {
-                if (masterDb.TryAdd(key, md))
-                    masterDbDirty = true;
-            }
+            if (masterDb.TryGetValue(key, out MasterDbShard info) && torrent.updateTime <= info.updateTime)
+                return;
+
+            SetShard(key, torrent.updateTime);
         }
         #endregion
 
