@@ -161,6 +161,13 @@ namespace JacRed.Infrastructure.Indexers
             if (string.IsNullOrWhiteSpace(req.Query))
                 return false;
 
+            // IMDB/KP-номер — это не карточка. Parse() не знает про id и положил бы
+            // его в TitleOriginal как название, после чего CardMode стал бы true,
+            // imdb-ветка (Alloha resolve + v1) в SearchCombinedAsync пропустилась бы,
+            // и запрос ушёл бы в card-поиск с бессмысленным тайтлом "tt0137523".
+            if (IndexerRequestParams.IsImdbOrKpQuery(req.Query))
+                return false;
+
             var parsed = Parse(req.Query);
             if (!parsed.Matched)
                 return false;
