@@ -15,7 +15,7 @@ keywords: ["JacRed", "Фоновые процессы", "документаци�
 | Sync | `SyncWorker` | Клиент `syncapi`: подтягивает обновления из удалённого JacRed | `timeSync`, `timeSyncSpidr` |
 | Trackers | `TrackersWorker` | Собирает публичные announce-URL из magnet-ссылок в `wwwroot/trackers.txt` | 1 час (при `evercache.enable` и `validHour: 0`) |
 | Stats | `StatsWorker` | Обновляет `Data/temp/stats.json` и `tracks-stats.json` | `timeStatsUpdate` |
-| FileDb | `FileDbWorker` | Периодическое сохранение FileDB на диск (`Cron` + `CronFast`) | Внутренний таймер |
+| FileDb | `FileDbWorker` | Запись грязного `masterDb` в `Data/masterDb.bz` (`Cron`) и сброс open-write кэша (`CronFast`) | 10 мин / 20 с |
 | Tracks | `TracksWorker` | Очередь ffprobe-анализа через tsuri | `tracksinterval.task0`, `task1` |
 | ParseAll resume | `ParseAllResumeWorker` | После старта продолжает незавершённые циклы ParseAll | один раз, ~45 с после старта |
 
@@ -67,10 +67,10 @@ timeStatsUpdate: 90   # интервал обновления в минутах
 
 Запускает два внутренних цикла:
 
-- `FileDB.Cron` — периодическое сохранение изменённых шардов.
-- `FileDB.CronFast` — быстрый flush горячих ключей.
+- `FileDB.Cron` — каждые 10 минут, если индекс грязный, пишет `Data/masterDb.bz` (`SaveChangesIfDirty`). В логе FDB: `masterDb persisted (N keys)`. Затем, если включён evercache с `validHour > 0`, вытесняет простаивающий open-write кэш.
+- `FileDB.CronFast` — каждые 20 секунд сбрасывает open-write кэш, когда число открытых задач больше `evercache.maxOpenWriteTask`.
 
-Ручное сохранение доступно через `GET /jsondb/save` (см. [Cron API](/api-reference/cron)).
+Шарды под `Data/fdb/` пишутся при закрытии записи, не этим циклом. `GET /jsondb/save` — немедленный сброс `masterDb` (см. [Cron API](/api-reference/cron)).
 
 ## TracksWorker
 

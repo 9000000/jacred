@@ -17,14 +17,14 @@ crontab → run-job.sh → curl GET → /cron/{slug}/{action}
 
 | Тип | Эндпоинт | Зачем | Kick | Пока уже идёт |
 | --- | --- | --- | --- | --- |
-| `parse` | `GET /cron/{slug}/parse` | Свежие раздачи (обычно первые страницы) | Часто: 15 мин, 20 мин или раз в час | `flock` / parse-lock, повтор пропускается |
+| `parse` | `GET /cron/{slug}/parse` | Свежие раздачи (обычно первые страницы) | Часто: 15 мин, 20 мин или раз в час | `flock` / parse-lock; повтор: `work, lock held for Ns` |
 | `UpdateTasksParse` | `GET /cron/{slug}/UpdateTasksParse` | Пересчитать карту страниц в `Data/temp/{slug}_taskParse.json` | Раз в сутки ночью (02:xx–03:20) | Exclusive с ParseAll и ParseLatest |
 | `ParseAllTask` | `GET /cron/{slug}/ParseAllTask` | Полный обход текущей карты | См. [таблицу ParseAll](#parsealltask) | Ответ `work`; новый круг только при pending = 0 |
 | `ParseLatest` | `GET /cron/{slug}/ParseLatest` | Первые страницы каждой категории | Раз в сутки утром (07:xx) | Exclusive с ParseAll и UpdateTasks |
 | `backfill` | `GET /cron/{slug}/backfill` | Архив API по checkpoint | Каждый час | Состояние на диске (`Data/temp/`) |
 | `ParseShows` | `GET /cron/subsplease/ParseShows` | Сезон-паки SubsPlease | Раз в сутки 05:25 | — |
 | `ResumeParseAll` | `GET /cron/maintenance/ResumeParseAll` | Продолжить цикл после рестарта | Каждые 15 мин и ~45 с после старта процесса | `work`, если задача жива; `idle`, если pending = 0 |
-| `jsondb-save` | `GET /jsondb/save` | Сброс FileDB на диск | Каждые 5 мин | — |
+| `jsondb-save` | `GET /jsondb/save` | Немедленный сброс `masterDb` на диск (процесс и так пишет dirty индекс ~каждые 10 мин) | Каждые 5 мин | — |
 | `cloudflare-warmup` | `GET /cron/cloudflare/Warmup` | Держать `cf_clearance` | Keepalive каждые 20 мин, warmup в :55 перед rutracker-parse | — |
 | `maintenance Check` | `GET /cron/maintenance/Check?mode=report` | Отчёт по FileDB | Воскресенье 05:00 | — |
 
@@ -81,7 +81,7 @@ Kick — это не «убить и начать заново». Если ци�
   <Tab title="API">
     | Трекер | parse | Архив / шоу |
     | --- | --- | --- |
-    | bitru | каждые 20 мин `:10,:30,:50` (только свежая страница) | `backfill?pages=20` каждый час `:40`; `finished` → следующий kick начинает новый проход (как ParseAll) |
+    | bitru | каждые 20 мин `:10,:30,:50` (только свежая страница) | `backfill?pages=20` каждый час `:40`; `finished` → следующий kick начинает новый проход (как ParseAll). Не поднимайте `pages`: backfill держит parse-lock и может пропустить `:50` parse |
     | knaben | каждые 20 мин `:12,:32,:52` | `backfill?pages=10` каждый час `:42` |
     | subsplease | каждый час `:35` (`?pages=2`) | `ParseShows` `25 5 * * *` |
   </Tab>

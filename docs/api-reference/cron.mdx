@@ -49,10 +49,11 @@ curl "http://localhost:9117/jsondb/save"
 
 ## Специальные параметры
 
-Некоторые трекеры поддерживают дополнительные параметры:
+Некоторые трекеры поддерживают дополнительные параметры. Курсор Bitru и sentinel `finished` — на странице [Bitru](/trackers/bitru).
 
 ```bash
-# Bitru: backfill последних N страниц
+# Bitru: архив по курсору Data/temp/bitru_backfill_cursor.txt
+# finished → следующий kick начинает новый проход
 curl "http://localhost:9117/cron/bitru/backfill?pages=20"
 
 # Rudub: лимит страниц парсинга
@@ -131,7 +132,7 @@ curl "http://localhost:9117/jsondb/save"
 ```
 
 <Note>
-  JacRed автоматически сохраняет FileDB по расписанию. Ручной вызов нужен только для аварийного сброса перед перезапуском.
+  `FileDbWorker` сам пишет грязный `masterDb` в `Data/masterDb.bz` примерно каждые 10 минут. `GET /jsondb/save` — немедленный сброс перед остановкой или обновлением. Crontab `jsondb-save` каждые 5 минут — тот же force-save, не единственный путь persist.
 </Note>
 
 ## Мониторинг фоновых задач

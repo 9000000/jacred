@@ -9,14 +9,14 @@ Rutracker и Kinozal защищены Cloudflare. Прямой `HttpClient` не
 
 Замер на master 10.09.2026: listing/hash ~**0.18 с** против **0.5–1.2 с** у `request.get` (page.goto). Тот же urllib с cookie даёт `403` + `cf-mitigated`. SOCKS cffetch должен совпадать с `PROXY_URL` FlareSolverr (WARP).
 
-У каждого guarded-хоста **своя** сессия FlareSolverr (`jacred-kinozal_guru`, `jacred-rutracker_org`, …). Cron `/cron/cloudflare/Warmup` прогревает сессию и наполняет jar для быстрого пути.
+У каждого guarded-хоста **своя** сессия FlareSolverr (`jacred-kinozal_guru`, `jacred-rutracker_org`, …). Cron `/cron/cloudflare/Warmup` прогревает сессию и наполняет jar. Холодный хост без cookie тоже может пройти через cffetch (TLS Chrome), без браузера.
 
 ## Принцип работы
 
-1. JacRed просит FlareSolverr (`request.get`) решить Cloudflare, если jar ещё нет.
-2. Из `solution` забираются cookie и User-Agent; cffetch проверяет их делом.
-3. Следующие GET идут в `POST http://127.0.0.1:8192/fetch` с TLS Chrome. Заголовки `Referer` / `Accept` / `Accept-Language` с исходного `HttpClient.Get` прокидываются только в cffetch (нужно Ultradox: без поискового Referer origin отвечает 503). FlareSolverr v2 параметр `headers` игнорирует.
-4. `cf-mitigated` или страница «Just a moment…» — браузер снова, jar обновляется. Голый 403 трекера cookie не сбрасывает.
+1. JacRed сначала пробует cffetch: с `cf_clearance` из jar, если cookie уже есть, иначе TLS Chrome без cookie.
+2. Если cffetch недоступен, вернул challenge / `cf-mitigated` или «Just a moment…», JacRed просит FlareSolverr (`request.get`) решить Cloudflare, забирает cookie и User-Agent из `solution` и запоминает jar.
+3. Дальше GET идут в `POST http://127.0.0.1:8192/fetch` с TLS Chrome и jar. Заголовки `Referer` / `Accept` / `Accept-Language` с исходного `HttpClient.Get` прокидываются только в cffetch (нужно Ultradox: без поискового Referer origin отвечает 503). FlareSolverr v2 параметр `headers` игнорирует.
+4. Повторный challenge снова открывает браузер и обновляет jar. Голый 403 трекера cookie не сбрасывает.
 
 Без запущенного cffetch JacRed остаётся на браузере (как раньше).
 
@@ -69,7 +69,7 @@ cffetch:
 </ParamField>
 
 <ParamField path="cffetch.enable" type="boolean">
-  Быстрый путь после solve. При `false` или если cffetch на `:8192` не запущен, все GET идут через браузер.
+  Быстрый путь с jar или без: TLS Chrome через `:8192`. При `false` или если cffetch не запущен, все GET идут через браузер.
 </ParamField>
 
 <ParamField path="cffetch.proxy" type="string">

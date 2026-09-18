@@ -48,7 +48,7 @@ journalctl -u jacred -n 100 --no-pager
     tail -f /opt/jacred/Data/log/rutor.log
     ```
 
-    Docker-образ не запускает cron внутри контейнера. Запускайте `/cron/*` и `/jsondb/save` с хоста или отдельного планировщика. Если вы меняете конфигурацию вручную, редактируйте рабочий файл рядом с бинарником, а не только копию под `Data/`.
+    Docker-образ не запускает cron внутри контейнера: `/cron/*` парсеры нужно вызывать с хоста или отдельного планировщика. Индекс `masterDb` процесс сам пишет в `Data/masterDb.bz` примерно каждые 10 минут, если он менялся. `GET /jsondb/save` оставьте в crontab для немедленного сброса перед остановкой или обновлением. После рестарта с пустым поиском проверьте mtime `Data/masterDb.bz` и лог FDB на `masterDb persist error`. Если вы меняете конфигурацию вручную, редактируйте рабочий файл рядом с бинарником, а не только копию под `Data/`.
   </Accordion>
 
   <Accordion title="ParseAll остановился после рестарта">
@@ -75,7 +75,7 @@ journalctl -u jacred -n 100 --no-pager
   </Accordion>
 
   <Accordion title="ParseAll крутит одни и те же страницы (pending не падает)">
-    Цикл не ротируется, пока pending > 0. Если `parsePage` не помечает пустой, но валидный листинг как done, обход вечно ретраит дырки (Rutor: `pending=4/3958`).
+    Цикл не ротируется, пока pending > 0. Три подряд **сбоя** fetch/parse снимают слот (`ParseAll skip slot page=… after 3 failures`) — цикл сам уходит с дырки. Если `parsePage` не помечает пустой, но **валидный** листинг как done (это не сбой), обход вечно ретраит дырки (Rutor: `pending=4/3958`). Скрипт ниже — для таких дырок и для циклов, которые зависли до fail budget.
 
     Сначала убедитесь, что ParseAll этого слага не идёт (`/health/background-jobs`), затем:
 
@@ -86,6 +86,10 @@ journalctl -u jacred -n 100 --no-pager
     ```
 
     Без слага скрипт трогает все trio ParseAll (`anibelka`, `kinozal`, `korsars`, `megapeer`, `nnmclub`, `rutor`, `rutracker`, `toloka`, `torrentby`, `ultradox`) у которых `0 < pending ≤ --max-pending` (дырки, не живой обход). Потом `curl /cron/{slug}/ParseAllTask` на те слаги, что изменились. `skip-pending` только снимает текущие дырки (следующий ParseAll начнёт полный круг и снова встанет). `recrawl --skip-pending` — новый цикл без этих слотов.
+  </Accordion>
+
+  <Accordion title="parse отвечает work, lock held for Ns">
+    Повторный `GET /cron/{slug}/parse` (и Bitru `/backfill`) пропускается, пока жив parse-lock. В теле: `work, lock held for Ns`. Секунды — сколько уже держится замок, не ошибка. Часы без прогресса в логе трекера — зависший lock: перезапустите процесс. Bitru `backfill` делит замок с `:50` `parse`: не поднимайте `pages` в crontab.
   </Accordion>
 
   <Accordion title="API возвращает 401 или 403">
@@ -108,6 +112,16 @@ journalctl -u jacred -n 100 --no-pager
     ```
 
     Первый warmup может выполняться несколько минут. На VPS с датацентровым IP challenge может потребовать residential/ISP-прокси для FlareSolverr. См. [настройку Rutracker](/trackers/rutracker).
+  </Accordion>
+
+  <Accordion title="403 или 503 без признаков Cloudflare">
+    В логе Host один раз на хост:
+
+    ```text
+    {host}: 403 без признаков Cloudflare — браузерный fallback не сработает; проверьте Referer/зеркало/лимит
+    ```
+
+    FlareSolverr и cffetch этот ответ не исправят: это не CF-challenge. Проверьте Referer (Ultradox), зеркало, лимит запросов. Тот же статус с `cf-mitigated` / «Just a moment…» по-прежнему идёт через Warmup, FlareSolverr и cffetch.
   </Accordion>
 
   <Accordion title="Kinozal парсится, но новых раздач нет">

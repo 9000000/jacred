@@ -9,7 +9,7 @@ keywords: ["JacRed", "Ultradox", "трекер", "парсинг"]
 Ultradox, slug `ultradox`, работает без авторизации. Использует Rutor-стиль trio плюс `ParseLatest`. Канонический хост — `https://ultradox.vip` (307 на номерное зеркало `00N.ultradox.vip`). URL в FileDB остаются на `ultradox.vip`, не на зеркале. Сайт может вернуть 503, если запрос приходит с Referer собственного домена; JacRed подставляет Referer, похожий на страницу поиска Google или Yandex.
 
 <Warning>
-  Не переопределяйте заголовок `Referer` в прокси или CDN на пути от JacRed к `ultradox.vip`. Собственный Referer вызовет ответ 503. После `MarkGuarded` страница идёт через cffetch / FlareSolverr — JacRed прокидывает туда тот же поисковый Referer. Без него listing пустой (`fetched=0`, `Listing fetch failed`), а пустой ответ раньше помечал страницу ParseAll как выполненную.
+  Не переопределяйте заголовок `Referer` в прокси или CDN на пути от JacRed к `ultradox.vip`. Собственный Referer вызовет ответ 503. После `MarkGuarded` страница идёт через cffetch / FlareSolverr — JacRed прокидывает туда тот же поисковый Referer. Без него listing пустой (`fetched=0`, `Listing fetch failed`). Пустой или сорванный листинг больше не помечает слот ParseAll выполненным с первой попытки: слот закрывается после трёх подряд неудач, следующий круг пробует снова.
 </Warning>
 
 <Note>
