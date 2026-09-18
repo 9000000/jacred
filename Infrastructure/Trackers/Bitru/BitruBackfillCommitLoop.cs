@@ -35,13 +35,17 @@ namespace JacRed.Infrastructure.Trackers.Bitru
         public int CommittedPages { get; set; }
         public int SavedCount { get; set; }
         public long? LastCommittedCursor { get; set; }
+        public bool Finished { get; set; }
 
         public string FormatLog()
         {
             string cursor = FormatCursor(LastCommittedCursor);
+            if (Finished && SavedCount == 0 && CommittedPages == 0)
+                return $"finished, fetchedPages={FetchedPages}, committedPages={CommittedPages}, cursor={cursor}";
             if (SavedCount == 0 && CommittedPages == 0)
                 return $"no items, fetchedPages={FetchedPages}, committedPages={CommittedPages}, cursor={cursor}";
-            return $"saved {SavedCount}, fetchedPages={FetchedPages}, committedPages={CommittedPages}, cursor={cursor}";
+            string suffix = Finished ? ", finished" : "";
+            return $"saved {SavedCount}, fetchedPages={FetchedPages}, committedPages={CommittedPages}, cursor={cursor}{suffix}";
         }
 
         public string FormatCanceledLog()
@@ -57,15 +61,19 @@ namespace JacRed.Infrastructure.Trackers.Bitru
     /// <summary>
     /// Page-by-page backfill: fetch → save → commit cursor.
     /// Cursor advances only after the page is fully saved.
+    /// A saved page with no next cursor is the archive end — persist finished.
     /// </summary>
     internal static class BitruBackfillCommitLoop
     {
+        public const string FinishedSentinel = "finished";
+
         public static async Task<BitruBackfillProgress> RunAsync(
             int maxPages,
             long? startCursor,
             Func<long?, CancellationToken, Task<BitruBackfillPage>> fetchPage,
             Func<IReadOnlyList<TorrentDetails>, CancellationToken, Task> savePage,
             Action<long> commitCursor,
+            Action commitFinished,
             BitruBackfillProgress progress,
             CancellationToken cancellationToken)
         {
@@ -91,7 +99,11 @@ namespace JacRed.Infrastructure.Trackers.Bitru
                 progress.CommittedPages++;
 
                 if (!fetched.NextCursor.HasValue)
+                {
+                    commitFinished();
+                    progress.Finished = true;
                     break;
+                }
 
                 commitCursor(fetched.NextCursor.Value);
                 progress.LastCommittedCursor = fetched.NextCursor;
@@ -102,29 +114,42 @@ namespace JacRed.Infrastructure.Trackers.Bitru
         }
 
         public static void WriteCursorAtomic(string path, long unix)
+            => WriteAtomic(path, unix.ToString(CultureInfo.InvariantCulture));
+
+        public static void WriteFinishedAtomic(string path)
+            => WriteAtomic(path, FinishedSentinel);
+
+        public static bool IsFinished(string path)
+        {
+            if (!IO.File.Exists(path))
+                return false;
+            string text = IO.File.ReadAllText(path).Trim();
+            return string.Equals(text, FinishedSentinel, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static long? ReadCursor(string path)
+        {
+            if (!IO.File.Exists(path) || IsFinished(path))
+                return null;
+            string text = IO.File.ReadAllText(path).Trim();
+            if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long unix) && unix > 0)
+                return unix;
+            return null;
+        }
+
+        static void WriteAtomic(string path, string text)
         {
             var fullPath = IO.Path.GetFullPath(path);
             var dir = IO.Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(dir) && !IO.Directory.Exists(dir))
                 IO.Directory.CreateDirectory(dir);
 
-            string text = unix.ToString(CultureInfo.InvariantCulture);
             string tempPath = fullPath + ".tmp";
             IO.File.WriteAllText(tempPath, text);
             if (IO.File.Exists(fullPath))
                 IO.File.Replace(tempPath, fullPath, null);
             else
                 IO.File.Move(tempPath, fullPath);
-        }
-
-        public static long? ReadCursor(string path)
-        {
-            if (!IO.File.Exists(path))
-                return null;
-            string text = IO.File.ReadAllText(path).Trim();
-            if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long unix) && unix > 0)
-                return unix;
-            return null;
         }
     }
 }

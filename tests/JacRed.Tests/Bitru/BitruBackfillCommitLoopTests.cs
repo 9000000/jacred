@@ -46,6 +46,7 @@ public class BitruBackfillCommitLoopTests : IDisposable
             fetchPage: (_, _) => Task.FromResult(pages.Count > 0 ? pages.Dequeue() : BitruBackfillPage.Halt()),
             savePage: (_, _) => Task.CompletedTask,
             commitCursor: unix => committed = unix,
+            commitFinished: () => { },
             progress,
             CancellationToken.None);
 
@@ -87,6 +88,7 @@ public class BitruBackfillCommitLoopTests : IDisposable
                     return Task.CompletedTask;
                 },
                 commitCursor: unix => committed = unix,
+                commitFinished: () => { },
                 progress,
                 cts.Token));
 
@@ -117,6 +119,7 @@ public class BitruBackfillCommitLoopTests : IDisposable
                     return Task.CompletedTask;
                 },
                 commitCursor: unix => committed = unix,
+                commitFinished: () => { },
                 progress,
                 cts.Token));
 
@@ -145,6 +148,7 @@ public class BitruBackfillCommitLoopTests : IDisposable
                 return Task.CompletedTask;
             },
             commitCursor: unix => committed = unix,
+            commitFinished: () => { },
             progress,
             CancellationToken.None);
 
@@ -164,6 +168,69 @@ public class BitruBackfillCommitLoopTests : IDisposable
 
         Assert.Equal(1769339212, BitruBackfillCommitLoop.ReadCursor(path));
         Assert.Equal("1769339212", File.ReadAllText(path));
+        Assert.False(File.Exists(path + ".tmp"));
+    }
+
+    [Fact]
+    public async Task RunAsync_NonEmptyPageWithoutNextCursor_WritesFinished()
+    {
+        bool finished = false;
+        long? committed = null;
+        var progress = new BitruBackfillProgress { LastCommittedCursor = 1376988004 };
+
+        await BitruBackfillCommitLoop.RunAsync(
+            maxPages: 5,
+            startCursor: 1376988004,
+            fetchPage: (_, _) => Task.FromResult(BitruBackfillPage.Ok(DummyTorrents(95), nextCursor: null, ids: null)),
+            savePage: (_, _) => Task.CompletedTask,
+            commitCursor: unix => committed = unix,
+            commitFinished: () => finished = true,
+            progress,
+            CancellationToken.None);
+
+        Assert.True(finished);
+        Assert.True(progress.Finished);
+        Assert.Null(committed);
+        Assert.Equal(1, progress.FetchedPages);
+        Assert.Equal(1, progress.CommittedPages);
+        Assert.Equal(95, progress.SavedCount);
+        Assert.Equal(1376988004, progress.LastCommittedCursor);
+        Assert.Equal("saved 95, fetchedPages=1, committedPages=1, cursor=1376988004, finished", progress.FormatLog());
+    }
+
+    [Fact]
+    public async Task RunAsync_HaltOnFirstPage_DoesNotWriteFinished()
+    {
+        bool finished = false;
+        var progress = new BitruBackfillProgress { LastCommittedCursor = 300 };
+
+        await BitruBackfillCommitLoop.RunAsync(
+            maxPages: 5,
+            startCursor: 300,
+            fetchPage: (_, _) => Task.FromResult(BitruBackfillPage.Halt()),
+            savePage: (_, _) => Task.CompletedTask,
+            commitCursor: _ => { },
+            commitFinished: () => finished = true,
+            progress,
+            CancellationToken.None);
+
+        Assert.False(finished);
+        Assert.False(progress.Finished);
+    }
+
+    [Fact]
+    public void WriteFinishedAtomic_ThenIsFinished_SkipsCursor()
+    {
+        var path = Path.Combine(_tempDir, "bitru_backfill_cursor.txt");
+        BitruBackfillCommitLoop.WriteCursorAtomic(path, 1376988004);
+        Assert.False(BitruBackfillCommitLoop.IsFinished(path));
+        Assert.Equal(1376988004, BitruBackfillCommitLoop.ReadCursor(path));
+
+        BitruBackfillCommitLoop.WriteFinishedAtomic(path);
+
+        Assert.True(BitruBackfillCommitLoop.IsFinished(path));
+        Assert.Null(BitruBackfillCommitLoop.ReadCursor(path));
+        Assert.Equal(BitruBackfillCommitLoop.FinishedSentinel, File.ReadAllText(path));
         Assert.False(File.Exists(path + ".tmp"));
     }
 

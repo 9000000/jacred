@@ -92,7 +92,8 @@ namespace JacRed.Infrastructure.Trackers.Bitru
 
         /// <summary>
         /// Walk older archive pages. Live API: after_date means older-than (docs label is inverted).
-        /// Progress is stored in Data/temp/bitru_backfill_cursor.txt as unix seconds.
+        /// Progress is stored in Data/temp/bitru_backfill_cursor.txt as unix seconds, or
+        /// <c>finished</c> after a saved page with no next cursor (<c>before_date=null</c>).
         /// Cursor advances only after a page is saved.
         /// </summary>
         public async Task<string> BackfillAsync(int pages = 20, int limit = 100, CancellationToken cancellationToken = default)
@@ -103,6 +104,12 @@ namespace JacRed.Infrastructure.Trackers.Bitru
 
             return await TrackerSyncHelpers.RunParseAsync(TrackerName, _parseLock, checkDisabled: false, async () =>
             {
+                if (BitruBackfillCommitLoop.IsFinished(BackfillCursorPath))
+                {
+                    ParserLog.Write(TrackerName, "Backfill already finished");
+                    return "finished";
+                }
+
                 var sw = Stopwatch.StartNew();
                 ParserLog.Write(TrackerName,
                     $"Backfill start, pages={maxPages}, limit={lim}, cursor={(startCursor.HasValue ? startCursor.Value.ToString(CultureInfo.InvariantCulture) : "none")}, api={ApiUrl}");
@@ -167,6 +174,7 @@ namespace JacRed.Infrastructure.Trackers.Bitru
                     },
                     savePage: SaveTorrentsAndMagnets,
                     commitCursor: WriteBackfillCursor,
+                    commitFinished: WriteBackfillFinished,
                     progress,
                     cancellationToken);
 
@@ -255,6 +263,18 @@ namespace JacRed.Infrastructure.Trackers.Bitru
             catch (Exception ex)
             {
                 ParserLog.Write(TrackerName, $"Write backfill cursor failed: {ex.Message}");
+            }
+        }
+
+        void WriteBackfillFinished()
+        {
+            try
+            {
+                BitruBackfillCommitLoop.WriteFinishedAtomic(BackfillCursorPath);
+            }
+            catch (Exception ex)
+            {
+                ParserLog.Write(TrackerName, $"Write backfill finished failed: {ex.Message}");
             }
         }
 
