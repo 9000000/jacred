@@ -74,6 +74,20 @@ journalctl -u jacred -n 100 --no-pager
     Активный обход смотрите на `/jobs` или в `GET /health/background-jobs`. Подробнее: [обзор трекеров](/trackers/overview).
   </Accordion>
 
+  <Accordion title="ParseAll крутит одни и те же страницы (pending не падает)">
+    Цикл не ротируется, пока pending > 0. Если `parsePage` не помечает пустой, но валидный листинг как done, обход вечно ретраит дырки (Rutor: `pending=4/3958`).
+
+    Сначала убедитесь, что ParseAll этого слага не идёт (`/health/background-jobs`), затем:
+
+    ```bash
+    python3 scripts/parseall_cycle.py --dir /opt/jacred/Data/temp status
+    python3 scripts/parseall_cycle.py --dir /opt/jacred/Data/temp recrawl --skip-pending
+    python3 scripts/parseall_cycle.py --dir /opt/jacred/Data/temp recrawl --skip-pending --apply
+    ```
+
+    Без слага скрипт трогает все trio ParseAll (`anibelka`, `kinozal`, `korsars`, `megapeer`, `nnmclub`, `rutor`, `rutracker`, `toloka`, `torrentby`, `ultradox`) у которых `0 < pending ≤ --max-pending` (дырки, не живой обход). Потом `curl /cron/{slug}/ParseAllTask` на те слаги, что изменились. `skip-pending` только снимает текущие дырки (следующий ParseAll начнёт полный круг и снова встанет). `recrawl --skip-pending` — новый цикл без этих слотов.
+  </Accordion>
+
   <Accordion title="API возвращает 401 или 403">
     `401` обычно означает, что обязательный ключ не передан. `403` означает неверный ключ или запрещённый сетевой контекст.
 
