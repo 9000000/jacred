@@ -238,10 +238,7 @@ namespace JacRed.Infrastructure.Trackers.Toloka
 
                         bool res = await parsePage(item.cat, item.val.page, ct);
                         TrackerSyncHelpers.NoteRequest(TrackerName);
-                        if (res)
-                        {
-                            ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                        }
+                        ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, res);
 
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);
@@ -318,7 +315,7 @@ namespace JacRed.Infrastructure.Trackers.Toloka
             #endregion
 
             string html = await HttpClient.Get($"{AppInit.conf.Toloka.host}/f{cat}{(page == 0 ? "" : $"-{page * 45}")}?sort=8", cookie: Cookie(_memoryCache), cancellationToken: cancellationToken/*, useproxy: true, proxy: tParse.webProxy()*/);
-            if (html == null || !html.Contains("<html lang=\"uk\""))
+            if (html == null || !TolokaParser.LooksLikeForumListing(html))
                 return false;
 
             var torrents = TolokaParser.ParseTorrentsFromPage(html, cat);
@@ -339,7 +336,7 @@ namespace JacRed.Infrastructure.Trackers.Toloka
                 return false;
             });
 
-            return torrents.Count > 0;
+            return true;
         }
     }
 }

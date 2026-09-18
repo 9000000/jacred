@@ -130,6 +130,17 @@ public class TolokaParserFixtureTests
     }
 
     [Fact]
+    public void LooksLikeForumListing_UkHtmlWithoutTopics_IsListing()
+    {
+        const string empty = "<html lang=\"uk\"></html>";
+        Assert.True(TolokaParser.LooksLikeForumListing(empty));
+        Assert.Empty(TolokaParser.ParseTorrentsFromPage(empty, "96"));
+        Assert.True(TolokaParser.LooksLikeForumListing(FixtureLoader.Read("Toloka/browse_f96.html")));
+        Assert.False(TolokaParser.LooksLikeForumListing(""));
+        Assert.False(TolokaParser.LooksLikeForumListing("<html></html>"));
+    }
+
+    [Fact]
     public void LastPageFromHtml_BrowseF96_Is293()
     {
         string html = FixtureLoader.Read("Toloka/browse_f96.html");

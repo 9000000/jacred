@@ -85,6 +85,17 @@ public class MegapeerParserFixtureTests
     }
 
     [Fact]
+    public void LooksLikeBrowsePage_LogoWithoutRows_IsListing()
+    {
+        const string empty = "<html><div id=\"logo\"></div></html>";
+        Assert.True(MegapeerParser.LooksLikeBrowsePage(empty));
+        Assert.Empty(MegapeerParser.ParseTorrentsFromPage(empty, "79"));
+        Assert.True(MegapeerParser.LooksLikeBrowsePage(FixtureLoader.Read("Megapeer/browse_79.html")));
+        Assert.False(MegapeerParser.LooksLikeBrowsePage(""));
+        Assert.False(MegapeerParser.LooksLikeBrowsePage("<html></html>"));
+    }
+
+    [Fact]
     public void LastPageFromHtml_Browse79_CapsAt10()
     {
         string html = FixtureLoader.Read("Megapeer/browse_79.html");

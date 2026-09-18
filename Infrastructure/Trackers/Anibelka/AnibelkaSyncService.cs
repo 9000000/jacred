@@ -212,7 +212,7 @@ namespace JacRed.Infrastructure.Trackers.Anibelka
                         {
                             await ParseSectionPageAsync(host, item.cat, item.val.page, ct);
                             // Empty listings still count as done (Go markPageToday).
-                            ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
+                            ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, ok: true);
                         }
                         catch (OperationCanceledException) when (ct.IsCancellationRequested)
                         {
@@ -221,6 +221,7 @@ namespace JacRed.Infrastructure.Trackers.Anibelka
                         catch (Exception ex)
                         {
                             ParserLog.Write(TrackerName, $"ParseAllTask f={item.cat} page={item.val.page} error: {ex.Message}");
+                            ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, ok: false);
                         }
 
                         TrackerSyncHelpers.NoteRequest(TrackerName);

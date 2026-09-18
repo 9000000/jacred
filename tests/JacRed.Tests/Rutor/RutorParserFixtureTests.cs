@@ -98,6 +98,20 @@ public class RutorParserFixtureTests
     }
 
     [Fact]
+    public void LooksLikeBrowseListing_HolePagerWithoutRows_IsTrue()
+    {
+        const string hole =
+            "<html><p><a href=\"/browse/2109/1/0/0\"><b>210901&nbsp;-&nbsp;210908</b></a></p>" +
+            "<table><tr><th>Добавлен</th></tr></table></html>";
+        Assert.True(RutorParser.LooksLikeBrowseListing(hole));
+        Assert.Empty(RutorParser.ParseTorrentsFromPage(hole, "1"));
+        Assert.True(RutorParser.LooksLikeBrowseListing(FixtureLoader.Read("Rutor/browse_1.html")));
+        Assert.False(RutorParser.LooksLikeBrowseListing(""));
+        Assert.False(RutorParser.LooksLikeBrowseListing("Just a moment..."));
+        Assert.True(RutorParser.LooksLikeBrowseListing("<tr class=\"gai\"><td>row</td></tr>"));
+    }
+
+    [Fact]
     public void PrunePagesBeyondMax_DropsGhostTail()
     {
         var tasks = Enumerable.Range(0, 20).Select(i => new TaskParse(i)).ToList();

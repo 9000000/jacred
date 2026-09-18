@@ -18,6 +18,10 @@ namespace JacRed.Infrastructure.Trackers.Megapeer
     public static class MegapeerParser
     {
         const string BrowsePageValidMarker = "id=\"logo\"";
+
+        /// <summary>Real browse chrome, not a CF interstitial / empty fetch.</summary>
+        public static bool LooksLikeBrowsePage(string html) =>
+            !string.IsNullOrEmpty(html) && html.Contains(BrowsePageValidMarker, StringComparison.Ordinal);
         public const int MaxTaskPages = 10;
 
         static readonly Regex TotalCountRe = new(@">Всего: ([0-9]+)", RegexOptions.Compiled);
@@ -121,7 +125,7 @@ namespace JacRed.Infrastructure.Trackers.Megapeer
         {
             string html = await GetMegapeerBrowsePage($"{AppInit.conf.Megapeer.rqHost()}/browse.php?cat={cat}&page={page}", cat, cancellationToken);
 
-            if (html == null || !html.Contains(BrowsePageValidMarker))
+            if (!LooksLikeBrowsePage(html))
                 return false;
 
             var torrents = ParseTorrentsFromPage(html, cat);
@@ -143,7 +147,7 @@ namespace JacRed.Infrastructure.Trackers.Megapeer
                 return false;
             });
 
-            return torrents.Count > 0;
+            return true;
         }
 
         public static List<MegapeerDetails> ParseTorrentsFromPage(string html, string cat)

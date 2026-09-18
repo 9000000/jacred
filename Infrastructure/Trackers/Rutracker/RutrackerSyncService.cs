@@ -255,17 +255,10 @@ namespace JacRed.Infrastructure.Trackers.Rutracker
 
                         bool res = await parsePage(item.cat, item.val.page, ct);
                         TrackerSyncHelpers.NoteRequest(TrackerName);
-                        if (res)
-                        {
-                            if (fullRun)
-                            {
-                                ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                            }
-                            else
-                            {
-                                item.val.updateTime = DateTime.Today;
-                            }
-                        }
+                        if (fullRun)
+                            ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, res);
+                        else if (res)
+                            item.val.updateTime = DateTime.Today;
 
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);

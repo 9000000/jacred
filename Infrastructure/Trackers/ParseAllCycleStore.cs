@@ -1,3 +1,4 @@
+using JacRed.Infrastructure.Parsing;
 using JacRed.Models.tParse;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -107,6 +108,34 @@ namespace JacRed.Infrastructure.Trackers
         {
             page.parseAllCycleId = cycle.CycleId;
             page.updateTime = DateTime.Today;
+        }
+
+        public const int DefaultFailBudget = 3;
+
+        /// <summary>
+        /// Settle a ParseAll slot on success, or skip it after <see cref="DefaultFailBudget"/> consecutive failures.
+        /// </summary>
+        /// <remarks>
+        /// ponytail: per-slot skip after N fails. If the whole tracker is CF for N full passes the cycle
+        /// completes empty; the next cycle retries. Prefer that over an infinite hole-page loop.
+        /// </remarks>
+        public static bool NoteAttempt(string tracker, TaskParse page, ParseAllCycleState cycle, bool ok)
+        {
+            if (ok)
+            {
+                page.parseAllFailCount = 0;
+                MarkDoneInCycle(page, cycle);
+                return true;
+            }
+
+            page.parseAllFailCount++;
+            if (page.parseAllFailCount < DefaultFailBudget)
+                return false;
+
+            page.parseAllFailCount = 0;
+            MarkDoneInCycle(page, cycle);
+            ParserLog.Write(tracker, $"ParseAll skip slot page={page.page} after {DefaultFailBudget} failures");
+            return true;
         }
 
         public static ParseAllCycleState CreateCycle(string fingerprint, int mapCount)

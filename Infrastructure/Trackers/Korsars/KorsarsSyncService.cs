@@ -367,7 +367,7 @@ namespace JacRed.Infrastructure.Trackers.Korsars
                         {
                             await ParseCategoryPageAsync(rqHost, canonHost, item.cat, item.val.page, ct);
                             // Empty listings still count as done (Go markTaskToday).
-                            ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
+                            ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, ok: true);
                         }
                         catch (OperationCanceledException) when (ct.IsCancellationRequested)
                         {
@@ -376,6 +376,7 @@ namespace JacRed.Infrastructure.Trackers.Korsars
                         catch (Exception ex)
                         {
                             ParserLog.Write(TrackerName, $"ParseAllTask f={item.cat} page={item.val.page} error: {ex.Message}");
+                            ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, ok: false);
                         }
 
                         TrackerSyncHelpers.NoteRequest(TrackerName);

@@ -132,10 +132,7 @@ namespace JacRed.Infrastructure.Trackers.Megapeer
 
                         bool res = await MegapeerParser.ParsePageAsync(item.cat, item.val.page, ct);
                         TrackerSyncHelpers.NoteRequest(TrackerName);
-                        if (res)
-                        {
-                            ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                        }
+                        ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, res);
 
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);

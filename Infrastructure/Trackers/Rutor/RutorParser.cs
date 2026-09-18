@@ -37,6 +37,19 @@ namespace JacRed.Infrastructure.Trackers.Rutor
             return n;
         }
 
+        /// <summary>Real browse HTML (pager and/or gai/tum rows), not a CF interstitial / empty fetch.</summary>
+        public static bool LooksLikeBrowseListing(string html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+                return false;
+
+            if (LastBrowseRe.IsMatch(html))
+                return true;
+
+            return html.IndexOf("<tr class=\"gai\">", StringComparison.OrdinalIgnoreCase) >= 0
+                || html.IndexOf("<tr class=\"tum\">", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
         /// <summary>Drop map slots past the live 0-based last index (inclusive <c>page &lt;= maxPage</c>).</summary>
         public static int PrunePagesBeyondMax(List<TaskParse> tasks, int maxPage)
         {

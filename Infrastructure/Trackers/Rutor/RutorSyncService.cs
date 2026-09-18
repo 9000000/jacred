@@ -128,10 +128,7 @@ namespace JacRed.Infrastructure.Trackers.Rutor
 
                         bool res = await parsePage(item.cat, item.val.page, ct);
                         TrackerSyncHelpers.NoteRequest(TrackerName);
-                        if (res)
-                        {
-                            ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                        }
+                        ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, res);
 
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);
@@ -193,13 +190,13 @@ namespace JacRed.Infrastructure.Trackers.Rutor
         async Task<bool> parsePage(string cat, int page, CancellationToken cancellationToken = default)
         {
             string html = await HttpClient.Get($"{AppInit.conf.Rutor.rqHost()}/browse/{page}/{cat}/0/0", useproxy: AppInit.conf.Rutor.useproxy, cancellationToken: cancellationToken);
-            if (html == null)
+            if (html == null || !RutorParser.LooksLikeBrowseListing(html))
                 return false;
 
             var torrents = RutorParser.ParseTorrentsFromPage(html, cat);
 
             FileDB.AddOrUpdate(torrents);
-            return torrents.Count > 0;
+            return true;
         }
     }
 }

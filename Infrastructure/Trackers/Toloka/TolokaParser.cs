@@ -37,6 +37,10 @@ namespace JacRed.Infrastructure.Trackers.Toloka
             return n;
         }
 
+        /// <summary>Real forum chrome (<c>lang="uk"</c>), not a login wall / empty fetch.</summary>
+        public static bool LooksLikeForumListing(string html) =>
+            !string.IsNullOrEmpty(html) && html.Contains("<html lang=\"uk\"", StringComparison.Ordinal);
+
         /// <summary>Drop map slots at or past the live page count (exclusive <c>page &lt; pageCount</c>).</summary>
         public static int PrunePagesBeyondPageCount(List<TaskParse> tasks, int pageCount)
         {

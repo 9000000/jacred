@@ -291,4 +291,34 @@ public class ParseAllCycleStoreTests : IDisposable
 
         Assert.False(ParseAllCycleStore.HasPendingWork(slug));
     }
+
+    [Fact]
+    public void NoteAttempt_SettlesAfterFailBudget()
+    {
+        var cycle = ParseAllCycleStore.CreateCycle("fp", 1);
+        var page = new TaskParse(7);
+
+        Assert.False(ParseAllCycleStore.NoteAttempt("rutor", page, cycle, ok: false));
+        Assert.True(ParseAllCycleStore.IsPendingInCycle(page, cycle));
+        Assert.Equal(1, page.parseAllFailCount);
+
+        Assert.False(ParseAllCycleStore.NoteAttempt("rutor", page, cycle, ok: false));
+        Assert.Equal(2, page.parseAllFailCount);
+
+        Assert.True(ParseAllCycleStore.NoteAttempt("rutor", page, cycle, ok: false));
+        Assert.False(ParseAllCycleStore.IsPendingInCycle(page, cycle));
+        Assert.Equal(0, page.parseAllFailCount);
+        Assert.Equal(cycle.CycleId, page.parseAllCycleId);
+    }
+
+    [Fact]
+    public void NoteAttempt_SuccessResetsFailCount()
+    {
+        var cycle = ParseAllCycleStore.CreateCycle("fp", 1);
+        var page = new TaskParse(8) { parseAllFailCount = 2 };
+
+        Assert.True(ParseAllCycleStore.NoteAttempt("rutor", page, cycle, ok: true));
+        Assert.Equal(0, page.parseAllFailCount);
+        Assert.False(ParseAllCycleStore.IsPendingInCycle(page, cycle));
+    }
 }

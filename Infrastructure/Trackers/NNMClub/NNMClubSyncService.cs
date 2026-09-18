@@ -144,10 +144,7 @@ namespace JacRed.Infrastructure.Trackers.NNMClub
 
                         var status = await parsePage(item.cat, item.val.page, ct);
                         TrackerSyncHelpers.NoteRequest(TrackerName);
-                        if (NNMClubPortalPagination.ShouldSettleTask(status))
-                        {
-                            ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
-                        }
+                        ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, NNMClubPortalPagination.ShouldSettleTask(status));
 
                         done++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", done, pending.Length, item.cat, item.val.page);

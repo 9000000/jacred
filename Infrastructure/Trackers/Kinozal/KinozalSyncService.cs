@@ -422,11 +422,8 @@ namespace JacRed.Infrastructure.Trackers.Kinozal
 
                         bool res = await parsePage(item.cat, item.val.page, item.arg, ct);
                         TrackerSyncHelpers.NoteRequest(TrackerName);
-                        if (res)
-                        {
-                            ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
+                        if (ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, res))
                             succeeded++;
-                        }
 
                         attempted++;
                         TrackerSyncHelpers.ReportProgress(TrackerName, "ParseAllTask", attempted, pending.Length, item.cat, item.val.page);

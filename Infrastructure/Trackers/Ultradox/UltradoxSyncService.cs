@@ -238,8 +238,7 @@ namespace JacRed.Infrastructure.Trackers.Ultradox
                         {
                             var (_, _, _, _, _, listingOk) =
                                 await ParseSectionPageAsync(host, item.cat, types, item.val.page, ct);
-                            if (listingOk)
-                                ParseAllCycleStore.MarkDoneInCycle(item.val, cycle);
+                            ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, listingOk);
                         }
                         catch (OperationCanceledException) when (ct.IsCancellationRequested)
                         {
@@ -248,6 +247,7 @@ namespace JacRed.Infrastructure.Trackers.Ultradox
                         catch (Exception ex)
                         {
                             ParserLog.Write(TrackerName, $"ParseAllTask {item.cat} page={item.val.page} error: {ex.Message}");
+                            ParseAllCycleStore.NoteAttempt(TrackerName, item.val, cycle, ok: false);
                         }
 
                         TrackerSyncHelpers.NoteRequest(TrackerName);
