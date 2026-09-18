@@ -68,7 +68,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 10,30,50 * * * *  /opt/jacred/Data/run-job.sh bitru-parse http://127.0.0.1:9117/cron/bitru/parse 900
 
 # bitru-backfill -> /cron/bitru/backfill?pages=20 (max_time=900s)
-# default/clamp 1..50; pages=20 ≈ up to 2000 torrents/hour. Use ?pages=50 for faster archive fill.
+# default/clamp 1..50; pages=20 ≈ up to 2000 torrents/hour (~3.5d full pass).
+# finished ends this pass; next :40 kick starts again from the newest page (ParseAll analog).
+# Do not raise pages: backfill holds the parse lock and can skip :50 parse.
 40 * * * *  /opt/jacred/Data/run-job.sh bitru-backfill "http://127.0.0.1:9117/cron/bitru/backfill?pages=20" 900
 
 # --- nnmclub (~145k) ---

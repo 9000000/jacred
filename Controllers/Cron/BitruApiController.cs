@@ -26,7 +26,7 @@ namespace JacRed.Controllers.Cron
 
         /// <summary>
         /// Walk older archive with persisted cursor (Data/temp/bitru_backfill_cursor.txt).
-        /// After the last page (<c>before_date=null</c>) the file is <c>finished</c> and later calls skip the API.
+        /// After the last page (<c>before_date=null</c>) the file is <c>finished</c>; the next kick starts a new pass from the newest page.
         /// </summary>
         async public Task<string> Backfill(int pages = 20, int limit = 100) =>
             await _syncService.BackfillAsync(pages, limit, HttpContext.RequestAborted);

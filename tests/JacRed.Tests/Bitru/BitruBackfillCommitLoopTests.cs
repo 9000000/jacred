@@ -234,6 +234,22 @@ public class BitruBackfillCommitLoopTests : IDisposable
         Assert.False(File.Exists(path + ".tmp"));
     }
 
+    [Fact]
+    public void ReadStartCursor_MissingUnixOrFinished()
+    {
+        var path = Path.Combine(_tempDir, "start_cursor.txt");
+        Assert.Null(BitruBackfillCommitLoop.ReadStartCursor(path));
+        Assert.False(BitruBackfillCommitLoop.IsFinished(path));
+
+        BitruBackfillCommitLoop.WriteCursorAtomic(path, 1376988004);
+        Assert.Equal(1376988004, BitruBackfillCommitLoop.ReadStartCursor(path));
+        Assert.False(BitruBackfillCommitLoop.IsFinished(path));
+
+        BitruBackfillCommitLoop.WriteFinishedAtomic(path);
+        Assert.True(BitruBackfillCommitLoop.IsFinished(path));
+        Assert.Null(BitruBackfillCommitLoop.ReadStartCursor(path));
+    }
+
     static List<TorrentDetails> DummyTorrents(int count)
     {
         var list = new List<TorrentDetails>(count);

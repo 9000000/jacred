@@ -94,25 +94,36 @@ namespace JacRed.Infrastructure.Trackers.Bitru
         /// Walk older archive pages. Live API: after_date means older-than (docs label is inverted).
         /// Progress is stored in Data/temp/bitru_backfill_cursor.txt as unix seconds, or
         /// <c>finished</c> after a saved page with no next cursor (<c>before_date=null</c>).
+        /// The next kick treats <c>finished</c> as a new pass from the newest page (ParseAll analog).
         /// Cursor advances only after a page is saved.
         /// </summary>
         public async Task<string> BackfillAsync(int pages = 20, int limit = 100, CancellationToken cancellationToken = default)
         {
             int maxPages = BitruApiPagination.ClampPages(pages);
             int lim = BitruApiPagination.ClampLimit(limit);
-            long? startCursor = ReadBackfillCursor();
 
             return await TrackerSyncHelpers.RunParseAsync(TrackerName, _parseLock, checkDisabled: false, async () =>
             {
-                if (BitruBackfillCommitLoop.IsFinished(BackfillCursorPath))
+                bool newCycle = false;
+                long? startCursor = null;
+                try
                 {
-                    ParserLog.Write(TrackerName, "Backfill already finished");
-                    return "finished";
+                    newCycle = BitruBackfillCommitLoop.IsFinished(BackfillCursorPath);
+                    startCursor = BitruBackfillCommitLoop.ReadStartCursor(BackfillCursorPath);
+                }
+                catch (Exception ex)
+                {
+                    ParserLog.Write(TrackerName, $"Read backfill cursor failed: {ex.Message}");
                 }
 
                 var sw = Stopwatch.StartNew();
+                string cursorLabel = startCursor.HasValue
+                    ? startCursor.Value.ToString(CultureInfo.InvariantCulture)
+                    : "none";
                 ParserLog.Write(TrackerName,
-                    $"Backfill start, pages={maxPages}, limit={lim}, cursor={(startCursor.HasValue ? startCursor.Value.ToString(CultureInfo.InvariantCulture) : "none")}, api={ApiUrl}");
+                    newCycle
+                        ? $"Backfill start new cycle, pages={maxPages}, limit={lim}, cursor={cursorLabel}, api={ApiUrl}"
+                        : $"Backfill start, pages={maxPages}, limit={lim}, cursor={cursorLabel}, api={ApiUrl}");
 
                 var (log, completed) = await CrawlOlderPagesAsync("Backfill", maxPages, lim, startCursor, cancellationToken);
                 if (completed)
@@ -239,19 +250,6 @@ namespace JacRed.Infrastructure.Trackers.Bitru
                 nextCursor = parsedCursor;
 
             return BitruBackfillPage.Ok(pageTorrents, nextCursor, pageIds);
-        }
-
-        long? ReadBackfillCursor()
-        {
-            try
-            {
-                return BitruBackfillCommitLoop.ReadCursor(BackfillCursorPath);
-            }
-            catch (Exception ex)
-            {
-                ParserLog.Write(TrackerName, $"Read backfill cursor failed: {ex.Message}");
-                return null;
-            }
         }
 
         void WriteBackfillCursor(long unix)

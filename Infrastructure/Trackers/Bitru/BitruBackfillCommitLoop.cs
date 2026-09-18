@@ -137,6 +137,13 @@ namespace JacRed.Infrastructure.Trackers.Bitru
             return null;
         }
 
+        /// <summary>
+        /// Cursor for this backfill kick. Null means start from the newest page
+        /// (missing file or previous pass wrote <see cref="FinishedSentinel"/>).
+        /// </summary>
+        public static long? ReadStartCursor(string path)
+            => ReadCursor(path);
+
         static void WriteAtomic(string path, string text)
         {
             var fullPath = IO.Path.GetFullPath(path);
