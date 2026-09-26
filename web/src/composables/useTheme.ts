@@ -38,8 +38,9 @@ function applyTheme(value: ThemeValue) {
     'meta[name="apple-mobile-web-app-status-bar-style"]',
   )
   if (statusBar) {
-    // black-translucent works with viewport-fit=cover + safe-area header padding
-    statusBar.setAttribute('content', 'black-translucent')
+    // iOS 27 blurs the top of installed PWAs when this is black-translucent.
+    // The value is frozen at Add to Home Screen, so a CSS cover cannot clear it.
+    statusBar.setAttribute('content', 'default')
   }
 }
 
