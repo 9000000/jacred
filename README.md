@@ -106,4 +106,6 @@ Docker: [документация по развёртыванию](docs/deployme
 
 ## Лицензия
 
+Copyright (c) 2026 jacred-fdb, pavelpikta
+
 AGPL-3.0. См. файл [LICENSE](LICENSE) для подробностей.
