@@ -7,7 +7,7 @@
 [![Documentation](https://img.shields.io/badge/docs-Mintlify-0D9373?logo=mintlify&logoColor=white)](https://docs.jacred.stream)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/jacred-fdb/jacred?label=version)](https://github.com/jacred-fdb/jacred/releases)
 [![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/jacred-fdb/jacred?include_prereleases&label=pre-release)](https://github.com/jacred-fdb/jacred/tags)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 Агрегатор торрент-трекеров с API в формате Jackett. Хранит данные в файловой БД (fdb), поддерживает синхронизацию с удалённой базой и самостоятельный парсинг трекеров по cron.
 
@@ -106,4 +106,4 @@ Docker: [документация по развёртыванию](docs/deployme
 
 ## Лицензия
 
-MIT License. См. файл [LICENSE](LICENSE) для подробностей.
+AGPL-3.0. См. файл [LICENSE](LICENSE) для подробностей.
